@@ -532,7 +532,6 @@ def weighted_avg_and_stdv2(values, values_err):
     values, weights -- Numpy ndarrays with the same shape.
     
     """
-    
     masked_data = np.ma.masked_array(values, np.isnan(values))
     masked_errs = np.ma.masked_array(values_err, np.isnan(values_err))
     weights = 1/(values_err)
@@ -541,3 +540,14 @@ def weighted_avg_and_stdv2(values, values_err):
     # Fast and numerically precise:
     variance = np.average((values-average)**2, weights=weights)
     return average, np.sqrt(variance)
+
+def latex_float(f):
+    """
+        Returns string with latex exponent format
+    """
+    float_str = "{0:.2g}".format(f)
+    if "e" in float_str:
+        base, exponent = float_str.split("e")
+        return rf'{np.float(base):1.1f}\times10^{{{int(exponent):1.0f}}}'
+    else:
+        return float_str
