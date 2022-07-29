@@ -5,7 +5,9 @@ from astrothesispy.scripts import NGC253HR_contfigs
 D_Mpc = 3.5
 cont219_plot = False
 zoom_cont219_plot = False
-moments_plot = True
+moments_plot = False
+ringspectra_plot = False
+LTE2D_plot = True
 
 # =============================================================================
 # Global paths
@@ -34,3 +36,11 @@ if zoom_cont219_plot:
 if moments_plot:
     # Figure 3
     NGC253HR_contfigs.plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = D_Mpc, source = source)
+    
+if ringspectra_plot:
+    # Figure 4
+    # spectra from averaged ring, this figure is done inside Madcuba spectra
+    cont = True
+
+if LTE2D_plot:
+    # Figure 5
