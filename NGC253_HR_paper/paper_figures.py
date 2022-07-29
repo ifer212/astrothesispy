@@ -45,7 +45,10 @@ if ringspectra_plot:
     # Figure 4
     # spectra from averaged ring, this figure is done inside Madcuba spectra
     cont = True
-
+    
+# =============================================================================
+# SLIM LTE figures
+# =============================================================================
 if LTE2D_plot:
     # Figure 5
     NGC253HR_SLIMfigs.plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = molecule, source = source, D_Mpc = D_Mpc)
@@ -53,3 +56,7 @@ if LTE2D_plot:
 if LTEprofiles_plot:
     # Figure 6
     NGC253HR_SLIMfigs.plot_SLIMprofiles(NGC253_path, fig_path)
+    
+# =============================================================================
+# Radiative transfer modelling figures
+# =============================================================================
