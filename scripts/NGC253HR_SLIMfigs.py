@@ -189,7 +189,7 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     axes[0].imshow(columndens_cube.fitsdata[0,0,:,:], norm=LogNorm(vmin=logn_min, vmax=logn_max), cmap =plt.cm.rainbow)
     plot_utiles.add_cbar(fig, axes[0], columndens_cube.fitsdata[0,0,:,:], r'logN(HC$_3$N) (cm$^{-2}$)', color_palette='rainbow', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False,
-                 ticks=[14.5, 15, 15.5, 16, 16.5], Mappable=False, cbar_limits=[logn_min, logn_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
+                 ticks=[15, 15.5, 16, 16.5], Mappable=False, cbar_limits=[logn_min, logn_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.1f', norm='log', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
 
