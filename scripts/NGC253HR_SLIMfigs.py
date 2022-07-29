@@ -1,7 +1,12 @@
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import utiles_cubes
 from astrothesispy.utiles import utiles_plot as plot_utiles
-from astrothesispy.utiles import u_conversion
+
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from matplotlib.colors import LogNorm
+import pandas as pd
+import numpy as np
 
 plt.rc('text', usetex=True)
 plt.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
@@ -11,23 +16,23 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # =============================================================================
 # SLIM figures
 # =============================================================================
-if plot_slim_cubes:
-    source = 'SHC_13'
-    molecule = 'HC3Nvib_J24J26'
-    path = '/Users/frico/Documents/data/NGC253_HR/SHC/'
-    slim_cube_path = path+source+'/SLIM/'
+
+def plot_SLIM2D(NGC253_path,  cont_path, location_path, results_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5):
+    """
+        Figure 5 for NGC253 HR paper
+    """
+    rms_219 = 1.307E-5
+    path = f'{NGC253_path}SHC/'
+    slim_cube_path = f'{path}{source}/SLIM/'
     use_madcuba_moments = False
     if molecule == 'HC3Nvib_J24J26':
         crop_pre = 'Crop_VF_'
         corr_str = 'corrected_'
         crop_pre = ''
         corr_str = ''
-        
     else:
         crop_pre = ''
         corr_str = ''
-        
-    
     if molecule == 'HC3Nvib_J24J26':
         crop = False
     else:
@@ -41,53 +46,48 @@ if plot_slim_cubes:
         moments_suf = ''
         moments_pre = 'MAD_CUB_Moments_0_'
         sigmastr = 'SIGMA' # For madcuba moments cube the sigma is not the integrated sigma of the cube
-        moment_cube_path = path+source+'/moments/Madcuba/'
+        moment_cube_path = f'{path}{source}/moments/Madcuba/'
     else:
         moments_suf = '_M0_aboveM0'
         moments_pre = ''
         sigmastr = 'INTSIGMA'
-        moment_cube_path = path+source+'/moments/'
+        moment_cube_path = f'{path}{source}/moments/'
         
     # SLIM Cubes
     columndens = crop_pre+'ColumnDensity_'+corr_str+molecule+'_'+source+'.fits'
-    columndens_cube = utiles.Cube_Handler('logn', slim_cube_path+columndens)
+    columndens_cube = utiles_cubes.Cube_Handler('logn', slim_cube_path+columndens)
     columndens_err = crop_pre+'ColumnDensity_err_'+molecule+'_'+source+'.fits'
-    columndens_err_cube = utiles.Cube_Handler('logn_err', slim_cube_path+columndens_err)
+    columndens_err_cube = utiles_cubes.Cube_Handler('logn_err', slim_cube_path+columndens_err)
     tex = crop_pre+'Tex_'+corr_str+molecule+'_'+source+'.fits'
-    tex_cube = utiles.Cube_Handler('tex', slim_cube_path+tex)
+    tex_cube = utiles_cubes.Cube_Handler('tex', slim_cube_path+tex)
     tex_err = crop_pre+'Tex_err_'+molecule+'_'+source+'.fits'
-    tex_err_cube = utiles.Cube_Handler('tex_err', slim_cube_path+tex_err)
+    tex_err_cube = utiles_cubes.Cube_Handler('tex_err', slim_cube_path+tex_err)
     FWHM = crop_pre+'FWHM_'+molecule+'_'+source+'.fits'
-    FWHM_cube = utiles.Cube_Handler('FWHM', slim_cube_path+FWHM)
+    FWHM_cube = utiles_cubes.Cube_Handler('FWHM', slim_cube_path+FWHM)
     FWHM_err = crop_pre+'FWHM_err_'+molecule+'_'+source+'.fits'
-    FWHM_err_cube = utiles.Cube_Handler('FWHM_err', slim_cube_path+FWHM_err)
+    FWHM_err_cube = utiles_cubes.Cube_Handler('FWHM_err', slim_cube_path+FWHM_err)
     vel = crop_pre+'vel_'+molecule+'_'+source+'.fits'
-    vel_cube = utiles.Cube_Handler('vel', slim_cube_path+vel)
+    vel_cube = utiles_cubes.Cube_Handler('vel', slim_cube_path+vel)
     vel_err = crop_pre+'vel_err_'+molecule+'_'+source+'.fits'
-    vel_err_cube = utiles.Cube_Handler('vel_err', slim_cube_path+vel_err)
+    vel_err_cube = utiles_cubes.Cube_Handler('vel_err', slim_cube_path+vel_err)
     
     # Cont cube
     cubo_219_path = NGC253_path+cont_path+location_path+'/MAD_CUB_219GHz_continuum.I.image.pbcor.fits'
-    cont219_cube = utiles.Cube_Handler('219', cubo_219_path)
-    cont219_rms = 1.307E-5#8.629E-6
-    cubo_219_aboverms_mask = utiles.sigma_mask(cont219_cube.fitsdata[0,0,:,:], rms_219, 2.0)
+    cont219_cube = utiles_cubes.Cube_Handler('219', cubo_219_path)
+    cubo_219_aboverms_mask = utiles_cubes.sigma_mask(cont219_cube.fitsdata[0,0,:,:], rms_219, 2.0)
     cubo_219_aboverms = np.copy(cont219_cube.fitsdata[0,0,:,:])
-    cubo_219_aboverms[cubo_219_aboverms_mask.mask] = np.nan
-    momcrop_str = ''
-    
+    cubo_219_aboverms[cubo_219_aboverms_mask.mask] = np.nan    
     RA, Dec = utiles.RADec_position(49, 20, tex_cube.wcs, origin=1)
-    
     # J = 24-23
     m0_v0_2423 = moments_pre+'NGC253_'+source+'_HC3N_v0_24_23'+moments_suf+'.fits'
-    m0_v0_2423_cube = utiles.Cube_Handler('m02423', moment_cube_path+m0_v0_2423)
+    m0_v0_2423_cube = utiles_cubes.Cube_Handler('m02423', moment_cube_path+m0_v0_2423)
     v0_2423_intrms = m0_v0_2423_cube.header[sigmastr]
     m0_v7_2423 = moments_pre+'NGC253_'+source+'_HC3N_v7=1_24_23_+1_-1'+moments_suf+'.fits'
-    m0_v7_2423_cube = utiles.Cube_Handler('m72423', moment_cube_path+m0_v7_2423)
+    m0_v7_2423_cube = utiles_cubes.Cube_Handler('m72423', moment_cube_path+m0_v7_2423)
     v7_2423_intrms = m0_v7_2423_cube.header[sigmastr]
     m0_v6_2423 = moments_pre+'NGC253_'+source+'_HC3N_v6=1_24_23_-1_+1'+moments_suf+'.fits'
-    m0_v6_2423_cube = utiles.Cube_Handler('m62423', moment_cube_path+m0_v6_2423)
+    m0_v6_2423_cube = utiles_cubes.Cube_Handler('m62423', moment_cube_path+m0_v6_2423)
     v6_2423_intrms = m0_v6_2423_cube.header[sigmastr]
-    
     
     cube_dict = {'momv0': m0_v0_2423_cube, 'momv7': m0_v7_2423_cube, 'coldens': columndens_cube,
                  'tex': tex_cube, 'vel': vel_cube, 'fwhm': FWHM_cube}
@@ -95,25 +95,19 @@ if plot_slim_cubes:
                 'tex_err': tex_err_cube, 'vel_err': vel_err_cube, 'fwhm': FWHM_err_cube}
     
     columndens = crop_pre+'ColumnDensity_'+corr_str+molecule+'_'+source+'.fits'
-    columndens_cube = utiles.Cube_Handler('logn', slim_cube_path+columndens)
+    columndens_cube = utiles_cubes.Cube_Handler('logn', slim_cube_path+columndens)
     columndens_err = crop_pre+'ColumnDensity_err_'+molecule+'_'+source+'.fits'
-    #columndens_err_cube = utiles.Cube_Handler('logn_err', slim_cube_path+columndens_err)
     tex = crop_pre+'Tex_'+corr_str+molecule+'_'+source+'.fits'
-    tex_cube = utiles.Cube_Handler('tex', slim_cube_path+tex)
+    tex_cube = utiles_cubes.Cube_Handler('tex', slim_cube_path+tex)
     tex_err = crop_pre+'Tex_err_'+molecule+'_'+source+'.fits'
-    tex_err_cube = utiles.Cube_Handler('tex_err', slim_cube_path+tex_err)
+    tex_err_cube = utiles_cubes.Cube_Handler('tex_err', slim_cube_path+tex_err)
     FWHM = crop_pre+'FWHM_'+molecule+'_'+source+'.fits'
-    FWHM_cube = utiles.Cube_Handler('FWHM', slim_cube_path+FWHM)
+    FWHM_cube = utiles_cubes.Cube_Handler('FWHM', slim_cube_path+FWHM)
     FWHM_err = crop_pre+'FWHM_err_'+molecule+'_'+source+'.fits'
-    #FWHM_err_cube = utiles.Cube_Handler('FWHM_err', slim_cube_path+FWHM_err)
     vel = crop_pre+'vel_'+molecule+'_'+source+'.fits'
-    vel_cube = utiles.Cube_Handler('vel', slim_cube_path+vel)
+    vel_cube = utiles_cubes.Cube_Handler('vel', slim_cube_path+vel)
     vel_err = crop_pre+'vel_err_'+molecule+'_'+source+'.fits'
-    #vel_err_cube = utiles.Cube_Handler('vel_err', slim_cube_path+vel_err)
 
-    angle = 45
-    angle_list = [0, 45, 90, 50+90]
-    angle_color = ['k', 'r', 'g', 'b']
     if molecule == 'HC3Nvib_J24J26':
         if source == 'SHC_13':
             px_mid = 50-1 # Fits starts on 1, python on 0
@@ -121,32 +115,29 @@ if plot_slim_cubes:
         elif source == 'SHC_14':
             px_mid = 67-1 # Fits starts on 1, python on 0
             py_mid = 96-1 # Fits starts on 1, python on 0
-            
     else:
         px_mid = 70-1 # Fits starts on 1, python on 0
         py_mid = 31-1 # Fits starts on 1, python on 0
     
-  
+    cbar_tickfont = 14
+    cbar_labelfont = 30
+    labelsize = 14
+    fontsize = 14
     
     # Starting figure
     figsize = 10
     naxis = 2
     maxis = 2
-    labelsize = 14
     ticksize = 6
-    fontsize = 14
     cbar_pad = -65
-    cbar_tickfont = 14
     axcolor = 'k'
     wcs_plot = columndens_cube.wcs
     fig = plt.figure(figsize=(naxis*figsize*0.7, figsize))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+    gs1 = gridspec.GridSpec(maxis, naxis)  
     gs1.update(wspace = 0.0, hspace=0.28, top=0.95, bottom = 0.05, left=0.05, right=0.80)
     
     RA_start, Dec_start = utiles.RADec_position(47, 70, wcs_plot, origin = 1)
     RA_end, Dec_end = utiles.RADec_position(91, 118, wcs_plot, origin = 1)
-
-    #RA_end, Dec_end = utiles.RADec_position(columndens_cube.fitsdata.shape[3], columndens_cube.fitsdata.shape[2], wcs_plot, origin = 1)
     # Adding wcs frame
     wcs_plot.wcs.ctype = ['RA---SIN', 'DEC--SIN']
     axes = []
@@ -161,52 +152,43 @@ if plot_slim_cubes:
         axes[i].coords[0].frame.set_linewidth(2)
         axes[i].coords[1].frame.set_linewidth(2)
         axes[i].coords[0].set_separator((r'$^{\rm{h}}$', r'$^{\rm{m}}$', r'$^{\rm{s}}$'))
-        
         axes[i].coords[0].display_minor_ticks(True)
         axes[i].coords[1].display_minor_ticks(True)
-    
         if i in [1,3]:
             axes[i].set_yticklabels([])
             axes[i].tick_params(axis="both", which='minor', length=8)
             axes[i].xaxis.set_tick_params(top =True, labeltop=False)
             axes[i].yaxis.set_tick_params(right=True, labelright=False, labelleft=False)
-            axes[i].set_xlabel('RA (J2000)', fontsize = fontsize)
+            axes[i].set_xlabel('RA (J2000)', fontsize = labelsize)
             axes[i].coords[1].set_ticklabel_visible(False)
             axes[i].coords[1].set_axislabel('')
-            
         else:
             axes[i].tick_params(direction='in')
             axes[i].tick_params(axis="both", which='minor', length=8)
-            
-            axes[i].set_ylabel('Dec (J2000)', fontsize = fontsize, labelpad=-1)
-            
+            axes[i].set_ylabel('Dec (J2000)', fontsize = labelsize, labelpad=-1)
         if i in [0,1]:
             axes[i].tick_params(axis="both", which='minor', length=8)
             axes[i].coords[0].set_ticklabel_visible(False)
         else:
-            axes[i].set_xlabel('RA (J2000)', fontsize = fontsize)
-        #axes[i].set_xlim([0, columndens_cube.fitsdata.shape[3]-2])
-        #axes[i].set_ylim([0, columndens_cube.fitsdata.shape[2]-1])
+            axes[i].set_xlabel('RA (J2000)', fontsize = labelsize)
         if source == 'SHC_14':
             axes[i].set_xlim([47-1, 91-1])
             axes[i].set_ylim([70-1, 118-1])
         elif source == 'SHC_13':
             axes[i].set_xlim([23-1, 68-1])
             axes[i].set_ylim([4-1, 41-1])
-        
                 
-            
     # ColDens
     if molecule == 'HC3Nvib_J24J26': 
-        logn_min = utiles.round_to_multiple(np.nanmin(columndens_cube.fitsdata[0,0,:,:]), 0.5) #np.round(utiles.truncate(np.nanmin(columndens_cube.fitsdata[0,0,:,:]), 1),1)
+        logn_min = utiles.round_to_multiple(np.nanmin(columndens_cube.fitsdata[0,0,:,:]), 0.5)
         logn_min = 14.8
     else: 
-        logn_min = 14.85 #np.round(utiles.truncate(np.nanmin(columndens_cube.fitsdata[0,0,:,:]), 1),1)
+        logn_min = 14.85 
     logn_max = utiles.round_to_multiple(np.nanmax(columndens_cube.fitsdata[0,0,:,:]), 0.5)
     axes[0].imshow(columndens_cube.fitsdata[0,0,:,:], norm=LogNorm(vmin=logn_min, vmax=logn_max), cmap =plt.cm.rainbow)
     plot_utiles.add_cbar(fig, axes[0], columndens_cube.fitsdata[0,0,:,:], r'logN(HC$_3$N) (cm$^{-2}$)', color_palette='rainbow', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False,
-                 ticks=[14.5, 15, 15.5, 16, 16.5], Mappable=False, cbar_limits=[logn_min, logn_max], tick_font = cbar_tickfont, label_font = 30,
+                 ticks=[14.5, 15, 15.5, 16, 16.5], Mappable=False, cbar_limits=[logn_min, logn_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.1f', norm='log', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
 
@@ -219,37 +201,35 @@ if plot_slim_cubes:
     axes[1].imshow(tex_cube.fitsdata[0,0,:,:], transform=axes[1].get_transform(tex_cube.wcs), cmap =plt.cm.rainbow, vmin=tex_min, vmax=tex_max)
     plot_utiles.add_cbar(fig, axes[1], tex_cube.fitsdata[0,0,:,:], r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
-                 Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = 30,
+                 Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
     
-    
     # Vel
     if source == 'SHC_13':
-        vel_min = 235#utiles.round_to_multiple(np.nanmin(vel_cube.fitsdata[0,0,:,:]), 5)
-        vel_max = 265#utiles.round_to_multiple(np.nanmax(vel_cube.fitsdata[0,0,:,:]), 5)
+        vel_min = 235
+        vel_max = 265
     elif source == 'SHC_14':
-        vel_min = 160#utiles.round_to_multiple(np.nanmin(vel_cube.fitsdata[0,0,:,:]), 5)
-        vel_max = 240#utiles.round_to_multiple(np.nanmax(vel_cube.fitsdata[0,0,:,:]), 5)
+        vel_min = 160
+        vel_max = 240
     vel_ticks = list(np.linspace(vel_min, vel_max, 5))
     axes[2].imshow(vel_cube.fitsdata[0,0,:,:], transform=axes[2].get_transform(vel_cube.wcs), vmin=vel_min, vmax=vel_max, cmap =plt.cm.RdBu_r)
     plot_utiles.add_cbar(fig, axes[2], vel_cube.fitsdata[0,0,:,:], r'V$_{\text{LSR}}$ (km s$^{-1}$)', color_palette='RdBu_r', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False,ticks=vel_ticks,
-                 Mappable=False, cbar_limits=[vel_min, vel_max], tick_font = cbar_tickfont, label_font = 30,
+                 Mappable=False, cbar_limits=[vel_min, vel_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
    
     # FWHM
-    fwhm_min = 8#utiles.round_to_multiple(np.nanmin(FWHM_cube.fitsdata[0,0,:,:]), 5)
-    fwhm_max = 60#utiles.round_to_multiple(np.nanmax(FWHM_cube.fitsdata[0,0,:,:]), 10)
+    fwhm_min = 8
+    fwhm_max = 60
     fwhm_ticks = list(np.linspace(fwhm_min, fwhm_max, 5))
     axes[3].imshow(FWHM_cube.fitsdata[0,0,:,:], transform=axes[3].get_transform(FWHM_cube.wcs), vmin=fwhm_min, vmax=fwhm_max, cmap =plt.cm.plasma)
     plot_utiles.add_cbar(fig, axes[3], FWHM_cube.fitsdata[0,0,:,:], r'FWHM (km s$^{-1}$)', color_palette='plasma', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False, ticks=fwhm_ticks,
-                 Mappable=False, cbar_limits=[fwhm_min, fwhm_max], tick_font = cbar_tickfont, label_font = 30,
+                 Mappable=False, cbar_limits=[fwhm_min, fwhm_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
-    
     
     levels_tex = [500]
     axes[0].contour(tex_cube.fitsdata[0,0,:,:], transform=axes[0].get_transform(tex_cube.wcs), colors='k', linewidths=2.0, zorder=1,
@@ -265,8 +245,7 @@ if plot_slim_cubes:
     pcs = 1
     px = px_mid 
     py = 8
-    plot_utiles.plot_pc_scale(D_Mpc, pcs, py, px, pixsize, axes[1], color='k', wcs = columndens_cube.wcs, vertical=False, text_sep=1.2, fontsize = 14, lw=2, annotate=True)
-    
+    plot_utiles.plot_pc_scale(D_Mpc, pcs, py, px, pixsize, axes[1], color='k', wcs = columndens_cube.wcs, vertical=False, text_sep=1.2, fontsize = fontsize, lw=2, annotate=True)
     plot_utiles.Beam_plotter(px=28, py=py, bmin=columndens_cube.bmin*3600, bmaj=columndens_cube.bmaj*3600,
                                 pixsize=columndens_cube.pylen*3600, pa=columndens_cube.bpa, axis=axes[0], wcs=columndens_cube.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
