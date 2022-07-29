@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep 29 12:57:43 2021
-
-@author: frico
-"""
-
 import os
 import subprocess
 from shutil import copyfile
@@ -22,12 +14,57 @@ from matplotlib.ticker import FormatStrFormatter
 from matplotlib.ticker import AutoMinorLocator
 from matplotlib.ticker import ScalarFormatter
 
-from ferpy import utiles
-from ferpy.scripts.rad_transf import HC3N_plot_and_luminosity as nlTEmods
-from ferpy import u_conversion
+from astrothesispy.utiles import utiles
+from astrothesispy.utiles import utiles_plot
+from astrothesispy.utiles import u_conversion
 
+
+def get_tau100(model_path, model_name):
+    """
+        Gets tau100 from the molecule models
+    """
+    # Optical Depths
+    model_taudust = pd.read_csv(model_path+'/'+model_name+'_.taudust', delim_whitespace= True)
+    model_taudust.columns = ['lambda_um', 'taudust']
+    # Rounding lambda
+    model_taudust['lambda_um_u']    = model_taudust['lambda_um'].apply(lambda x: utiles.rounding_exp(x, 3))
+    # Finding tau  at 100 um
+    tau100 = model_taudust['taudust'].loc[model_taudust['lambda_um_u'] == 100.0]
+    return tau100.values[0]
+
+def get_tau100_dustmod(model_path, model_name):
+    """
+        Gets tau100 from the dust models
+    """
+    # Optical Depths
+    model_taudust = pd.read_csv(model_path+'/'+model_name+'_.tau', delim_whitespace= True, header=None)
+    model_taudust.columns = ['lambda_um', 'taudust', 'otro']
+    # Rounding lambda
+    model_taudust['lambda_um_u']    = model_taudust['lambda_um'].apply(lambda x: utiles.rounding_exp(x, 3))
+    # Finding tau  at 100 um
+    tau100 = model_taudust.iloc[(model_taudust['lambda_um']-100.0).abs().argsort()[:1]]
+    tau100.reset_index(inplace=True, drop=True)
+    return tau100.values[0]
+
+def get_taulambda(model_path, model_name, lambda_um):
+    """
+        Gets tau for the specified wavelength lambda in microns
+    """
+    # Optical Depths
+    model_taudust = pd.read_csv(model_path+'/'+model_name+'_.taudust', delim_whitespace= True)
+    model_taudust.columns = ['lambda_um', 'taudust']
+    # Rounding lambda
+    model_taudust['lambda_um_u']    = model_taudust['lambda_um'].apply(lambda x: utiles.rounding_exp(x, 3))
+    # Finding tau  at specified wavelength in um
+    taulambda = model_taudust['taudust'].loc[np.abs(model_taudust['lambda_um']-lambda_um)  < 0.1]
+    # Mean value if more than one tau is found
+    tau = taulambda.mean()
+    return tau
 
 def lum_from_dustmod(dustmod, my_model_path, distance_pc, r_out_pc):
+    """
+        Gets the luminosity from dust models
+    """
     dust_inp = my_model_path+dustmod+'.inp'
     with open(dust_inp, 'r') as file:
         modelodust = file.readlines()
@@ -42,11 +79,6 @@ def lum_from_dustmod(dustmod, my_model_path, distance_pc, r_out_pc):
     for i in range(dif_len):
         cols.append('col_'+string[i])
     df_dust.columns = cols
-    #print(df_dust.columns.tolist())
-    #if len(df_dust.columns) == 5:
-    #    df_dust.columns = ['lambda_um', 'I_Ic_ergscm2um', 'Ic_ergscm2um', 'Inorm_ergscm2um', 'I_ergscm2um', 'x']
-    #else:
-    #    df_dust.columns = ['lambda_um', 'I_Ic_ergscm2um', 'Ic_ergscm2um', 'Inorm_ergscm2um', 'I_ergscm2um']
     luminosity_dust = 0
     for i, row in df_dust.iterrows():
         if i == 0:
@@ -61,6 +93,9 @@ def lum_from_dustmod(dustmod, my_model_path, distance_pc, r_out_pc):
     return luminosity_dust_out
 
 def model_summary(model_name, dustmod, my_model_path, distance_pc, Rcrit): 
+    """
+        Returns a dict with a summary of the model vars and properties
+    """
     atomic_hydrogen_mass_kg = 1.6737236E-27*u.kg
     lum_to_mass = 1000 
     gas_to_dust = 100
@@ -70,7 +105,6 @@ def model_summary(model_name, dustmod, my_model_path, distance_pc, Rcrit):
     d_mpc = distance_pc/1e6
     kappa_mean = 10 # cm2 g-1
     
-            
     modelom = my_model_path+model_name+'.inp'
     qprof = np.float(modelom.split('q')[-1].split('nsh')[0])
     if qprof == 1.0:
@@ -88,11 +122,9 @@ def model_summary(model_name, dustmod, my_model_path, distance_pc, Rcrit):
     # Luminosity
     lum_total_model = lum_from_dustmod(dustmod, my_model_path, distance_pc, rout_model_hc3n_pc)
     lum_total_name  = luminosity
-    
     r_profile = []
     rpc_profile = []
     nh2_profile = []
-    
     x_profile = []
     td_profile = []
     for line in modelo[33:64]:
@@ -131,9 +163,6 @@ def model_summary(model_name, dustmod, my_model_path, distance_pc, Rcrit):
             sigma_profile.append(MH2_profile[r]*(1*u.Msun).to(u.g).value/sup_profile[r])
             MH2_profile_corr.append(Mdust_profile[r]/0.01)
             nh2_mass_profile_corr.append(MH2_profile_corr[r]*(1*u.Msun).to(u.g)/vol_profile[r])
-            #r_Omega_arcsec2 = np.pi*(r_profile_pc[r+1]**2-r_profile_pc[r]**2)/(distance_pc**2)*(u.sr).to(u.arcsec**2)
-            #Mdust_profile.append(ctedust*1e6*(NH2_profile[r]/1e25)*((d_mpc/100)**2)*(r_Omega_arcsec2/1.1e-2))
-    
     # Correcting gas mass for r>0.5 due to changes in Xd
     # for r<Rcrit we can assume that changes in Xd are only for free-free emission
     nh2_profile_corr = []
@@ -200,7 +229,6 @@ def model_summary(model_name, dustmod, my_model_path, distance_pc, Rcrit):
             trescuartos_stars_rad_nocorrv2 = r_profile_pc[r]
             break
     print(f'{model_name} \t {trescuartos_stars_rad_nocorrv2:1.2f}')
-    
     Stars_total_nocorr_norm = np.nansum(Stars_nocorr_norm[1:])
     st_nocorr_norm = 0
     for r, rad in enumerate(r_profile_pc[1:]):
@@ -216,17 +244,11 @@ def model_summary(model_name, dustmod, my_model_path, distance_pc, Rcrit):
             st_nocorr_norm2 += Stars_nocorr_norm2[r]
         else:
             half_stars_rad_nocorr_norm2 = r_profile_pc[r]
-            break
-        
-    #cumulative = np.cumsum(Stars)
-    #plt.plot(r_profile_pc[1:], cumulative, c='blue')
-    #plt.axhline(st)
-    
+            break 
     NHC3N_profile = np.array(NH2_profile)*np.array(x_profile)
     NHC3N_profile_corr = np.array(NH2_profile_corr)*np.array(x_profile)
     Nd_profile = np.array(NH2_profile)*np.array(xd_profile)
     Nd_profile_corr = np.array(NH2_profile_corr)**np.array(xd_profile)
-    
     # Col. Densities cm -1
     NH2_total = np.nansum(NH2_profile)
     NH2_total_corr = np.nansum(NH2_profile_corr)
@@ -257,8 +279,8 @@ def model_summary(model_name, dustmod, my_model_path, distance_pc, Rcrit):
     total_dens_Msun_pc3 = total_dens_kg_m3.to(u.Msun/u.pc**3)
     surf_dens_Msun_pc2 = Mgas_Msun_total*(1*u.Msun)/surface_pc2
     # Opacity 
-    tau100   = nlTEmods.get_tau100(my_model_path, model_name) # Al variar Xdust esta no vale
-    d_tau100 = nlTEmods.get_tau100_dustmod(my_model_path, dustmod) # Esta es la buena
+    tau100   = get_tau100(my_model_path, model_name) # Al variar Xdust esta no vale
+    d_tau100 = get_tau100_dustmod(my_model_path, dustmod) # Esta es la buena
     
     model_dict = {'model'      : model_name,
                   'R_pc'       : rout_model_hc3n_pc,
@@ -308,11 +330,9 @@ def mass_from_nh2_number_dens(nh2_cm3, rad_pc):
     mass_msun = (dens_mass_cm3*volume_cm3)*(1.*u.g).to(u.Msun).value
     return mass_msun    
 
-
-
-def read_model_input(modelo, my_model_path, Rcrit):
+def read_model_input(modelo, my_model_path, Rcrit, obs_df_path):
     """
-     Reads model parameters from .inp
+     Reads model parameters from .inp and also de observed values
     """
     atomic_hydrogen_mass_kg = 1.6737236E-27*u.kg
     model_name = modelo[0]
@@ -360,7 +380,6 @@ def read_model_input(modelo, my_model_path, Rcrit):
             MH2_profile_corr.append(Mdust_profile[r]/0.01)
     # Correcting dens and col denst with new mass correction
     # for r<Rcrit we can assume that changes in Xd are only for free-free emission
-
     nh2_profile_corr = []
     NH2_profile_corr = []
     Mgas_fromnH2_Msun_corrected = 0
@@ -375,7 +394,6 @@ def read_model_input(modelo, my_model_path, Rcrit):
         nh2_profile_corr.append(Mgas_fromnH2_Msun_profile_corr[r]/(2.*atomic_hydrogen_mass_kg.to(u.Msun).value)/vol_profile[r])
         NH2_profile_corr.append(rdif_profile[r]*nh2_profile_corr[r])
         
-        
     # Column density profiles
     NHC3N_profile = np.array(NH2_profile)*np.array(x_profile)
     NHC3N_profile_corr = np.array(NH2_profile_corr)*np.array(x_profile)
@@ -386,7 +404,7 @@ def read_model_input(modelo, my_model_path, Rcrit):
     logNHC3N_profile_corr = np.log10(NHC3N_profile_corr)
     logNH2_profile_corr = np.log10(NH2_profile_corr)
     
-    obs_df = pd.read_csv('/Users/frico/Documents/data/NGC253_HR/Results_v2/SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
+    obs_df = pd.read_csv(f'{obs_df_path}/SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
     obs_df['Dist_mean_cm'] = obs_df['Dist_mean_pc']*(1*u.pc).to(u.cm).value
     poly = np.polyfit(obs_df['Dist_mean_pc'], obs_df['Col_det'], deg=6)
     fit_logNHC3N = np.polyval(poly, rpc_profile)
@@ -394,7 +412,7 @@ def read_model_input(modelo, my_model_path, Rcrit):
     return obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof
 
 
-def plot_model_input(modelo, my_model_path, figinp_path):
+def plot_model_input(modelo, my_model_path, figinp_path, obs_df_path):
     """
      Plots model input properties
     """
@@ -426,7 +444,7 @@ def plot_model_input(modelo, my_model_path, figinp_path):
     logNH2_profile = np.log10(NH2_profile)
     NHC3N_profile = np.array(NH2_profile)*np.array(x_profile)
     logNHC3N_profile = np.log10(NHC3N_profile)
-    obs_df = pd.read_csv('/Users/frico/Documents/data/NGC253_HR/Results_v2/SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
+    obs_df = pd.read_csv(f'{obs_df_path}SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
     obs_df['dist_ring_cm'] = obs_df['dist_ring_pc']*(1*u.pc).to(u.cm).value
     poly = np.polyfit(obs_df['dist_ring_pc'], obs_df['Col_det'], deg=6)
     fit_logNHC3N = np.polyval(poly, rpc_profile)
@@ -482,6 +500,9 @@ def plot_model_input(modelo, my_model_path, figinp_path):
     return fit_XHC3N, x_profile, obs_df['dist_ring_pc'].tolist(), rpc_profile
 
 def line_profiles_chi2(hb_df, line_column, modelos, fort_paths, my_model_path, Rcrit, distance_pc=3.5e6):
+    """
+        Estimates de chi2 from the modelled line profiles
+    """
     for l,line in enumerate(line_column):
         if line not in ['plot_conts', 'plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:
             for i,row in hb_df.iterrows():
@@ -513,7 +534,7 @@ def line_profiles_chi2(hb_df, line_column, modelos, fort_paths, my_model_path, R
                 lines_chi += chi2
         print(f'Total Chi2 : Sum {lines_chi:1.2f} Mean {lines_chi/11:1.2f}')
         
-def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model_path, distance_pc=3.5e6):
+def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model_path, results_path, savefig_path, distance_pc=3.5e6):
     """
      Difference between continuum from dust model and from HC3N model (i.e. free-free)
          Leroy36df_new['219GHz_SM_deconvFWHM_pc_fit'] # Size at 219GHz at the 345GHz resolution
@@ -522,9 +543,9 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
          Leroy36df_new['Size_limit']                  # Size of the 111GHz (free-free) emission
          Leroy36df_new['Size_limit_opt_thin']         # Size of the 111GHz (free-free) emission assuming opt thin
     """
-    
+    results_path = '/Users/frico/Documents/data/NGC253_HR/Results_v2/'
     modelos = { 'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
-                            1.5, redpink , [1, 1.0, 1.9]]}
+                            1.5, utiles_plot.redpink , [1, 1.0, 1.9]]}
     Rtotal = 1.5 # pc
     FWHM219_deconv_size_pc = 0.5
     FWHM345_deconv_size_pc = 0.8
@@ -546,7 +567,6 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
     # Ratio between 230GHz/345GHz cont emission. For r<Rcrit this ratio should increase and indicate the size of the free-free emission
     cont_df['235/345_ratio'] = cont_df['F235GHz_mjy_beam345']/cont_df['F345GHz_mjy_beam']
     cont_df['px_count'] = [1, 8, 12, 16, 20, 24, 28, 36, 32, 44, 56, 48, 64, 60]
-    
     total_radlist = list(-1*np.array(cont_df['dist'].tolist()[::-1]))+cont_df['dist'].tolist()
     total_cont235list =cont_df['F235GHz_mjy_beam345'].tolist()[::-1]+cont_df['F235GHz_mjy_beam345'].tolist()
     total_cont345list =cont_df['F345GHz_mjy_beam'].tolist()[::-1]+cont_df['F345GHz_mjy_beam'].tolist()
@@ -556,7 +576,7 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
     if plot:
         fig = plt.figure()
         plt.plot(cont_df['dist'], cont_df['235/345_ratio']**-1)
-        fig.savefig('/Users/frico/Documents/data/NGC253_HR/Results_v2/'+'NGC253_SHC13_235_345_ratio.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{savefig_path}NGC253_SHC13_235_345_ratio.pdf', bbox_inches='tight', transparent=True, dpi=400)
 
     Rcrit_pc = cont_df['dist'].iloc[Rcrit_ind]
     Rcrit_pc_art = 0.5
@@ -592,8 +612,7 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
         sigma_fit.append(np.abs(popt[2]))
         FWHM_fit.append(utiles.stdev_to_fwhm(sigma_fit[c], 0)[0])
         size_fit_pc2.append(np.pi*sigma_fit[c]**2)
-        #plt.plot(total_radlist,cont,'b+',label='data')
-        #plt.plot(total_radlist,gaus(total_radlist,*popt),'ro:',label='fit')
+
     # Observed sizes, they match the original sizes from 2D fit
     deconv_sizefit_pc2 = utiles.deconv_sizes(np.array(size_fit_pc2), pc2_beam_345)
     deconv_sizefit_pc = np.sqrt(deconv_sizefit_pc2)
@@ -606,7 +625,7 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
     cubo345_rms = 4e-5
     cubo345_pixlen_pc = 0.0848
     cubo219_pixlen_pc = 0.119
-    radprofile345 = pd.read_csv('/Users/frico/Documents/data/NGC253_HR/Results_v2/SHC13_cont345_profile2.csv')
+    radprofile345 = pd.read_csv(f'{results_path}SHC13_cont345_profile2.csv')
     radprofile345.columns = ['px', 'jy_beam']
     Rmax = radprofile345['jy_beam'].idxmax(axis=0, skipna=True)
     rmax = (radprofile345['px'].iloc[Rmax]+radprofile345['px'].iloc[Rmax-1])/2
@@ -614,7 +633,7 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
     radprofile345['dist_pc'] = radprofile345['px_res']*cubo345_pixlen_pc
     n = len(radprofile345['dist_pc'])                          #the number of data
     mean = sum(radprofile345['jy_beam']*radprofile345['dist_pc'])/n     #note this correction
-    sigma = 0.23#sum(radprofile345['jy_beam']*(radprofile345['dist_pc']-mean)**2)/n        #note this correction
+    sigma = 0.23
     def gaus(x,a,x0,sigma):
         return a*np.exp(-(x-x0)**2/(2*sigma**2))
     a = radprofile345['jy_beam'].iloc[Rmax]
@@ -625,13 +644,13 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
     plt.axhline(3*cubo345_rms, color='g')
     plt.ylabel(r'345GHz (mJy beam$^{-1}$)')
     plt.xlabel(r'$r$ (pc)')
-    fig.savefig('/Users/frico/Documents/data/NGC253_HR/Results_v2/Figures/cont345_radprofile.pdf')
+    fig.savefig(f'{savefig_path}cont345_radprofile.pdf')
     radprofile345_sub = radprofile345[radprofile345['jy_beam']>=3*cubo345_rms]
     
     cubo345_rms = 4e-5
     cubo345_pixlen_pc = 0.0848
     cubo219_pixlen_pc = 0.119
-    radprofilehc3n = pd.read_csv('/Users/frico/Documents/data/NGC253_HR/Results_v2/SHC13_HC3Nv0_2625_profile2.csv')
+    radprofilehc3n = pd.read_csv(f'{results_path}SHC13_HC3Nv0_2625_profile2.csv')
     radprofilehc3n.columns = ['px', 'jy_beam']
     Rmax = radprofilehc3n['jy_beam'].idxmax(axis=0, skipna=True)
     rmax = (radprofilehc3n['px'].iloc[Rmax]+radprofilehc3n['px'].iloc[Rmax-1])/2
@@ -740,13 +759,11 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
         plt.plot(np.array(rpc_profile[1:]),densprof(np.array(rpc_profile[1:]),*popt),'b:',label='fit')
         plt.plot(np.array(rpc_profile[1:]),densprof(np.array(rpc_profile[1:]),*popt2),'g:',label='fit')
         plt.plot(np.array(rpc_profile[1:]),ysum,'r',label='fit')
-
-        #plt.plot(np.array(rpc_profile[1:]),densprof2(np.array(rpc_profile[1:]),*popt3),'r:',label='fit')
-
-        #plt.plot(rpc_profile[1:], nh2_plot)
-        
         
 def line_chi2(obs, mod, line, beam='_beam_orig'):
+    """
+        Calculates the chi2 for one transition
+    """
     nch = np.count_nonzero(line+'_uplim')
     chi2 = 0
     for i, row in obs.iterrows():
@@ -759,472 +776,475 @@ def line_chi2(obs, mod, line, beam='_beam_orig'):
     return chi2
         
                             
-def plot_models_and_inp(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc=3.5e6):
-    """
-      Plots model parameters and observations for individual models
-    """
-    tstring = 'Tex_SM_ave_ring' #Tex_det' #'Tex_ave_ring' # 'Tex_det'
-    colstring = 'Col_SM_ave_ring' #'Col_det' #'Col_ave_ring' #'Col_det'
+# def plot_models_and_inp(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc=3.5e6):
+#     """
+#       Plots model parameters and observations for individual models
+#     """
+#     tstring = 'Tex_SM_ave_ring' #Tex_det' #'Tex_ave_ring' # 'Tex_det'
+#     colstring = 'Col_SM_ave_ring' #'Col_det' #'Col_ave_ring' #'Col_det'
     
-    contms = 8
-    linems = 6
-    plot_corr_cols = False
-    plot_corr_abun = True
-    mykeys = list(line_column.keys())
-    if 'plot_T' not in list(line_column.keys()):
-        mykeys.insert(1, 'plot_T')
-        line_column['plot_T'] = []
-        if plot_col:
-            mykeys.insert(2, 'plot_col')
-            line_column['plot_col'] = []
-        else:
-            mykeys.insert(2, 'plot_dens')
-            line_column['plot_dens'] = []
-        mykeys.insert(3, 'plot_x')
-        line_column['plot_x'] = []
-        if plot_opacity == False:
-            mykeys.append('ratio_v6_v6v7')
-    else:
-        # Already ran, getting problems with ordered dict
-        if plot_col:
-            mykeys = ['plot_conts', 'plot_T', 'plot_col', 'plot_x',
-             'v=0_26_25_SM',
-             'v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
-             'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
-             'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
-              'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']
-        else:
-            mykeys = ['plot_conts', 'plot_T', 'plot_dens', 'plot_x',
-             'v=0_26_25_SM',
-             'v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
-             'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
-             'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
-              'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']
-        if plot_opacity == False:
-            mykeys.append('ratio_v6_v6v7')
+#     contms = 8
+#     linems = 6
+#     plot_corr_cols = False
+#     plot_corr_abun = True
+#     mykeys = list(line_column.keys())
+#     if 'plot_T' not in list(line_column.keys()):
+#         mykeys.insert(1, 'plot_T')
+#         line_column['plot_T'] = []
+#         if plot_col:
+#             mykeys.insert(2, 'plot_col')
+#             line_column['plot_col'] = []
+#         else:
+#             mykeys.insert(2, 'plot_dens')
+#             line_column['plot_dens'] = []
+#         mykeys.insert(3, 'plot_x')
+#         line_column['plot_x'] = []
+#         if plot_opacity == False:
+#             mykeys.append('ratio_v6_v6v7')
+#     else:
+#         # Already ran, getting problems with ordered dict
+#         if plot_col:
+#             mykeys = ['plot_conts', 'plot_T', 'plot_col', 'plot_x',
+#              'v=0_26_25_SM',
+#              'v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
+#              'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
+#              'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
+#               'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']
+#         else:
+#             mykeys = ['plot_conts', 'plot_T', 'plot_dens', 'plot_x',
+#              'v=0_26_25_SM',
+#              'v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
+#              'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
+#              'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
+#               'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']
+#         if plot_opacity == False:
+#             mykeys.append('ratio_v6_v6v7')
     
-    hb_df['ratio_v6_v6v7'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']
-    hb_df['ratio_v6_v6v7_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']**2))**2)
-    figsize = 20
-    naxis = 4
-    maxis = 4
-    labelsize = 18
-    ticksize = 16
-    fontsize = 14
-    axcolor = 'k'
-    color_beam_orig = 'k'
-    color_beam_345 = 'k'
-    facecolor_beam_345 = 'w'
-    fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-    gs1.update(wspace = 0.25, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    axes=[]
-    for l,line in enumerate(mykeys):
-        axes.append(fig.add_subplot(gs1[l]))
-        if line == 'plot_conts':
-            axes[l].set_ylim([0.05, 20])  
-            for i,row in cont_df.iterrows():
-                axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam'], 
-                                             yerr=row['F235GHz_mjy_beam_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='k',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
-                                             yerr=row['F235GHz_mjy_beam345_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='w',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
+#     hb_df['ratio_v6_v6v7'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']
+#     hb_df['ratio_v6_v6v7_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']**2))**2)
+#     figsize = 20
+#     naxis = 4
+#     maxis = 4
+#     labelsize = 18
+#     ticksize = 16
+#     fontsize = 14
+#     axcolor = 'k'
+#     color_beam_orig = 'k'
+#     color_beam_345 = 'k'
+#     facecolor_beam_345 = 'w'
+#     fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
+#     gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+#     gs1.update(wspace = 0.25, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+#     axes=[]
+#     for l,line in enumerate(mykeys):
+#         axes.append(fig.add_subplot(gs1[l]))
+#         if line == 'plot_conts':
+#             axes[l].set_ylim([0.05, 20])  
+#             for i,row in cont_df.iterrows():
+#                 axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam'], 
+#                                              yerr=row['F235GHz_mjy_beam_err'],
+#                                              marker='o', markersize=contms,
+#                                              markerfacecolor='k',
+#                                              markeredgecolor='k', markeredgewidth=0.8,
+#                                              ecolor='k',
+#                                              color = 'k',
+#                                              elinewidth= 0.7,
+#                                              barsabove= True,
+#                                              zorder=1)
+#                 axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
+#                                              yerr=row['F235GHz_mjy_beam345_err'],
+#                                              marker='o', markersize=contms,
+#                                              markerfacecolor='w',
+#                                              markeredgecolor='k', markeredgewidth=0.8,
+#                                              ecolor='k',
+#                                              color = 'k',
+#                                              elinewidth= 0.7,
+#                                              barsabove= True,
+#                                              zorder=1)
             
-                axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
-                                             yerr=row['F345GHz_mjy_beam_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='0.5',
-                                             markeredgecolor='0.5', markeredgewidth=0.8,
-                                             ecolor='0.5',
-                                             color = '0.5',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                axes[l].set_yscale('log')
-                axes[l].yaxis.set_major_formatter(ScalarFormatter())
-        elif line not in ['plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:   
-            for i,row in hb_df.iterrows():
-                if row['dist']<=line_column[line][0]:
-                    ysep = (line_column[line][2][1]-line_column[line][2][0])*0.04
-                    if 3*row[line+'_mJy_kms_beam_orig_errcont'] > row[line+'_mJy_kms_beam_orig']:
-                        hb_df.loc[i, line+'_uplim'] = True
-                        axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_orig_errcont'], 
-                                             uplims=True,
-                                             yerr=ysep,#3*row[line+'_mJy_kms_beam_orig_err']*0.15,
-                                             marker='o', markersize=linems,
-                                             markerfacecolor=color_beam_orig,
-                                             markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                             ecolor=color_beam_orig,
-                                             color = color_beam_orig,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                    else:
-                        # Adding 10% error to the inner rings
-                        if row['dist']<0.35:
-                            errplot = row[line+'_mJy_kms_beam_orig_errcont']*1.25
-                        else:
-                            errplot = row[line+'_mJy_kms_beam_orig_errcont']
-                        hb_df.loc[i, line+'_uplim'] = False
-                        axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_orig'], 
-                                         yerr=errplot,
-                                         marker='o', markersize=linems,
-                                         markerfacecolor=color_beam_orig,
-                                         markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                         ecolor=color_beam_orig,
-                                         color =color_beam_orig,
-                                         elinewidth= 0.7,
-                                         barsabove= True,
-                                         zorder=2)
-                    if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
-                        axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
-                                             uplims=True,
-                                             yerr=ysep,#3*row[line+'_mJy_kms_beam_345_errcont']*0.15,
-                                             marker='o', markersize=linems,
-                                             markerfacecolor=facecolor_beam_345,
-                                             markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                             ecolor=color_beam_345,
-                                             color = color_beam_345,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                    else:
-                        # Adding 10% error to the inner rings
-                        if row['dist']<0.35:
-                            errplot = row[line+'_mJy_kms_beam_345_errcont']*1.25
-                        else:
-                            errplot = row[line+'_mJy_kms_beam_345_errcont']
-                        axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_345'], 
-                                         yerr=errplot,
-                                         marker='o', markersize=linems,
-                                         markerfacecolor=facecolor_beam_345,
-                                         markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                         ecolor=color_beam_345,
-                                         color =color_beam_345,
-                                         elinewidth= 0.7,
-                                         barsabove= True,
-                                         zorder=2)
-                        axes[l].plot(row['dist'], row[line+'_mJy_kms_beam_345'], 
-                                             linestyle='',
-                                             marker='o', markersize=linems,
-                                             markerfacecolor=facecolor_beam_345,
-                                             markeredgecolor=color_beam_345,
-                                             color = color_beam_345,
-                                             zorder=2)
+#                 axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
+#                                              yerr=row['F345GHz_mjy_beam_err'],
+#                                              marker='o', markersize=contms,
+#                                              markerfacecolor='0.5',
+#                                              markeredgecolor='0.5', markeredgewidth=0.8,
+#                                              ecolor='0.5',
+#                                              color = '0.5',
+#                                              elinewidth= 0.7,
+#                                              barsabove= True,
+#                                              zorder=1)
+#                 axes[l].set_yscale('log')
+#                 axes[l].yaxis.set_major_formatter(ScalarFormatter())
+#         elif line not in ['plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:   
+#             for i,row in hb_df.iterrows():
+#                 if row['dist']<=line_column[line][0]:
+#                     ysep = (line_column[line][2][1]-line_column[line][2][0])*0.04
+#                     if 3*row[line+'_mJy_kms_beam_orig_errcont'] > row[line+'_mJy_kms_beam_orig']:
+#                         hb_df.loc[i, line+'_uplim'] = True
+#                         axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_orig_errcont'], 
+#                                              uplims=True,
+#                                              yerr=ysep,#3*row[line+'_mJy_kms_beam_orig_err']*0.15,
+#                                              marker='o', markersize=linems,
+#                                              markerfacecolor=color_beam_orig,
+#                                              markeredgecolor=color_beam_orig, markeredgewidth=0.8,
+#                                              ecolor=color_beam_orig,
+#                                              color = color_beam_orig,
+#                                              elinewidth= 0.7,
+#                                              barsabove= True,
+#                                              zorder=1)
+#                     else:
+#                         # Adding 10% error to the inner rings
+#                         if row['dist']<0.35:
+#                             errplot = row[line+'_mJy_kms_beam_orig_errcont']*1.25
+#                         else:
+#                             errplot = row[line+'_mJy_kms_beam_orig_errcont']
+#                         hb_df.loc[i, line+'_uplim'] = False
+#                         axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_orig'], 
+#                                          yerr=errplot,
+#                                          marker='o', markersize=linems,
+#                                          markerfacecolor=color_beam_orig,
+#                                          markeredgecolor=color_beam_orig, markeredgewidth=0.8,
+#                                          ecolor=color_beam_orig,
+#                                          color =color_beam_orig,
+#                                          elinewidth= 0.7,
+#                                          barsabove= True,
+#                                          zorder=2)
+#                     if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
+#                         axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
+#                                              uplims=True,
+#                                              yerr=ysep,#3*row[line+'_mJy_kms_beam_345_errcont']*0.15,
+#                                              marker='o', markersize=linems,
+#                                              markerfacecolor=facecolor_beam_345,
+#                                              markeredgecolor=color_beam_345, markeredgewidth=0.8,
+#                                              ecolor=color_beam_345,
+#                                              color = color_beam_345,
+#                                              elinewidth= 0.7,
+#                                              barsabove= True,
+#                                              zorder=1)
+#                     else:
+#                         # Adding 10% error to the inner rings
+#                         if row['dist']<0.35:
+#                             errplot = row[line+'_mJy_kms_beam_345_errcont']*1.25
+#                         else:
+#                             errplot = row[line+'_mJy_kms_beam_345_errcont']
+#                         axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_345'], 
+#                                          yerr=errplot,
+#                                          marker='o', markersize=linems,
+#                                          markerfacecolor=facecolor_beam_345,
+#                                          markeredgecolor=color_beam_345, markeredgewidth=0.8,
+#                                          ecolor=color_beam_345,
+#                                          color =color_beam_345,
+#                                          elinewidth= 0.7,
+#                                          barsabove= True,
+#                                          zorder=2)
+#                         axes[l].plot(row['dist'], row[line+'_mJy_kms_beam_345'], 
+#                                              linestyle='',
+#                                              marker='o', markersize=linems,
+#                                              markerfacecolor=facecolor_beam_345,
+#                                              markeredgecolor=color_beam_345,
+#                                              color = color_beam_345,
+#                                              zorder=2)
             
-            axes[l].set_ylim(line_column[line][2])  
-            yminor_locator = AutoMinorLocator(2)
-            axes[l].yaxis.set_minor_locator(yminor_locator)
-            axes[l].text(0.9, 0.95, line_column[line][1],
-                            horizontalalignment='right',
-                            verticalalignment='top',
-                            fontsize=fontsize,
-                            transform=axes[l].transAxes)
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
+#             axes[l].set_ylim(line_column[line][2])  
+#             yminor_locator = AutoMinorLocator(2)
+#             axes[l].yaxis.set_minor_locator(yminor_locator)
+#             axes[l].text(0.9, 0.95, line_column[line][1],
+#                             horizontalalignment='right',
+#                             verticalalignment='top',
+#                             fontsize=fontsize,
+#                             transform=axes[l].transAxes)
+#         minor_locator = AutoMinorLocator(2)
+#         axes[l].set_xlim([0.0, 1.42])
         
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
+#         axes[l].tick_params(direction='in')
+#         axes[l].tick_params(axis="both", which='major', length=8)
+#         axes[l].tick_params(axis="both", which='minor', length=4)
+#         axes[l].xaxis.set_tick_params(which='both', top ='on')
+#         axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+#         axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
+#         axes[l].xaxis.set_minor_locator(minor_locator)
+#         axes[l].tick_params(labelleft=True,
+#                        labelright=False)
         
-        if l <12:
-            axes[l].tick_params(
-                       labelbottom=False)
-        else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-        #if l%3==0:
-        #    axes[l].set_ylabel(r'Tdust \& Tex (K)', fontsize = labelsize)
-    save_name = ''
-    ytext = 0.95
-    for m, mod in enumerate(modelos):
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        factor_model_hc3n = modelo[4][0]
-        factor_model_dust = modelo[4][1]
-        factor_model_ff   = modelo[4][2]
-        if len(modelo)<=5:
-            LTE = True
-        else:
-            LTE = modelo[6]
-        # Modelled emission
-        mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-        # Model parameters
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
-        # Model luminosity
-        model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
-        total_NH2 = np.nansum(10**logNH2_profile) # After correction for Xd variations this NH2 is no longer valid
-        total_NH2_corr = np.nansum(10**logNH2_profile_corr)
-        for l,line in enumerate(mykeys):
-            if line == 'plot_conts':
-                axes[l].set_ylim([0.05, 20])  
-                
-                # From dust modelling
-                axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=2)
-                axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=2)
-                axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=2)
-                # From HC3N modelling
-                axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= '--', zorder=2)
-                axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '--', zorder=2)
-                axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
-                                color = '0.5',
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                axes[l].text(0.95,  0.95-0.045, r'Cont. 235 GHz',
-                                color = 'k',
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                axes[l].set_ylabel(r'$\text{Flux density}\:(\text{mJy}\:\text{beam}^{-1})$', fontsize=labelsize)
+#         if l <12:
+#             axes[l].tick_params(
+#                        labelbottom=False)
+#         else:
+#             axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
 
-            elif line == 'plot_T':
-                if writename:
-                    if 'model' in mod:
-                        modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
-                    else:
-                        modstr = mod
-                    qval = f'{np.float(qprof):1.1f}'
-                    qstr=r'$q='+qval+'$'
-                    Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
-                    Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
-                    if len(modelos) == 1:
-                        axes[l].text(0.45, 0.95, modstr,
-                                    color = mod_color,
-                                    horizontalalignment='left',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                        axes[l].text(0.45, 0.95-0.058*1, Lstr,
-                                    color = 'k',
-                                    horizontalalignment='left',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                        axes[l].text(0.45, 0.95-0.058*2, Nstr,
-                                    color = 'k',
-                                    horizontalalignment='left',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                        axes[l].text(0.45, 0.95-0.058*3, qstr,
-                                    color = 'k',
-                                    horizontalalignment='left',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                    else:
-                        axes[l].text(0.70, ytext, r'$L_\text{IR}='+f'{latex_float(luminosity)}'+r'\text{L}_{\odot}$',
-                                color = mod_color,
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                        axes[l].text(0.93, ytext, modstr,
-                                color = mod_color,
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                    
-                ytext = ytext -0.045
-                axes[l].set_ylabel(r'T$_{dust}$ (K)', fontsize = labelsize)#, labelpad=12)
-                for i,row in obs_df.iterrows():
-                    if i <= 2 or i>= 10:
-                        yuplim = 65
-                        axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
-                                                 uplims= True,
-                                                 yerr=yuplim,
-                                                 marker='o', markersize=contms,
-                                                 markerfacecolor='k',
-                                                 markeredgecolor='k', markeredgewidth=0.8,
-                                                 ecolor='k',
-                                                 color = 'k',
-                                                 elinewidth= 0.7,
-                                                 barsabove= True,
-                                                 zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
-                                                     yerr=row[tstring+'_err'],
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    if plot_CH3CN:
-                        if row['Tex_err_CH3CN'] < 0:
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
-                                                     uplims = True,
-                                                     yerr=200,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='b',
-                                                     markeredgecolor='b', markeredgewidth=0.8,
-                                                     ecolor='b',
-                                                     color = 'b',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
-                                                     lolims = True,
-                                                     yerr=200,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='b',
-                                                     markeredgecolor='b', markeredgewidth=0.8,
-                                                     ecolor='b',
-                                                     color = 'b',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                        else:
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'], 
-                                                         yerr=row['Tex_err_CH3CN'],
-                                                         marker='o', markersize=contms,
-                                                         markerfacecolor='b',
-                                                         markeredgecolor='b', markeredgewidth=0.8,
-                                                         ecolor='b',
-                                                         color = 'b',
-                                                         elinewidth= 0.7,
-                                                         barsabove= True,
-                                                         zorder=1)
+#     save_name = ''
+#     ytext = 0.95
+#     for m, mod in enumerate(modelos):
+#         save_name += mod+'_'
+#         modelo = modelos[mod]
+#         mod_color = modelo[3]
+#         factor_model_hc3n = modelo[4][0]
+#         factor_model_dust = modelo[4][1]
+#         factor_model_ff   = modelo[4][2]
+#         if len(modelo)<=5:
+#             LTE = True
+#         else:
+#             LTE = modelo[6]
+#         # Modelled emission
+#         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
+#         # Model parameters
+#         obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+#         # Model luminosity
+#         model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
+#         total_NH2 = np.nansum(10**logNH2_profile) # After correction for Xd variations this NH2 is no longer valid
+#         total_NH2_corr = np.nansum(10**logNH2_profile_corr)
+#         for l,line in enumerate(mykeys):
+#             if line == 'plot_conts':
+#                 axes[l].set_ylim([0.05, 20])  
                 
-                axes[l].plot(rpc_profile, td_profile, color=mod_color, zorder=2)
-            elif line == 'plot_dens':
-                axes[l].set_ylabel(r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', fontsize = labelsize)#, labelpad=12)
-                axes[l].plot(rpc_profile[1:], nh2_profile[1:], color=mod_color, zorder=2)
-                axes[l].set_yscale('log')
-            elif line == 'plot_col':
-                for i, row in obs_df.iterrows():
-                    if row[colstring+'_err']>10:
-                        col_err = (10**row[colstring+'_err'])*(1/np.log(10))/(10**row[colstring])
-                    else:
-                        col_err = row[colstring+'_err']
-                    
-                    if i>=10:
-                        axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
-                                                     uplims = True,
-                                                     yerr=0.25,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
-                                                     yerr=col_err,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                axes[l].set_ylabel(r'$\log{N(\text{HC}_{3}\text{N})}$ (cm$^{-2}$)', fontsize = labelsize)#, labelpad=12)
-                if plot_corr_cols:
-                    axes[l].plot(rpc_profile[1:], logNHC3N_profile_corr[1:], color=mod_color, zorder=2)
-                else:
-                    axes[l].plot(rpc_profile[1:], logNHC3N_profile[1:], color=mod_color, zorder=2)
+#                 # From dust modelling
+#                 axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=2)
+#                 axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=2)
+#                 axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=2)
+#                 # From HC3N modelling
+#                 axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= '--', zorder=2)
+#                 axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '--', zorder=2)
+#                 axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
+#                                 color = '0.5',
+#                                 horizontalalignment='right',
+#                                 verticalalignment='top',
+#                                 fontsize=fontsize,
+#                                 transform=axes[l].transAxes)
+#                 axes[l].text(0.95,  0.95-0.045, r'Cont. 235 GHz',
+#                                 color = 'k',
+#                                 horizontalalignment='right',
+#                                 verticalalignment='top',
+#                                 fontsize=fontsize,
+#                                 transform=axes[l].transAxes)
+#                 axes[l].set_ylabel(r'$\text{Flux density}\:(\text{mJy}\:\text{beam}^{-1})$', fontsize=labelsize)
 
-            elif line == 'plot_x':
-                axes[l].set_ylabel(r'$X$ (HC$_{3}$N)', fontsize = labelsize)#, labelpad=12)
-                if plot_corr_abun:
-                    axes[l].plot(rpc_profile[1:], x_profile[1:], color=mod_color, zorder=2)
-                else:
-                     x_profile_corr = np.array(x_profile)*(10**logNH2_profile)/(10**logNH2_profile_corr)
-                     axes[l].plot(rpc_profile[1:], x_profile_corr[1:], color=mod_color, zorder=2)
-                axes[l].set_yscale('log')
-            elif line == 'ratio_v6_v6v7':
-                mol_ratio = m_molec['v6=1_24_-1_23_1_SM_beam_orig']/m_molec['v6=v7=1_26_2_25_-2_SM_beam_orig']
-                for i, row in hb_df.iterrows():
-                    if row['v6=v7=1_26_2_25_-2_SM_uplim']:
-                        continue
-                    else:
-                        axes[l].errorbar(row['dist'], row['ratio_v6_v6v7'], 
-                                                     yerr=row['ratio_v6_v6v7_err'],
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=2)
-                axes[l].set_ylabel(r'$v_{6}=1/v_{6}=v_{7}=1$', fontsize = labelsize)
-                axes[l].set_ylim([0.0, 5]) 
-            elif line not in ['plot_T', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']: 
-                axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '--', zorder=2)
-                axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=2)
-                a = line_column[line][1].split(' ')[0]
-                axes[l].set_ylabel(a+r'$\;(\text{mJy}\:\,\text{km}\,\,\text{s}^{-1}\:\,\text{beam}^{-1})$', fontsize=labelsize)
+#             elif line == 'plot_T':
+#                 if writename:
+#                     if 'model' in mod:
+#                         modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
+#                     else:
+#                         modstr = mod
+#                     qval = f'{np.float(qprof):1.1f}'
+#                     qstr=r'$q='+qval+'$'
+#                     Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
+#                     Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
+#                     if len(modelos) == 1:
+#                         axes[l].text(0.45, 0.95, modstr,
+#                                     color = mod_color,
+#                                     horizontalalignment='left',
+#                                     verticalalignment='top',
+#                                     fontsize=fontsize,
+#                                     transform=axes[l].transAxes)
+#                         axes[l].text(0.45, 0.95-0.058*1, Lstr,
+#                                     color = 'k',
+#                                     horizontalalignment='left',
+#                                     verticalalignment='top',
+#                                     fontsize=fontsize,
+#                                     transform=axes[l].transAxes)
+#                         axes[l].text(0.45, 0.95-0.058*2, Nstr,
+#                                     color = 'k',
+#                                     horizontalalignment='left',
+#                                     verticalalignment='top',
+#                                     fontsize=fontsize,
+#                                     transform=axes[l].transAxes)
+#                         axes[l].text(0.45, 0.95-0.058*3, qstr,
+#                                     color = 'k',
+#                                     horizontalalignment='left',
+#                                     verticalalignment='top',
+#                                     fontsize=fontsize,
+#                                     transform=axes[l].transAxes)
+#                     else:
+#                         axes[l].text(0.70, ytext, r'$L_\text{IR}='+f'{latex_float(luminosity)}'+r'\text{L}_{\odot}$',
+#                                 color = mod_color,
+#                                 horizontalalignment='right',
+#                                 verticalalignment='top',
+#                                 fontsize=fontsize,
+#                                 transform=axes[l].transAxes)
+#                         axes[l].text(0.93, ytext, modstr,
+#                                 color = mod_color,
+#                                 horizontalalignment='right',
+#                                 verticalalignment='top',
+#                                 fontsize=fontsize,
+#                                 transform=axes[l].transAxes)
+                    
+#                 ytext = ytext -0.045
+#                 axes[l].set_ylabel(r'T$_{dust}$ (K)', fontsize = labelsize)#, labelpad=12)
+#                 for i,row in obs_df.iterrows():
+#                     if i <= 2 or i>= 10:
+#                         yuplim = 65
+#                         axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
+#                                                  uplims= True,
+#                                                  yerr=yuplim,
+#                                                  marker='o', markersize=contms,
+#                                                  markerfacecolor='k',
+#                                                  markeredgecolor='k', markeredgewidth=0.8,
+#                                                  ecolor='k',
+#                                                  color = 'k',
+#                                                  elinewidth= 0.7,
+#                                                  barsabove= True,
+#                                                  zorder=1)
+#                     else:
+#                         axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
+#                                                      yerr=row[tstring+'_err'],
+#                                                      marker='o', markersize=contms,
+#                                                      markerfacecolor='k',
+#                                                      markeredgecolor='k', markeredgewidth=0.8,
+#                                                      ecolor='k',
+#                                                      color = 'k',
+#                                                      elinewidth= 0.7,
+#                                                      barsabove= True,
+#                                                      zorder=1)
+#                     if plot_CH3CN:
+#                         if row['Tex_err_CH3CN'] < 0:
+#                             axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
+#                                                      uplims = True,
+#                                                      yerr=200,
+#                                                      marker='o', markersize=contms,
+#                                                      markerfacecolor='b',
+#                                                      markeredgecolor='b', markeredgewidth=0.8,
+#                                                      ecolor='b',
+#                                                      color = 'b',
+#                                                      elinewidth= 0.7,
+#                                                      barsabove= True,
+#                                                      zorder=1)
+#                             axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
+#                                                      lolims = True,
+#                                                      yerr=200,
+#                                                      marker='o', markersize=contms,
+#                                                      markerfacecolor='b',
+#                                                      markeredgecolor='b', markeredgewidth=0.8,
+#                                                      ecolor='b',
+#                                                      color = 'b',
+#                                                      elinewidth= 0.7,
+#                                                      barsabove= True,
+#                                                      zorder=1)
+#                         else:
+#                             axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'], 
+#                                                          yerr=row['Tex_err_CH3CN'],
+#                                                          marker='o', markersize=contms,
+#                                                          markerfacecolor='b',
+#                                                          markeredgecolor='b', markeredgewidth=0.8,
+#                                                          ecolor='b',
+#                                                          color = 'b',
+#                                                          elinewidth= 0.7,
+#                                                          barsabove= True,
+#                                                          zorder=1)
+                
+#                 axes[l].plot(rpc_profile, td_profile, color=mod_color, zorder=2)
+#             elif line == 'plot_dens':
+#                 axes[l].set_ylabel(r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', fontsize = labelsize)#, labelpad=12)
+#                 axes[l].plot(rpc_profile[1:], nh2_profile[1:], color=mod_color, zorder=2)
+#                 axes[l].set_yscale('log')
+#             elif line == 'plot_col':
+#                 for i, row in obs_df.iterrows():
+#                     if row[colstring+'_err']>10:
+#                         col_err = (10**row[colstring+'_err'])*(1/np.log(10))/(10**row[colstring])
+#                     else:
+#                         col_err = row[colstring+'_err']
+                    
+#                     if i>=10:
+#                         axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
+#                                                      uplims = True,
+#                                                      yerr=0.25,
+#                                                      marker='o', markersize=contms,
+#                                                      markerfacecolor='k',
+#                                                      markeredgecolor='k', markeredgewidth=0.8,
+#                                                      ecolor='k',
+#                                                      color = 'k',
+#                                                      elinewidth= 0.7,
+#                                                      barsabove= True,
+#                                                      zorder=1)
+#                     else:
+#                         axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
+#                                                      yerr=col_err,
+#                                                      marker='o', markersize=contms,
+#                                                      markerfacecolor='k',
+#                                                      markeredgecolor='k', markeredgewidth=0.8,
+#                                                      ecolor='k',
+#                                                      color = 'k',
+#                                                      elinewidth= 0.7,
+#                                                      barsabove= True,
+#                                                      zorder=1)
+#                 axes[l].set_ylabel(r'$\log{N(\text{HC}_{3}\text{N})}$ (cm$^{-2}$)', fontsize = labelsize)#, labelpad=12)
+#                 if plot_corr_cols:
+#                     axes[l].plot(rpc_profile[1:], logNHC3N_profile_corr[1:], color=mod_color, zorder=2)
+#                 else:
+#                     axes[l].plot(rpc_profile[1:], logNHC3N_profile[1:], color=mod_color, zorder=2)
+
+#             elif line == 'plot_x':
+#                 axes[l].set_ylabel(r'$X$ (HC$_{3}$N)', fontsize = labelsize)#, labelpad=12)
+#                 if plot_corr_abun:
+#                     axes[l].plot(rpc_profile[1:], x_profile[1:], color=mod_color, zorder=2)
+#                 else:
+#                      x_profile_corr = np.array(x_profile)*(10**logNH2_profile)/(10**logNH2_profile_corr)
+#                      axes[l].plot(rpc_profile[1:], x_profile_corr[1:], color=mod_color, zorder=2)
+#                 axes[l].set_yscale('log')
+#             elif line == 'ratio_v6_v6v7':
+#                 mol_ratio = m_molec['v6=1_24_-1_23_1_SM_beam_orig']/m_molec['v6=v7=1_26_2_25_-2_SM_beam_orig']
+#                 for i, row in hb_df.iterrows():
+#                     if row['v6=v7=1_26_2_25_-2_SM_uplim']:
+#                         continue
+#                     else:
+#                         axes[l].errorbar(row['dist'], row['ratio_v6_v6v7'], 
+#                                                      yerr=row['ratio_v6_v6v7_err'],
+#                                                      marker='o', markersize=contms,
+#                                                      markerfacecolor='k',
+#                                                      markeredgecolor='k', markeredgewidth=0.8,
+#                                                      ecolor='k',
+#                                                      color = 'k',
+#                                                      elinewidth= 0.7,
+#                                                      barsabove= True,
+#                                                      zorder=1)
+#                 axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=2)
+#                 axes[l].set_ylabel(r'$v_{6}=1/v_{6}=v_{7}=1$', fontsize = labelsize)
+#                 axes[l].set_ylim([0.0, 5]) 
+#             elif line not in ['plot_T', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']: 
+#                 axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '--', zorder=2)
+#                 axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=2)
+#                 a = line_column[line][1].split(' ')[0]
+#                 axes[l].set_ylabel(a+r'$\;(\text{mJy}\:\,\text{km}\,\,\text{s}^{-1}\:\,\text{beam}^{-1})$', fontsize=labelsize)
         
-        for l,line in enumerate(mykeys):
-            axes[l].tick_params(which='both',
-                       labelright=False)
-    if plot_opacity:
-         # Plotting opacity
-        gs2 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-        gs2.update(wspace = 0.23, hspace=0.23, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-        axtau = fig.add_subplot(gs2[-1])
-        for m, mod in enumerate(modelos):
-            mod_name = modelos[mod][0]
-            mod_color = modelos[mod][3]
-            mod_taudust = pd.read_csv(my_model_path+'/'+mod_name+'_.taudust', delim_whitespace= True)
-            mod_taudust.columns = ['lambda_um', 'taudust']
-            axtau.plot(mod_taudust['lambda_um'], mod_taudust['taudust'], color=mod_color)
-            minor_locator = AutoMinorLocator(2)
-            axtau.set_xlim([0.0, 100])
-            axtau.tick_params(direction='in')
-            axtau.tick_params(axis="both", which='major', length=8)
-            axtau.tick_params(axis="both", which='minor', length=4)
-            axtau.xaxis.set_tick_params(which='both', top ='on')
-            axtau.yaxis.set_tick_params(which='both', right='on', labelright='off')
-            axtau.tick_params(axis='both', which='major', labelsize=ticksize)
-            axtau.xaxis.set_minor_locator(minor_locator)
-            axtau.tick_params(labelleft=True,
-                           labelright=False)
-            axtau.set_xlabel(r'$\lambda$ ($\mu$m)', fontsize = labelsize)
-            axtau.set_ylabel(r'$\tau$', fontsize = labelsize)
+#         for l,line in enumerate(mykeys):
+#             axes[l].tick_params(which='both',
+#                        labelright=False)
+#     if plot_opacity:
+#          # Plotting opacity
+#         gs2 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+#         gs2.update(wspace = 0.23, hspace=0.23, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+#         axtau = fig.add_subplot(gs2[-1])
+#         for m, mod in enumerate(modelos):
+#             mod_name = modelos[mod][0]
+#             mod_color = modelos[mod][3]
+#             mod_taudust = pd.read_csv(my_model_path+'/'+mod_name+'_.taudust', delim_whitespace= True)
+#             mod_taudust.columns = ['lambda_um', 'taudust']
+#             axtau.plot(mod_taudust['lambda_um'], mod_taudust['taudust'], color=mod_color)
+#             minor_locator = AutoMinorLocator(2)
+#             axtau.set_xlim([0.0, 100])
+#             axtau.tick_params(direction='in')
+#             axtau.tick_params(axis="both", which='major', length=8)
+#             axtau.tick_params(axis="both", which='minor', length=4)
+#             axtau.xaxis.set_tick_params(which='both', top ='on')
+#             axtau.yaxis.set_tick_params(which='both', right='on', labelright='off')
+#             axtau.tick_params(axis='both', which='major', labelsize=ticksize)
+#             axtau.xaxis.set_minor_locator(minor_locator)
+#             axtau.tick_params(labelleft=True,
+#                            labelright=False)
+#             axtau.set_xlabel(r'$\lambda$ ($\mu$m)', fontsize = labelsize)
+#             axtau.set_ylabel(r'$\tau$', fontsize = labelsize)
         
-    if len(modelos) == 1:
-        for m, mod in enumerate(modelos):
-            save_name = modelo = modelos[mod][0]
-        fig.savefig(figmod_path+'NGC253_'+save_name+'_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
+#     if len(modelos) == 1:
+#         for m, mod in enumerate(modelos):
+#             save_name = modelo = modelos[mod][0]
+#         fig.savefig(figmod_path+'NGC253_'+save_name+'_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+#     else:
+#         fig.savefig(figrt_path+'NGC253_'+save_name+'SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+#     plt.close()
     
     
 def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+    """
+       Plots model parameters and observations
+    """
+     
     mykeys = list(line_column.keys())
     plot_only_cont = ['model7']#['model2']
     plot_corr_cols = False
@@ -1258,13 +1278,6 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
              'v=0_26_25_SM', 'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']
         if plot_opacity == False:
             mykeys.append('ratio_v6_v6v7')
-    
-    #hb_df['ratio_v6_v6v7'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']
-    #hb_df['ratio_v6_v6v7_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']**2))**2)
-    #hb_df['ratio_v6_v6v7_beam345'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']
-    #hb_df['ratio_v6_v6v7_beam345_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']**2))**2)
-    
-    
     ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM'],
                    'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM'],
                    'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM'],
@@ -1276,9 +1289,7 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
         hb_df['ratio_'+ratio+'_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']**2))**2)
         hb_df['ratio_'+ratio+'_beam345'] = hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']
         hb_df['ratio_'+ratio+'_beam345_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']**2))**2)
-    
-    
-    
+
     figsize = 20
     tstring = 'Tex_SM_ave_ring' #Tex_det' #'Tex_ave_ring' # 'Tex_det'
     colstring = 'Col_SM_ave_ring' #'Col_det' #'Col_ave_ring' #'Col_det'
@@ -1395,7 +1406,7 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
         obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
         model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
-        mtau100 = nlTEmods.get_tau100(my_model_path, modelo[0])
+        mtau100 = get_tau100(my_model_path, modelo[0])
         total_NH2 = np.nansum(10**logNH2_profile)
         total_NH2_corr = np.nansum(10**logNH2_profile_corr)
         for l,line in enumerate(mykeys_conts):
@@ -1586,7 +1597,6 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
     
     
     # Corrected densities and masses
-    
     figsize = 10
     naxis = 2
     maxis = 1
@@ -1602,10 +1612,8 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
     gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
     gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
     xlabel_ind = -1
-    
     xtextpos = 0.95
     ytextpos = 0.95
-
     axes=[]
     ytext = 0.95
     ytext2 = 0.95
@@ -1676,9 +1684,7 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
         fig.savefig(figrt_path+'NGC253_'+save_name+'_dens_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
 
-            
-            
-    # line profiles
+    # Line profiles
     figsize = 20
     naxis = 3
     maxis = 4
@@ -1715,8 +1721,6 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
     ytext = 0.95
     ytext2 = 0.95
     save_name = ''
-    
-            
     for l,line in enumerate(mykeys_flux):
         axes.append(fig.add_subplot(gs1[l]))
         if line not in ['plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:   
@@ -1756,7 +1760,7 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
                     if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
                         axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
                                              uplims=True,
-                                             yerr=ysep,#3*row[line+'_mJy_kms_beam_345_errcont']*0.15,
+                                             yerr=ysep,
                                              marker='o', markersize=linems,
                                              markerfacecolor=facecolor_beam_345,
                                              markeredgecolor=color_beam_345, markeredgewidth=0.8,
@@ -1861,8 +1865,6 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
                        labelbottom=False)
         else:
             axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-
-                            
     for m, mod in enumerate(modelos):
         if mod == 'model2':
             mzord = 4
@@ -1895,7 +1897,6 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
             if line not in ['plot_T', 'plot_x', 'plot_col', 'ratio_v6_v6v7']: 
                 axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '--', zorder=mzord)
                 axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=mzord)
-            
             elif line in ['ratio_v6_v6v7']:
                 mol_ratio = m_molec['v6=1_24_-1_23_1_SM_beam_orig']/m_molec['v6=v7=1_26_2_25_-2_SM_beam_orig']
                 axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
@@ -1906,7 +1907,6 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
     else:
         fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
-    
     # Line ratios
     figsize = 20
     naxis = 2
@@ -1985,7 +1985,6 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
                 axes[l].set_ylim(ratio_lines[ratio][3]) 
                 yminor_locator = AutoMinorLocator(2)
                 axes[l].yaxis.set_minor_locator(yminor_locator)
-                
         minor_locator = AutoMinorLocator(2)
         axes[l].set_xlim([0.0, 1.42])
         axes[l].tick_params(direction='in')
@@ -2001,9 +2000,7 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
             axes[l].tick_params(
                        labelbottom=False)
         else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-
-                            
+            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)     
     # Model ratios
     for m, mod in enumerate(modelos):
         if mod == 'model2':
@@ -2185,6 +2182,9 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
     
 
 def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+    """
+        Plots model comparisson parameters
+    """
     # Figures
     plot_conts_and_tex = False
     plot_corr_dens = False
@@ -2193,12 +2193,10 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
     plot_line_Tex = True
     plot_line_ratios = False
     
-    
     mykeys = list(line_column.keys())
     plot_only_cont = ['LTE 3E17']#['model7']
     plot_corr_cols = False
     plot_corr_abun = True
-    
     
     if 'plot_T' not in list(line_column.keys()):
         mykeys.insert(1, 'plot_T')
@@ -2241,8 +2239,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         hb_df['ratio_'+ratio+'_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']**2))**2)
         hb_df['ratio_'+ratio+'_beam345'] = hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']
         hb_df['ratio_'+ratio+'_beam345_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']**2))**2)
-    
-    
+
     # Conts and Tex figure
     if plot_conts_and_tex:
         figsize = 20
@@ -2259,7 +2256,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         color_beam_345 = 'k'
         facecolor_beam_345 = 'None'
         fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-        gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+        gs1 = gridspec.GridSpec(maxis, naxis)#
         gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
         axes=[]
         mykeys_conts = ['plot_conts', 'plot_T', 'plot_col', 'plot_x']
@@ -2317,7 +2314,6 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
                                     verticalalignment='top',
                                     fontsize=fontsize,
                                     transform=axes[l].transAxes)
-                    
                     axes[l].set_yscale('log')
                     axes[l].set_ylabel(r'$\text{Flux density}\:(\text{mJy}\:\text{beam}^{-1})$', fontsize=labelsize)
                     axes[l].yaxis.set_major_formatter(ScalarFormatter())
@@ -2362,7 +2358,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
             mdust, m_molec, m_molec345, rout_model_hc3n_pc, tau_molec, tau_dust = model_reader_comp(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
             obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
             model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
-            mtau100 = nlTEmods.get_tau100(my_model_path, modelo[0])
+            mtau100 = get_tau100(my_model_path, modelo[0])
             total_NH2 = np.nansum(10**logNH2_profile)
             total_NH2_corr = np.nansum(10**logNH2_profile_corr)
             for l,line in enumerate(mykeys_conts):
@@ -2550,9 +2546,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         else:
             fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
-    
-    
-    
+
     # Corrected densities and masses fig
     if plot_corr_dens:
         figsize = 10
@@ -2644,8 +2638,6 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
             fig.savefig(figrt_path+'NGC253_'+save_name+'_dens_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
 
-            
-            
     # line profiles fig
     if plot_line_profiles:
         plot345 = False
@@ -2920,8 +2912,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         else:
             fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
-        
-    
+
     # Line and cont. Opacities
     if plot_line_opacities:
         labelsize = 18
@@ -3131,7 +3122,6 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
                 fig.savefig(figrt_path+'NGC253_'+modstr+'_Tex.pdf', bbox_inches='tight', transparent=True, dpi=400)
                 plt.close()
             
-        
     if plot_line_ratios:
         # Line ratios
         figsize = 20
@@ -3229,8 +3219,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
                            labelbottom=False)
             else:
                 axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-    
-                                
+               
         # Model ratios
         for m, mod in enumerate(modelos):
             if mod == 'model2':
@@ -3277,8 +3266,11 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
     
 
 def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+    """
+        Plots models profiles and values in a more clear figure
+    """
     mykeys = list(line_column.keys())
-    plot_only_cont = []#['model7']#['model2']
+    plot_only_cont = []
     plot_corr_cols = False
     plot_corr_abun = True
     plot_smoothed = False
@@ -3312,12 +3304,6 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
         if plot_opacity == False:
             mykeys.append('ratio_v6_v6v7')
     
-    #hb_df['ratio_v6_v6v7'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']
-    #hb_df['ratio_v6_v6v7_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']**2))**2)
-    #hb_df['ratio_v6_v6v7_beam345'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']
-    #hb_df['ratio_v6_v6v7_beam345_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']**2))**2)
-    
-    
     ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM'],
                    'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM'],
                    'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM'],
@@ -3329,8 +3315,6 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
         hb_df['ratio_'+ratio+'_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']**2))**2)
         hb_df['ratio_'+ratio+'_beam345'] = hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']
         hb_df['ratio_'+ratio+'_beam345_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']**2))**2)
-    
-    
     
     figsize = 20
     tstring = 'Tex_SM_ave_ring' #Tex_det' #'Tex_ave_ring' # 'Tex_det'
@@ -3374,18 +3358,6 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
                                 verticalalignment='top',
                                 fontsize=fontsize,
                                 transform=axes[l].transAxes)
-                
-                
-#                axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
-#                                             yerr=row['F345GHz_mjy_beam_err'],
-#                                             marker='o', markersize=contms,
-#                                             markerfacecolor='0.5',
-#                                             markeredgecolor='0.5', markeredgewidth=0.8,
-#                                             ecolor='0.5',
-#                                             color = '0.5',
-#                                             elinewidth= 0.7,
-#                                             barsabove= True,
-#                                             zorder=1)
                 
                 if plot_smoothed:
                     axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
@@ -3453,7 +3425,7 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
         obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
         model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
-        mtau100 = nlTEmods.get_tau100(my_model_path, modelo[0])
+        mtau100 = get_tau100(my_model_path, modelo[0])
         total_NH2 = np.nansum(10**logNH2_profile)
         total_NH2_corr = np.nansum(10**logNH2_profile_corr)
         for l,line in enumerate(mykeys_conts):
@@ -3463,13 +3435,7 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
                     axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord)
                     if plot_smoothed:
                         axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=mzord)
-                    #axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord)
-                    #axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= '--', zorder=mzord)
-                    #axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '--', zorder=mzord)
                 elif len(plot_only_cont)<1:
-                    #axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord)
-                    #axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=mzord)
-                    #axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord)
                     axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
                     if plot_smoothed:
                         axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= '--', zorder=mzord)
@@ -3481,7 +3447,6 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
                         modstr = mod
                     qval = f'{np.float(qprof):1.1f}'
                     qstr = r'$q='+qval+'$'
-                    #Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2)}'+r'\text{cm}^{-2}$'
                     Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
                     Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
                     axes[l].text(0.95, ytext, modstr+':  '+Lstr +' \; '+Nstr+' \; '+qstr,
@@ -3551,10 +3516,8 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
                                                          elinewidth= 0.7,
                                                          barsabove= True,
                                                          zorder=1)
-                
                 axes[l].plot(rpc_profile, td_profile, color=mod_color, zorder=mzord)
             elif line == 'plot_dens':
-                
                 axes[l].set_ylabel(r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', fontsize = labelsize)#, labelpad=12)
                 axes[l].plot(rpc_profile[1:], nh2_profile[1:], color=mod_color, zorder=mzord)
                 axes[l].set_yscale('log')
@@ -3590,8 +3553,6 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
                                                      elinewidth= 0.7,
                                                      barsabove= True,
                                                      zorder=1)
-                        
-
                 ytext2 = ytext2 -0.045
                 axes[l].set_ylabel(r'$\log{N(\text{HC}_{3}\text{N})}$ (cm$^{-2}$)', fontsize = labelsize)#, labelpad=12)
                 if plot_corr_cols:
@@ -3606,7 +3567,6 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
                 else:
                     axes[l].plot(rpc_profile[1:], x_profile[1:], color=mod_color, zorder=mzord)
                 axes[l].set_yscale('log')
-            
         for l,line in enumerate(mykeys_conts):
             axes[l].tick_params(which='both',
                        labelright=False)
@@ -3634,7 +3594,6 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
                            labelright=False)
             axtau.set_xlabel(r'$\lambda$ ($\mu$m)', fontsize = labelsize)
             axtau.set_ylabel(r'$\tau$', fontsize = labelsize)
-        
     if len(modelos) == 1:
         for m, mod in enumerate(modelos):
             save_name = modelo = modelos[mod][0]
@@ -3642,14 +3601,11 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
     else:
         fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM_presen.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
-    
-    
-    
+
     # line profiles
     figsize = 20
     naxis = 3
     maxis = 4
-    
     labelsize = 18
     ticksize = 16
     fontsize = 14
@@ -3658,7 +3614,7 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
     color_beam_345 = 'k'
     facecolor_beam_345 = 'w'
     fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])   
+    gs1 = gridspec.GridSpec(maxis, naxis)  
     if maxis ==3:
         gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
         xlabel_ind = 9
@@ -4065,15 +4021,28 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
     
     
 
-def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6, source_rad=0):
-    
+def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_df, cont_df,
+                                      my_model_path, figmod_path, figrt_path, fort_paths,
+                                      writename = True, plot_CH3CN = False, plot_col = True,
+                                      cont_modelplot = 'model2',
+                                      plot_opacity = False, distance_pc = 3.5e6, source_rad=0):
+    """ 
+        Plots nLTE models for the final version of the paper
+        convolve = True convolves the model again! Needs fortran compiler!!! (specifcly intel fortran)
+    """
+    cont_Tex_N_X_fig = True
+    cont_Tex_N_X_fig_BIG = True
+    line_profiles = True
+    line_profiles_subset = True
+    line_ratios = True
+    line_ratios_BIG = True
     if convolve:
         convstr = ''
     else:
         convstr = '_noconv'
     print(f'source rad first: {source_rad:1.1f}')
     mykeys = list(line_column.keys())
-    plot_only_cont = ['model7']#['model2']
+    plot_only_cont = [cont_modelplot]#['model7']
     plot_corr_cols = False
     plot_corr_abun = True
     plot_smoothed = False
@@ -4106,13 +4075,6 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
              'v=0_26_25_SM', 'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']
         if plot_opacity == False:
             mykeys.append('ratio_v6_v6v7')
-    
-    #hb_df['ratio_v6_v6v7'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']
-    #hb_df['ratio_v6_v6v7_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']**2))**2)
-    #hb_df['ratio_v6_v6v7_beam345'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']
-    #hb_df['ratio_v6_v6v7_beam345_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']**2))**2)
-    
-    
     ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM'],
                    'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM'],
                    'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM'],
@@ -4124,1474 +4086,1388 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
         hb_df['ratio_'+ratio+'_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']**2))**2)
         hb_df['ratio_'+ratio+'_beam345'] = hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']
         hb_df['ratio_'+ratio+'_beam345_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']**2))**2)
-    
-    
-    
-    figsize = 20
-    tstring = 'Tex_SM_ave_ring' #Tex_det' #'Tex_ave_ring' # 'Tex_det'
-    colstring = 'Col_SM_ave_ring' #'Col_det' #'Col_ave_ring' #'Col_det'
-    naxis = 2
-    maxis = 2
-    labelsize = 28
-    ticksize = 22
-    fontsize = 18
-    contms = 8
-    axcolor = 'k'
-    color_beam_orig = 'k'
-    color_beam_345 = 'k'
-    facecolor_beam_345 = 'None'
-    fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-    gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    axes=[]
-    mykeys_conts = ['plot_conts', 'plot_T', 'plot_col', 'plot_x']
-    
-    for l,line in enumerate(mykeys_conts):
-        axes.append(fig.add_subplot(gs1[l]))
-        if line == 'plot_conts':
-            axes[l].set_ylim([0.05, 20])  
-            for i,row in cont_df.iterrows():
-                axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam'], 
-                                             yerr=row['F235GHz_mjy_beam_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='k',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                
-                
-                axes[l].text(0.95, 0.95-0.045, r'Cont. 235 GHz',
-                                color = 'k',
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
-                                    color = '0.5',
-                                    horizontalalignment='right',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                
-                axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
-                                             yerr=row['F345GHz_mjy_beam_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='0.5',
-                                             markeredgecolor='0.5', markeredgewidth=0.8,
-                                             ecolor='0.5',
-                                             color = '0.5',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                
-                if plot_smoothed:
-                    axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
-                                             yerr=row['F235GHz_mjy_beam345_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='0.65',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                    axes[l].plot(row['dist'], row['F235GHz_mjy_beam345'],  linestyle='',
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='0.65',
-                                             markeredgecolor='k',
-                                             zorder=2)
-                    axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
-                                    color = '0.5',
-                                    horizontalalignment='right',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                    axes[l].text(0.95,  0.95-0.045, r'Cont. 235 GHz',
-                                    color = 'k',
-                                    horizontalalignment='right',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                
-                axes[l].set_yscale('log')
-                axes[l].set_ylabel(r'$\text{Flux density}\:(\text{mJy}\:\text{beam}^{-1})$', fontsize=labelsize)
-                axes[l].yaxis.set_major_formatter(ScalarFormatter())
-        
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
-        
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
-        
-        if l <2:
-            axes[l].tick_params(
-                       labelbottom=False)
-        else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-    save_name = ''
-    ytext = 0.95
-    ytext2 = 0.95
-    for m, mod in enumerate(modelos):
-        if mod == 'model2':
-            mzord = 4
-        else:
-            mzord = 2
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        factor_model_hc3n = modelo[4][0]
-        factor_model_dust = modelo[4][1]
-        factor_model_ff   = modelo[4][2]
-        if len(modelo)<=5:
-            LTE = True
-        else:
-            LTE = modelo[6]
-            
-        if convolve:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
-        else:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
-        model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
-        mtau100 = nlTEmods.get_tau100(my_model_path, modelo[0])
-        total_NH2 = np.nansum(10**logNH2_profile)
-        total_NH2_corr = np.nansum(10**logNH2_profile_corr)
-        for l,line in enumerate(mykeys_conts):
-            if line == 'plot_conts':
-                axes[l].set_ylim([0.05, 20])  
-                if mod in plot_only_cont: # Plotting only one cont lines. Too complicated Fig.
-                    axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
-                    if plot_smoothed:
-                        axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=mzord)
-                    axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
-                    axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
-                    #axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= '--', zorder=mzord)
-                    #axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '--', zorder=mzord)
-                elif len(plot_only_cont)<1:
-                    axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
-                    axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
-                    axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
 
-                    if plot_smoothed:
-                        axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= (0, (5, 10)), zorder=mzord)
-            elif line == 'plot_T':
-                if writename:
-                    if 'model' in mod:
-                        modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
-                    else:
-                        modstr = mod
-                    qval = f'{np.float(qprof):1.1f}'
-                    qstr = r'$q='+qval+'$'
-                    #Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2)}'+r'\text{cm}^{-2}$'
-                    Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
-                    Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
-                    axes[l].text(0.95, ytext, modstr+':  '+Lstr +' \; '+Nstr+' \; '+qstr,
-                                color = mod_color,
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                ytext = ytext -0.045
-                axes[l].set_ylabel(r'T$_{\text{dust}}$ (K)', fontsize = labelsize)#, labelpad=12)
-                for i,row in obs_df.iterrows():
-                    if i <= 2 or i>= 10:
-                        axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
-                                                     uplims = True,
-                                                     yerr=65,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
-                                                     yerr=row[tstring+'_err'],
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    if plot_CH3CN:
-                        if row['Tex_err_CH3CN'] < 0:
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
-                                                     uplims = True,
-                                                     yerr=200,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='b',
-                                                     markeredgecolor='b', markeredgewidth=0.8,
-                                                     ecolor='b',
-                                                     color = 'b',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
-                                                     lolims = True,
-                                                     yerr=200,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='b',
-                                                     markeredgecolor='b', markeredgewidth=0.8,
-                                                     ecolor='b',
-                                                     color = 'b',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                        else:
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'], 
-                                                         yerr=row['Tex_err_CH3CN'],
-                                                         marker='o', markersize=contms,
-                                                         markerfacecolor='b',
-                                                         markeredgecolor='b', markeredgewidth=0.8,
-                                                         ecolor='b',
-                                                         color = 'b',
-                                                         elinewidth= 0.7,
-                                                         barsabove= True,
-                                                         zorder=1)
-                
-                axes[l].plot(rpc_profile, td_profile, color=mod_color, zorder=mzord)
-            elif line == 'plot_dens':
-                
-                axes[l].set_ylabel(r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', fontsize = labelsize)#, labelpad=12)
-                axes[l].plot(rpc_profile[1:], nh2_profile[1:], color=mod_color, zorder=mzord)
-                axes[l].set_yscale('log')
-            elif line == 'plot_col':
-                
-                for i, row in obs_df.iterrows():
-                    if row[colstring+'_err']>10:
-                        col_err = (10**(row[colstring+'_err']+0.75))*(1/np.log(10))/(10**row[colstring])
-                    else:
-                        col_err = row[colstring+'_err']
-                
-                
-                    if i>=10:
-                        axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
-                                                     uplims = True,
-                                                     yerr=0.25,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
-                                                     yerr=col_err,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                        
-
-                ytext2 = ytext2 -0.045
-                axes[l].set_ylabel(r'$\log{N(\text{HC}_{3}\text{N})}$ (cm$^{-2}$)', fontsize = labelsize)#, labelpad=12)
-                if plot_corr_cols:
-                    axes[l].plot(rpc_profile[1:], logNHC3N_profile_corr[1:], color=mod_color, zorder=mzord)
-                else:
-                    axes[l].plot(rpc_profile[1:], logNHC3N_profile[1:], color=mod_color, zorder=mzord)
-            elif line == 'plot_x':
-                axes[l].set_ylabel(r'$X$ (HC$_{3}$N)', fontsize = labelsize)#, labelpad=12)
-                if plot_corr_abun:
-                    x_profile_corr = np.array(x_profile)*(10**logNH2_profile)/(10**logNH2_profile_corr)
-                    axes[l].plot(rpc_profile[1:], x_profile_corr[1:], color=mod_color, zorder=mzord)
-                else:
-                    axes[l].plot(rpc_profile[1:], x_profile[1:], color=mod_color, zorder=mzord)
-                axes[l].set_yscale('log')
-            
-        for l,line in enumerate(mykeys_conts):
-            axes[l].tick_params(which='both',
-                       labelright=False)
-    if plot_opacity:
-         # Plotting opacity
-        gs2 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-        gs2.update(wspace = 0.23, hspace=0.23, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-        axtau = fig.add_subplot(gs2[-1])
-        for m, mod in enumerate(modelos):
-            mod_name = modelos[mod][0]
-            mod_color = modelos[mod][3]
-            mod_taudust = pd.read_csv(my_model_path+'/'+mod_name+'_.taudust', delim_whitespace= True)
-            mod_taudust.columns = ['lambda_um', 'taudust']
-            axtau.plot(mod_taudust['lambda_um'], mod_taudust['taudust'], color=mod_color)
-            minor_locator = AutoMinorLocator(2)
-            axtau.set_xlim([0.0, 100])
-            axtau.tick_params(direction='in')
-            axtau.tick_params(axis="both", which='major', length=8)
-            axtau.tick_params(axis="both", which='minor', length=4)
-            axtau.xaxis.set_tick_params(which='both', top ='on')
-            axtau.yaxis.set_tick_params(which='both', right='on', labelright='off')
-            axtau.tick_params(axis='both', which='major', labelsize=ticksize)
-            axtau.xaxis.set_minor_locator(minor_locator)
-            axtau.tick_params(labelleft=True,
-                           labelright=False)
-            axtau.set_xlabel(r'$\lambda$ ($\mu$m)', fontsize = labelsize)
-            axtau.set_ylabel(r'$\tau$', fontsize = labelsize)
-    D_Mpc = 3.5
-    beam_size = 0.020/2 #arcsec
-    xstart = 0.05
-    ypos = 0.08
-    beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
-    axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
-    axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2,ypos), xytext=((xstart+beam_size_pc)/2+0.027,ypos+0.015), weight='bold',
-                          fontsize=fontsize, color='k',
-                          horizontalalignment='center',
-                          verticalalignment='center',)
-        
-    if len(modelos) == 1:
-        for m, mod in enumerate(modelos):
-            save_name = modelo = modelos[mod][0]
-        fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
-    
-    
-    figsize = 20
-    tstring = 'Tex_SM_ave_ring' #Tex_det' #'Tex_ave_ring' # 'Tex_det'
-    colstring = 'Col_SM_ave_ring' #'Col_det' #'Col_ave_ring' #'Col_det'
-    naxis = 2
-    maxis = 2
-    labelsize = 35
-    ticksize = 28
-    fontsize = 25
-    contms = 10
-    axcolor = 'k'
-    color_beam_orig = 'k'
-    color_beam_345 = 'k'
-    facecolor_beam_345 = 'None'
-    fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-    gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05)#, left=0.05, right=0.80)
-
-    axes=[]
-    mykeys_conts = ['plot_conts', 'plot_T', 'plot_col', 'plot_x']
-    
-    for l,line in enumerate(mykeys_conts):
-        axes.append(fig.add_subplot(gs1[l]))
-        if line == 'plot_conts':
-            axes[l].set_ylim([0.05, 20])  
-            for i,row in cont_df.iterrows():
-                axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam'], 
-                                             yerr=row['F235GHz_mjy_beam_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='k',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                
-                
-                axes[l].text(0.95, 0.95-0.045, r'Cont. 235 GHz',
-                                color = 'k',
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
-                                    color = '0.5',
-                                    horizontalalignment='right',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                
-                axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
-                                             yerr=row['F345GHz_mjy_beam_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='0.5',
-                                             markeredgecolor='0.5', markeredgewidth=0.8,
-                                             ecolor='0.5',
-                                             color = '0.5',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                
-                if plot_smoothed:
-                    axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
-                                             yerr=row['F235GHz_mjy_beam345_err'],
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='0.65',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                    axes[l].plot(row['dist'], row['F235GHz_mjy_beam345'],  linestyle='',
-                                             marker='o', markersize=contms,
-                                             markerfacecolor='0.65',
-                                             markeredgecolor='k',
-                                             zorder=2)
-                    axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
-                                    color = '0.5',
-                                    horizontalalignment='right',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                    axes[l].text(0.95,  0.95-0.045, r'Cont. 235 GHz',
-                                    color = 'k',
-                                    horizontalalignment='right',
-                                    verticalalignment='top',
-                                    fontsize=fontsize,
-                                    transform=axes[l].transAxes)
-                
-                axes[l].set_yscale('log')
-                axes[l].set_ylabel(r'$\text{Flux density}\:(\text{mJy}\:\text{beam}^{-1})$', fontsize=labelsize)
-                axes[l].yaxis.set_major_formatter(ScalarFormatter())
-        
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
-        
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
-        
-        if l <2:
-            axes[l].tick_params(
-                       labelbottom=False)
-        else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-    save_name = ''
-    ytext = 0.95
-    ytext2 = 0.95
-    ytext3 = 0.95
-    for m, mod in enumerate(modelos):
-        if mod == 'model2':
-            mzord = 4
-        else:
-            mzord = 2
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        factor_model_hc3n = modelo[4][0]
-        factor_model_dust = modelo[4][1]
-        factor_model_ff   = modelo[4][2]
-        if len(modelo)<=5:
-            LTE = True
-        else:
-            LTE = modelo[6]
-            
-        if convolve:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
-        else:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
-        model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
-        mtau100 = nlTEmods.get_tau100(my_model_path, modelo[0])
-        total_NH2 = np.nansum(10**logNH2_profile)
-        total_NH2_corr = np.nansum(10**logNH2_profile_corr)
-        for l,line in enumerate(mykeys_conts):
-            if line == 'plot_conts':
-                axes[l].set_ylim([0.05, 20])  
-                if mod in plot_only_cont: # Plotting only one cont lines. Too complicated Fig.
-                    axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
-                    if plot_smoothed:
-                        axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=mzord)
-                    axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
-                    axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
-                    #axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= '--', zorder=mzord)
-                    #axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '--', zorder=mzord)
-                elif len(plot_only_cont)<1:
-                    axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
-                    axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
-                    axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
-
-                    if plot_smoothed:
-                        axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= (0, (5, 10)), zorder=mzord)
-            elif line == 'plot_T':
-                if writename:
-                    if 'model' in mod:
-                        modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
-                    else:
-                        modstr = mod
-                    qval = f'{np.float(qprof):1.1f}'
-                    qstr = r'$q='+qval+'$'
-                    #Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2)}'+r'\text{cm}^{-2}$'
-                    Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
-                    Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
-                    #axes[l].text(0.95, ytext, modstr+':  '+Lstr +' \; '+Nstr+' \; '+qstr,
-                    #            color = mod_color,
-                    #            horizontalalignment='right',
-                    #            verticalalignment='top',
-                    #            fontsize=fontsize,
-                    #            transform=axes[l].transAxes)
-                    
-                    axes[l].text(0.95, ytext, modstr+':  '+Lstr +' \; '+qstr,
-                                color = mod_color,
-                                horizontalalignment='right',
-                                verticalalignment='top',
-                                fontsize=fontsize,
-                                transform=axes[l].transAxes)
-                ytext = ytext -0.045
-                axes[l].set_ylabel(r'T$_{\text{dust}}$ (K)', fontsize = labelsize)#, labelpad=12)
-                for i,row in obs_df.iterrows():
-                    if i <= 2 or i>= 10:
-                        axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
-                                                     uplims = True,
-                                                     yerr=65,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
-                                                     yerr=row[tstring+'_err'],
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    if plot_CH3CN:
-                        if row['Tex_err_CH3CN'] < 0:
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
-                                                     uplims = True,
-                                                     yerr=200,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='b',
-                                                     markeredgecolor='b', markeredgewidth=0.8,
-                                                     ecolor='b',
-                                                     color = 'b',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
-                                                     lolims = True,
-                                                     yerr=200,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='b',
-                                                     markeredgecolor='b', markeredgewidth=0.8,
-                                                     ecolor='b',
-                                                     color = 'b',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                        else:
-                            axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'], 
-                                                         yerr=row['Tex_err_CH3CN'],
-                                                         marker='o', markersize=contms,
-                                                         markerfacecolor='b',
-                                                         markeredgecolor='b', markeredgewidth=0.8,
-                                                         ecolor='b',
-                                                         color = 'b',
-                                                         elinewidth= 0.7,
-                                                         barsabove= True,
-                                                         zorder=1)
-                
-                axes[l].plot(rpc_profile, td_profile, color=mod_color, zorder=mzord)
-            elif line == 'plot_dens':
-                
-                axes[l].set_ylabel(r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', fontsize = labelsize)#, labelpad=12)
-                axes[l].plot(rpc_profile[1:], nh2_profile[1:], color=mod_color, zorder=mzord)
-                axes[l].set_yscale('log')
-            elif line == 'plot_col':
-                
-                for i, row in obs_df.iterrows():
-                    if row[colstring+'_err']>10:
-                        col_err = (10**(row[colstring+'_err']+0.75))*(1/np.log(10))/(10**row[colstring])
-                    else:
-                        col_err = row[colstring+'_err']
-                
-                
-                    if i>=10:
-                        axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
-                                                     uplims = True,
-                                                     yerr=0.25,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
-                                                     yerr=col_err,
-                                                     marker='o', markersize=contms,
-                                                     markerfacecolor='k',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                qval = f'{np.float(qprof):1.1f}'
-                qstr = r'$q='+qval+'$'
-                #Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2)}'+r'\text{cm}^{-2}$'
-                Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
-                Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
-                #axes[l].text(0.95, ytext, modstr+':  '+Lstr +' \; '+Nstr+' \; '+qstr,
-                #            color = mod_color,
-                #            horizontalalignment='right',
-                #            verticalalignment='top',
-                #            fontsize=fontsize,
-                #            transform=axes[l].transAxes)
-                
-                axes[l].text(0.95, ytext3, modstr+':  '+Nstr,
-                            color = mod_color,
-                            horizontalalignment='right',
-                            verticalalignment='top',
-                            fontsize=fontsize,
-                            transform=axes[l].transAxes)
-                        
-
-                ytext3 = ytext3 -0.045
-                axes[l].set_ylabel(r'$\log{N(\text{HC}_{3}\text{N})}$ (cm$^{-2}$)', fontsize = labelsize)#, labelpad=12)
-                if plot_corr_cols:
-                    axes[l].plot(rpc_profile[1:], logNHC3N_profile_corr[1:], color=mod_color, zorder=mzord)
-                else:
-                    axes[l].plot(rpc_profile[1:], logNHC3N_profile[1:], color=mod_color, zorder=mzord)
-            elif line == 'plot_x':
-                axes[l].set_ylabel(r'$X$ (HC$_{3}$N)', fontsize = labelsize, labelpad=-3)
-                if plot_corr_abun:
-                    x_profile_corr = np.array(x_profile)*(10**logNH2_profile)/(10**logNH2_profile_corr)
-                    axes[l].plot(rpc_profile[1:], x_profile_corr[1:], color=mod_color, zorder=mzord)
-                else:
-                    axes[l].plot(rpc_profile[1:], x_profile[1:], color=mod_color, zorder=mzord)
-                axes[l].set_yscale('log')
-            
-        for l,line in enumerate(mykeys_conts):
-            axes[l].tick_params(which='both',
-                       labelright=False)
-    if plot_opacity:
-         # Plotting opacity
-        gs2 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-        gs2.update(wspace = 0.23, hspace=0.23, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-        axtau = fig.add_subplot(gs2[-1])
-        for m, mod in enumerate(modelos):
-            mod_name = modelos[mod][0]
-            mod_color = modelos[mod][3]
-            mod_taudust = pd.read_csv(my_model_path+'/'+mod_name+'_.taudust', delim_whitespace= True)
-            mod_taudust.columns = ['lambda_um', 'taudust']
-            axtau.plot(mod_taudust['lambda_um'], mod_taudust['taudust'], color=mod_color)
-            minor_locator = AutoMinorLocator(2)
-            axtau.set_xlim([0.0, 100])
-            axtau.tick_params(direction='in')
-            axtau.tick_params(axis="both", which='major', length=8)
-            axtau.tick_params(axis="both", which='minor', length=4)
-            axtau.xaxis.set_tick_params(which='both', top ='on')
-            axtau.yaxis.set_tick_params(which='both', right='on', labelright='off')
-            axtau.tick_params(axis='both', which='major', labelsize=ticksize)
-            axtau.xaxis.set_minor_locator(minor_locator)
-            axtau.tick_params(labelleft=True,
-                           labelright=False)
-            axtau.set_xlabel(r'$\lambda$ ($\mu$m)', fontsize = labelsize)
-            axtau.set_ylabel(r'$\tau$', fontsize = labelsize)
-    D_Mpc = 3.5
-    beam_size = 0.020/2 #arcsec
-    xstart = 0.05
-    ypos = 0.08
-    beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
-    axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
-    axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2,ypos), xytext=((xstart+beam_size_pc)/2+0.027,ypos+0.015), weight='bold',
-                          fontsize=fontsize, color='k',
-                          horizontalalignment='center',
-                          verticalalignment='center',)
-        
-    if len(modelos) == 1:
-        for m, mod in enumerate(modelos):
-            save_name = modelo = modelos[mod][0]
-        fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
-    
-    
-    
-    # line profiles
-    print('line profiles')
-    plot_smoothed_lines = True
-    figsize = 20
-    naxis = 3
-    maxis = 4
-    
-    labelsize = 18
-    ticksize = 16
-    fontsize = 14
-    linems = 6
-    color_beam_orig = 'k'
-    color_beam_345 = 'k'
-    facecolor_beam_345 = 'w'
-    fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])   
-    if maxis ==3:
+    # Continuum, Tex, logN and X profile figure
+    if cont_Tex_N_X_fig:
+        figsize = 20
+        tstring = 'Tex_SM_ave_ring' 
+        colstring = 'Col_SM_ave_ring'
+        naxis = 2
+        maxis = 2
+        labelsize = 28
+        ticksize = 22
+        fontsize = 18
+        contms = 8
+        axcolor = 'k'
+        color_beam_orig = 'k'
+        color_beam_345 = 'k'
+        facecolor_beam_345 = 'None'
+        fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
+        gs1 = gridspec.GridSpec(maxis, naxis)  
         gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-        xlabel_ind = 9
-        mykeys_flux = ['v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
-                   'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
-                   'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
-                   'v=0_26_25_SM', 'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM', 'ratio_v6_v6v7']
-        xtextpos = 0.15
-        ytextpos = 0.95
-    else:
-        gs1.update(wspace = 0.20, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-        xlabel_ind = 7
-        mykeys_flux = ['v=0_26_25_SM', 'v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
-                   'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
-                   'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
-                    'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']#, 'ratio_v6_v6v7']
-        xtextpos = 0.90
-        ytextpos = 0.85
-
-    axes=[]
-    ytext = 0.95
-    ytext2 = 0.95
-    save_name = ''
-    
-            
-    for l,line in enumerate(mykeys_flux):
-        axes.append(fig.add_subplot(gs1[l]))
-        if line not in ['plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:   
-            for i,row in hb_df.iterrows():
-                if row['dist']<=line_column[line][0]:
-                    ysep = (line_column[line][2][1]-line_column[line][2][0])*0.04
-                    if 3*row[line+'_mJy_kms_beam_orig_errcont'] > row[line+'_mJy_kms_beam_orig']:
-                        hb_df.loc[i, line+'_uplim'] = True
-                        axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_orig_errcont'], 
-                                             uplims=True,
-                                             yerr=ysep,#3*row[line+'_mJy_kms_beam_orig_err']*0.15,
-                                             marker='o', markersize=linems,
-                                             markerfacecolor=color_beam_orig,
-                                             markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                             ecolor=color_beam_orig,
-                                             color = color_beam_orig,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                    else:
-                        # Adding 10% error to the inner rings
-                        if row['dist']<0.35:
-                            errplot = row[line+'_mJy_kms_beam_orig_errcont']*1.25
+        axes=[]
+        mykeys_conts = ['plot_conts', 'plot_T', 'plot_col', 'plot_x']
+        
+        for l,line in enumerate(mykeys_conts):
+            axes.append(fig.add_subplot(gs1[l]))
+            if line == 'plot_conts':
+                axes[l].set_ylim([0.05, 20])  
+                for i,row in cont_df.iterrows():
+                    axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam'], 
+                                                yerr=row['F235GHz_mjy_beam_err'],
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='k',
+                                                markeredgecolor='k', markeredgewidth=0.8,
+                                                ecolor='k',
+                                                color = 'k',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)                
+                    axes[l].text(0.95, 0.95-0.045, r'Cont. 235 GHz',
+                                    color = 'k',
+                                    horizontalalignment='right',
+                                    verticalalignment='top',
+                                    fontsize=fontsize,
+                                    transform=axes[l].transAxes)
+                    axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
+                                        color = '0.5',
+                                        horizontalalignment='right',
+                                        verticalalignment='top',
+                                        fontsize=fontsize,
+                                        transform=axes[l].transAxes)
+                    axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
+                                                yerr=row['F345GHz_mjy_beam_err'],
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='0.5',
+                                                markeredgecolor='0.5', markeredgewidth=0.8,
+                                                ecolor='0.5',
+                                                color = '0.5',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                    if plot_smoothed:
+                        axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
+                                                yerr=row['F235GHz_mjy_beam345_err'],
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='0.65',
+                                                markeredgecolor='k', markeredgewidth=0.8,
+                                                ecolor='k',
+                                                color = 'k',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                        axes[l].plot(row['dist'], row['F235GHz_mjy_beam345'],  linestyle='',
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='0.65',
+                                                markeredgecolor='k',
+                                                zorder=2)
+                        axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
+                                        color = '0.5',
+                                        horizontalalignment='right',
+                                        verticalalignment='top',
+                                        fontsize=fontsize,
+                                        transform=axes[l].transAxes)
+                        axes[l].text(0.95,  0.95-0.045, r'Cont. 235 GHz',
+                                        color = 'k',
+                                        horizontalalignment='right',
+                                        verticalalignment='top',
+                                        fontsize=fontsize,
+                                        transform=axes[l].transAxes)
+                    axes[l].set_yscale('log')
+                    axes[l].set_ylabel(r'$\text{Flux density}\:(\text{mJy}\:\text{beam}^{-1})$', fontsize=labelsize)
+                    axes[l].yaxis.set_major_formatter(ScalarFormatter())
+            minor_locator = AutoMinorLocator(2)
+            axes[l].set_xlim([0.0, 1.42])
+            axes[l].tick_params(direction='in')
+            axes[l].tick_params(axis="both", which='major', length=8)
+            axes[l].tick_params(axis="both", which='minor', length=4)
+            axes[l].xaxis.set_tick_params(which='both', top ='on')
+            axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+            axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
+            axes[l].xaxis.set_minor_locator(minor_locator)
+            axes[l].tick_params(labelleft=True,
+                        labelright=False)
+            if l <2:
+                axes[l].tick_params(
+                        labelbottom=False)
+            else:
+                axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
+        save_name = ''
+        ytext = 0.95
+        ytext2 = 0.95
+        for m, mod in enumerate(modelos):
+            if mod == 'model2':
+                mzord = 4
+            else:
+                mzord = 2
+            save_name += mod+'_'
+            modelo = modelos[mod]
+            mod_color = modelo[3]
+            factor_model_hc3n = modelo[4][0]
+            factor_model_dust = modelo[4][1]
+            factor_model_ff   = modelo[4][2]
+            if len(modelo)<=5:
+                LTE = True
+            else:
+                LTE = modelo[6]
+            if convolve:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
+            else:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
+            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+            model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
+            mtau100 = get_tau100(my_model_path, modelo[0])
+            total_NH2 = np.nansum(10**logNH2_profile)
+            total_NH2_corr = np.nansum(10**logNH2_profile_corr)
+            for l,line in enumerate(mykeys_conts):
+                if line == 'plot_conts':
+                    axes[l].set_ylim([0.05, 20])  
+                    if mod in plot_only_cont: # Plotting only one cont lines. Too complicated Fig.
+                        axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
+                        if plot_smoothed:
+                            axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=mzord)
+                        axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
+                        axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
+                    elif len(plot_only_cont)<1:
+                        axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
+                        axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
+                        axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
+                        if plot_smoothed:
+                            axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= (0, (5, 10)), zorder=mzord)
+                elif line == 'plot_T':
+                    if writename:
+                        if 'model' in mod:
+                            modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
                         else:
-                            errplot = row[line+'_mJy_kms_beam_orig_errcont']
-                        hb_df.loc[i, line+'_uplim'] = False
-                        axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_orig'], 
-                                         yerr=errplot,
-                                         marker='o', markersize=linems,
-                                         markerfacecolor=color_beam_orig,
-                                         markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                         ecolor=color_beam_orig,
-                                         color =color_beam_orig,
-                                         elinewidth= 0.7,
-                                         barsabove= True,
-                                         zorder=2)
-                    if plot_smoothed_lines:
-                        if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
-                            axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
-                                                 uplims=True,
-                                                 yerr=ysep,#3*row[line+'_mJy_kms_beam_345_errcont']*0.15,
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor=facecolor_beam_345,
-                                                 markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                                 ecolor=color_beam_345,
-                                                 color = color_beam_345,
-                                                 elinewidth= 0.7,
-                                                 barsabove= True,
-                                                 zorder=1)
-                            axes[l].plot(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
-                                                 linestyle='',
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor=facecolor_beam_345,
-                                                 markeredgecolor=color_beam_345,
-                                                 color = color_beam_345,
-                                                 zorder=2)
+                            modstr = mod
+                        qval = f'{np.float(qprof):1.1f}'
+                        qstr = r'$q='+qval+'$'
+                        Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
+                        Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
+                        axes[l].text(0.95, ytext, modstr+':  '+Lstr +' \; '+Nstr+' \; '+qstr,
+                                    color = mod_color,
+                                    horizontalalignment='right',
+                                    verticalalignment='top',
+                                    fontsize=fontsize,
+                                    transform=axes[l].transAxes)
+                    ytext = ytext -0.045
+                    axes[l].set_ylabel(r'T$_{\text{dust}}$ (K)', fontsize = labelsize)#, labelpad=12)
+                    for i,row in obs_df.iterrows():
+                        if i <= 2 or i>= 10:
+                            axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
+                                                        uplims = True,
+                                                        yerr=65,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                        else:
+                            axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
+                                                        yerr=row[tstring+'_err'],
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                        if plot_CH3CN:
+                            if row['Tex_err_CH3CN'] < 0:
+                                axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
+                                                        uplims = True,
+                                                        yerr=200,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='b',
+                                                        markeredgecolor='b', markeredgewidth=0.8,
+                                                        ecolor='b',
+                                                        color = 'b',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                                axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
+                                                        lolims = True,
+                                                        yerr=200,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='b',
+                                                        markeredgecolor='b', markeredgewidth=0.8,
+                                                        ecolor='b',
+                                                        color = 'b',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                            else:
+                                axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'], 
+                                                            yerr=row['Tex_err_CH3CN'],
+                                                            marker='o', markersize=contms,
+                                                            markerfacecolor='b',
+                                                            markeredgecolor='b', markeredgewidth=0.8,
+                                                            ecolor='b',
+                                                            color = 'b',
+                                                            elinewidth= 0.7,
+                                                            barsabove= True,
+                                                            zorder=1)
+                    
+                    axes[l].plot(rpc_profile, td_profile, color=mod_color, zorder=mzord)
+                elif line == 'plot_dens':
+                    axes[l].set_ylabel(r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', fontsize = labelsize)#, labelpad=12)
+                    axes[l].plot(rpc_profile[1:], nh2_profile[1:], color=mod_color, zorder=mzord)
+                    axes[l].set_yscale('log')
+                elif line == 'plot_col':
+                    
+                    for i, row in obs_df.iterrows():
+                        if row[colstring+'_err']>10:
+                            col_err = (10**(row[colstring+'_err']+0.75))*(1/np.log(10))/(10**row[colstring])
+                        else:
+                            col_err = row[colstring+'_err']
+                        if i>=10:
+                            axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
+                                                        uplims = True,
+                                                        yerr=0.25,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                        else:
+                            axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
+                                                        yerr=col_err,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                    ytext2 = ytext2 -0.045
+                    axes[l].set_ylabel(r'$\log{N(\text{HC}_{3}\text{N})}$ (cm$^{-2}$)', fontsize = labelsize)#, labelpad=12)
+                    if plot_corr_cols:
+                        axes[l].plot(rpc_profile[1:], logNHC3N_profile_corr[1:], color=mod_color, zorder=mzord)
+                    else:
+                        axes[l].plot(rpc_profile[1:], logNHC3N_profile[1:], color=mod_color, zorder=mzord)
+                elif line == 'plot_x':
+                    axes[l].set_ylabel(r'$X$ (HC$_{3}$N)', fontsize = labelsize)#, labelpad=12)
+                    if plot_corr_abun:
+                        x_profile_corr = np.array(x_profile)*(10**logNH2_profile)/(10**logNH2_profile_corr)
+                        axes[l].plot(rpc_profile[1:], x_profile_corr[1:], color=mod_color, zorder=mzord)
+                    else:
+                        axes[l].plot(rpc_profile[1:], x_profile[1:], color=mod_color, zorder=mzord)
+                    axes[l].set_yscale('log')
+            for l,line in enumerate(mykeys_conts):
+                axes[l].tick_params(which='both',
+                        labelright=False)
+        if plot_opacity:
+            # Plotting opacity
+            gs2 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+            gs2.update(wspace = 0.23, hspace=0.23, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+            axtau = fig.add_subplot(gs2[-1])
+            for m, mod in enumerate(modelos):
+                mod_name = modelos[mod][0]
+                mod_color = modelos[mod][3]
+                mod_taudust = pd.read_csv(my_model_path+'/'+mod_name+'_.taudust', delim_whitespace= True)
+                mod_taudust.columns = ['lambda_um', 'taudust']
+                axtau.plot(mod_taudust['lambda_um'], mod_taudust['taudust'], color=mod_color)
+                minor_locator = AutoMinorLocator(2)
+                axtau.set_xlim([0.0, 100])
+                axtau.tick_params(direction='in')
+                axtau.tick_params(axis="both", which='major', length=8)
+                axtau.tick_params(axis="both", which='minor', length=4)
+                axtau.xaxis.set_tick_params(which='both', top ='on')
+                axtau.yaxis.set_tick_params(which='both', right='on', labelright='off')
+                axtau.tick_params(axis='both', which='major', labelsize=ticksize)
+                axtau.xaxis.set_minor_locator(minor_locator)
+                axtau.tick_params(labelleft=True,
+                            labelright=False)
+                axtau.set_xlabel(r'$\lambda$ ($\mu$m)', fontsize = labelsize)
+                axtau.set_ylabel(r'$\tau$', fontsize = labelsize)
+        D_Mpc = 3.5
+        beam_size = 0.020/2 #arcsec
+        xstart = 0.05
+        ypos = 0.08
+        beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
+        axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
+        axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2,ypos), xytext=((xstart+beam_size_pc)/2+0.027,ypos+0.015), weight='bold',
+                            fontsize=fontsize, color='k',
+                            horizontalalignment='center',
+                            verticalalignment='center',)
+        if len(modelos) == 1:
+            for m, mod in enumerate(modelos):
+                save_name = modelo = modelos[mod][0]
+            fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        else:
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
+    # Continuum, Tex, logN and X profile figure big labels
+    if cont_Tex_N_X_fig_BIG:
+        figsize = 20
+        tstring = 'Tex_SM_ave_ring'
+        colstring = 'Col_SM_ave_ring'
+        naxis = 2
+        maxis = 2
+        labelsize = 35
+        ticksize = 28
+        fontsize = 25
+        contms = 10
+        axcolor = 'k'
+        color_beam_orig = 'k'
+        color_beam_345 = 'k'
+        facecolor_beam_345 = 'None'
+        fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
+        gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+        gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+        gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05)#, left=0.05, right=0.80)
+        axes=[]
+        mykeys_conts = ['plot_conts', 'plot_T', 'plot_col', 'plot_x']
+        for l,line in enumerate(mykeys_conts):
+            axes.append(fig.add_subplot(gs1[l]))
+            if line == 'plot_conts':
+                axes[l].set_ylim([0.05, 20])  
+                for i,row in cont_df.iterrows():
+                    axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam'], 
+                                                yerr=row['F235GHz_mjy_beam_err'],
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='k',
+                                                markeredgecolor='k', markeredgewidth=0.8,
+                                                ecolor='k',
+                                                color = 'k',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                    axes[l].text(0.95, 0.95-0.045, r'Cont. 235 GHz',
+                                    color = 'k',
+                                    horizontalalignment='right',
+                                    verticalalignment='top',
+                                    fontsize=fontsize,
+                                    transform=axes[l].transAxes)
+                    axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
+                                        color = '0.5',
+                                        horizontalalignment='right',
+                                        verticalalignment='top',
+                                        fontsize=fontsize,
+                                        transform=axes[l].transAxes)
+                    axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
+                                                yerr=row['F345GHz_mjy_beam_err'],
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='0.5',
+                                                markeredgecolor='0.5', markeredgewidth=0.8,
+                                                ecolor='0.5',
+                                                color = '0.5',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                    if plot_smoothed:
+                        axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
+                                                yerr=row['F235GHz_mjy_beam345_err'],
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='0.65',
+                                                markeredgecolor='k', markeredgewidth=0.8,
+                                                ecolor='k',
+                                                color = 'k',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                        axes[l].plot(row['dist'], row['F235GHz_mjy_beam345'],  linestyle='',
+                                                marker='o', markersize=contms,
+                                                markerfacecolor='0.65',
+                                                markeredgecolor='k',
+                                                zorder=2)
+                        axes[l].text(0.95, 0.95, r'Cont. 345 GHz',
+                                        color = '0.5',
+                                        horizontalalignment='right',
+                                        verticalalignment='top',
+                                        fontsize=fontsize,
+                                        transform=axes[l].transAxes)
+                        axes[l].text(0.95,  0.95-0.045, r'Cont. 235 GHz',
+                                        color = 'k',
+                                        horizontalalignment='right',
+                                        verticalalignment='top',
+                                        fontsize=fontsize,
+                                        transform=axes[l].transAxes)
+                    axes[l].set_yscale('log')
+                    axes[l].set_ylabel(r'$\text{Flux density}\:(\text{mJy}\:\text{beam}^{-1})$', fontsize=labelsize)
+                    axes[l].yaxis.set_major_formatter(ScalarFormatter())
+            minor_locator = AutoMinorLocator(2)
+            axes[l].set_xlim([0.0, 1.42])
+            axes[l].tick_params(direction='in')
+            axes[l].tick_params(axis="both", which='major', length=8)
+            axes[l].tick_params(axis="both", which='minor', length=4)
+            axes[l].xaxis.set_tick_params(which='both', top ='on')
+            axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+            axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
+            axes[l].xaxis.set_minor_locator(minor_locator)
+            axes[l].tick_params(labelleft=True,
+                        labelright=False)
+            if l <2:
+                axes[l].tick_params(
+                        labelbottom=False)
+            else:
+                axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
+        save_name = ''
+        ytext = 0.95
+        ytext2 = 0.95
+        ytext3 = 0.95
+        for m, mod in enumerate(modelos):
+            if mod == 'model2':
+                mzord = 4
+            else:
+                mzord = 2
+            save_name += mod+'_'
+            modelo = modelos[mod]
+            mod_color = modelo[3]
+            factor_model_hc3n = modelo[4][0]
+            factor_model_dust = modelo[4][1]
+            factor_model_ff   = modelo[4][2]
+            if len(modelo)<=5:
+                LTE = True
+            else:
+                LTE = modelo[6]
+            if convolve:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
+            else:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
+            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+            model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
+            mtau100 = get_tau100(my_model_path, modelo[0])
+            total_NH2 = np.nansum(10**logNH2_profile)
+            total_NH2_corr = np.nansum(10**logNH2_profile_corr)
+            for l,line in enumerate(mykeys_conts):
+                if line == 'plot_conts':
+                    axes[l].set_ylim([0.05, 20])  
+                    if mod in plot_only_cont: # Plotting only one cont lines. Too complicated Fig.
+                        axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
+                        if plot_smoothed:
+                            axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=mzord)
+                        axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)), linewidth=2.0)
+                        axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
+                    elif len(plot_only_cont)<1:
+                        axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
+                        axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=mzord, linestyle= (0, (5, 10)))
+                        axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '-', zorder=mzord)
+                        if plot_smoothed:
+                            axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= (0, (5, 10)), zorder=mzord)
+                elif line == 'plot_T':
+                    if writename:
+                        if 'model' in mod:
+                            modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
+                        else:
+                            modstr = mod
+                        qval = f'{np.float(qprof):1.1f}'
+                        qstr = r'$q='+qval+'$'
+                        #Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2)}'+r'\text{cm}^{-2}$'
+                        Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
+                        Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
+                        axes[l].text(0.95, ytext, modstr+':  '+Lstr +' \; '+qstr,
+                                    color = mod_color,
+                                    horizontalalignment='right',
+                                    verticalalignment='top',
+                                    fontsize=fontsize,
+                                    transform=axes[l].transAxes)
+                    ytext = ytext -0.045
+                    axes[l].set_ylabel(r'T$_{\text{dust}}$ (K)', fontsize = labelsize)#, labelpad=12)
+                    for i,row in obs_df.iterrows():
+                        if i <= 2 or i>= 10:
+                            axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
+                                                        uplims = True,
+                                                        yerr=65,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                        else:
+                            axes[l].errorbar(row['dist_ring_pc'], row[tstring], 
+                                                        yerr=row[tstring+'_err'],
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                        if plot_CH3CN:
+                            if row['Tex_err_CH3CN'] < 0:
+                                axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
+                                                        uplims = True,
+                                                        yerr=200,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='b',
+                                                        markeredgecolor='b', markeredgewidth=0.8,
+                                                        ecolor='b',
+                                                        color = 'b',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                                axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'],
+                                                        lolims = True,
+                                                        yerr=200,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='b',
+                                                        markeredgecolor='b', markeredgewidth=0.8,
+                                                        ecolor='b',
+                                                        color = 'b',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                            else:
+                                axes[l].errorbar(row['dist_ring_pc'], row['Tex_CH3CN'], 
+                                                            yerr=row['Tex_err_CH3CN'],
+                                                            marker='o', markersize=contms,
+                                                            markerfacecolor='b',
+                                                            markeredgecolor='b', markeredgewidth=0.8,
+                                                            ecolor='b',
+                                                            color = 'b',
+                                                            elinewidth= 0.7,
+                                                            barsabove= True,
+                                                            zorder=1)
+                    
+                    axes[l].plot(rpc_profile, td_profile, color=mod_color, zorder=mzord)
+                elif line == 'plot_dens':
+                    axes[l].set_ylabel(r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', fontsize = labelsize)#, labelpad=12)
+                    axes[l].plot(rpc_profile[1:], nh2_profile[1:], color=mod_color, zorder=mzord)
+                    axes[l].set_yscale('log')
+                elif line == 'plot_col':
+                    for i, row in obs_df.iterrows():
+                        if row[colstring+'_err']>10:
+                            col_err = (10**(row[colstring+'_err']+0.75))*(1/np.log(10))/(10**row[colstring])
+                        else:
+                            col_err = row[colstring+'_err']
+                        if i>=10:
+                            axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
+                                                        uplims = True,
+                                                        yerr=0.25,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                        else:
+                            axes[l].errorbar(row['dist_ring_pc'], row[colstring], 
+                                                        yerr=col_err,
+                                                        marker='o', markersize=contms,
+                                                        markerfacecolor='k',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                    qval = f'{np.float(qprof):1.1f}'
+                    qstr = r'$q='+qval+'$'
+                    Nstr = r'$N_{\text{H}_2}='+f'{latex_float(total_NH2_corr)}'+r'\text{cm}^{-2}$'
+                    Lstr = r'$L_\text{IR}='+f'{latex_float(model_lum)}'+r'\text{L}_{\odot}$'
+                    axes[l].text(0.95, ytext3, modstr+':  '+Nstr,
+                                color = mod_color,
+                                horizontalalignment='right',
+                                verticalalignment='top',
+                                fontsize=fontsize,
+                                transform=axes[l].transAxes)
+                    ytext3 = ytext3 -0.045
+                    axes[l].set_ylabel(r'$\log{N(\text{HC}_{3}\text{N})}$ (cm$^{-2}$)', fontsize = labelsize)#, labelpad=12)
+                    if plot_corr_cols:
+                        axes[l].plot(rpc_profile[1:], logNHC3N_profile_corr[1:], color=mod_color, zorder=mzord)
+                    else:
+                        axes[l].plot(rpc_profile[1:], logNHC3N_profile[1:], color=mod_color, zorder=mzord)
+                elif line == 'plot_x':
+                    axes[l].set_ylabel(r'$X$ (HC$_{3}$N)', fontsize = labelsize, labelpad=-3)
+                    if plot_corr_abun:
+                        x_profile_corr = np.array(x_profile)*(10**logNH2_profile)/(10**logNH2_profile_corr)
+                        axes[l].plot(rpc_profile[1:], x_profile_corr[1:], color=mod_color, zorder=mzord)
+                    else:
+                        axes[l].plot(rpc_profile[1:], x_profile[1:], color=mod_color, zorder=mzord)
+                    axes[l].set_yscale('log')
+            for l,line in enumerate(mykeys_conts):
+                axes[l].tick_params(which='both',
+                        labelright=False)
+        if plot_opacity:
+            # Plotting opacity
+            gs2 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+            gs2.update(wspace = 0.23, hspace=0.23, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+            axtau = fig.add_subplot(gs2[-1])
+            for m, mod in enumerate(modelos):
+                mod_name = modelos[mod][0]
+                mod_color = modelos[mod][3]
+                mod_taudust = pd.read_csv(my_model_path+'/'+mod_name+'_.taudust', delim_whitespace= True)
+                mod_taudust.columns = ['lambda_um', 'taudust']
+                axtau.plot(mod_taudust['lambda_um'], mod_taudust['taudust'], color=mod_color)
+                minor_locator = AutoMinorLocator(2)
+                axtau.set_xlim([0.0, 100])
+                axtau.tick_params(direction='in')
+                axtau.tick_params(axis="both", which='major', length=8)
+                axtau.tick_params(axis="both", which='minor', length=4)
+                axtau.xaxis.set_tick_params(which='both', top ='on')
+                axtau.yaxis.set_tick_params(which='both', right='on', labelright='off')
+                axtau.tick_params(axis='both', which='major', labelsize=ticksize)
+                axtau.xaxis.set_minor_locator(minor_locator)
+                axtau.tick_params(labelleft=True,
+                            labelright=False)
+                axtau.set_xlabel(r'$\lambda$ ($\mu$m)', fontsize = labelsize)
+                axtau.set_ylabel(r'$\tau$', fontsize = labelsize)
+        D_Mpc = 3.5
+        beam_size = 0.020/2 #arcsec
+        xstart = 0.05
+        ypos = 0.08
+        beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
+        axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
+        axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2,ypos), xytext=((xstart+beam_size_pc)/2+0.027,ypos+0.015), weight='bold',
+                            fontsize=fontsize, color='k',
+                            horizontalalignment='center',
+                            verticalalignment='center',)
+            
+        if len(modelos) == 1:
+            for m, mod in enumerate(modelos):
+                save_name = modelo = modelos[mod][0]
+            fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        else:
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
+    # Line profiles figure
+    if line_profiles:
+        # Line profiles
+        print('line profiles')
+        plot_smoothed_lines = True
+        figsize = 20
+        naxis = 3
+        maxis = 4
+        labelsize = 18
+        ticksize = 16
+        fontsize = 14
+        linems = 6
+        color_beam_orig = 'k'
+        color_beam_345 = 'k'
+        facecolor_beam_345 = 'w'
+        fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
+        gs1 = gridspec.GridSpec(maxis, naxis)  
+        if maxis ==3:
+            gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+            xlabel_ind = 9
+            mykeys_flux = ['v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
+                    'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
+                    'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
+                    'v=0_26_25_SM', 'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM', 'ratio_v6_v6v7']
+            xtextpos = 0.15
+            ytextpos = 0.95
+        else:
+            gs1.update(wspace = 0.20, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+            xlabel_ind = 7
+            mykeys_flux = ['v=0_26_25_SM', 'v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
+                    'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
+                    'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
+                        'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']#, 'ratio_v6_v6v7']
+            xtextpos = 0.90
+            ytextpos = 0.85
+        axes=[]
+        ytext = 0.95
+        ytext2 = 0.95
+        save_name = ''
+        for l,line in enumerate(mykeys_flux):
+            axes.append(fig.add_subplot(gs1[l]))
+            if line not in ['plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:   
+                for i,row in hb_df.iterrows():
+                    if row['dist']<=line_column[line][0]:
+                        ysep = (line_column[line][2][1]-line_column[line][2][0])*0.04
+                        if 3*row[line+'_mJy_kms_beam_orig_errcont'] > row[line+'_mJy_kms_beam_orig']:
+                            hb_df.loc[i, line+'_uplim'] = True
+                            axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_orig_errcont'], 
+                                                uplims=True,
+                                                yerr=ysep,
+                                                marker='o', markersize=linems,
+                                                markerfacecolor=color_beam_orig,
+                                                markeredgecolor=color_beam_orig, markeredgewidth=0.8,
+                                                ecolor=color_beam_orig,
+                                                color = color_beam_orig,
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
                         else:
                             # Adding 10% error to the inner rings
                             if row['dist']<0.35:
-                                errplot = row[line+'_mJy_kms_beam_345_errcont']*1.25
+                                errplot = row[line+'_mJy_kms_beam_orig_errcont']*1.25
                             else:
-                                errplot = row[line+'_mJy_kms_beam_345_errcont']
-                            axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_345'], 
-                                             yerr=errplot,
-                                             marker='o', markersize=linems,
-                                             markerfacecolor=facecolor_beam_345,
-                                             markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                             ecolor=color_beam_345,
-                                             color =color_beam_345,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                            axes[l].plot(row['dist'], row[line+'_mJy_kms_beam_345'], 
-                                                 linestyle='',
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor=facecolor_beam_345,
-                                                 markeredgecolor=color_beam_345,
-                                                 color = color_beam_345,
-                                                 zorder=2) 
+                                errplot = row[line+'_mJy_kms_beam_orig_errcont']
+                            hb_df.loc[i, line+'_uplim'] = False
+                            axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_orig'], 
+                                            yerr=errplot,
+                                            marker='o', markersize=linems,
+                                            markerfacecolor=color_beam_orig,
+                                            markeredgecolor=color_beam_orig, markeredgewidth=0.8,
+                                            ecolor=color_beam_orig,
+                                            color =color_beam_orig,
+                                            elinewidth= 0.7,
+                                            barsabove= True,
+                                            zorder=2)
+                        if plot_smoothed_lines:
+                            if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
+                                axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
+                                                    uplims=True,
+                                                    yerr=ysep,#3*row[line+'_mJy_kms_beam_345_errcont']*0.15,
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor=facecolor_beam_345,
+                                                    markeredgecolor=color_beam_345, markeredgewidth=0.8,
+                                                    ecolor=color_beam_345,
+                                                    color = color_beam_345,
+                                                    elinewidth= 0.7,
+                                                    barsabove= True,
+                                                    zorder=1)
+                                axes[l].plot(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
+                                                    linestyle='',
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor=facecolor_beam_345,
+                                                    markeredgecolor=color_beam_345,
+                                                    color = color_beam_345,
+                                                    zorder=2)
+                            else:
+                                # Adding 10% error to the inner rings
+                                if row['dist']<0.35:
+                                    errplot = row[line+'_mJy_kms_beam_345_errcont']*1.25
+                                else:
+                                    errplot = row[line+'_mJy_kms_beam_345_errcont']
+                                axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_345'], 
+                                                yerr=errplot,
+                                                marker='o', markersize=linems,
+                                                markerfacecolor=facecolor_beam_345,
+                                                markeredgecolor=color_beam_345, markeredgewidth=0.8,
+                                                ecolor=color_beam_345,
+                                                color =color_beam_345,
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                                axes[l].plot(row['dist'], row[line+'_mJy_kms_beam_345'], 
+                                                    linestyle='',
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor=facecolor_beam_345,
+                                                    markeredgecolor=color_beam_345,
+                                                    color = color_beam_345,
+                                                    zorder=2) 
+            
+                axes[l].set_ylim(line_column[line][2])  
+                yminor_locator = AutoMinorLocator(2)
+                axes[l].yaxis.set_minor_locator(yminor_locator)
+                axes[l].text(0.9, 0.95, line_column[line][1].split('$')[-1],
+                                horizontalalignment='right',
+                                verticalalignment='top',
+                                fontsize=fontsize,
+                                transform=axes[l].transAxes)
+                a = line_column[line][1].split(' ')[0]
+                axes[l].set_ylabel(a+r'$\;(\text{mJy}\:\,\text{km}\,\,\text{s}^{-1}\:\,\text{beam}^{-1})$', fontsize=labelsize)
+            elif line == 'ratio_v6_v6v7':
+                plot_ratio345 = False
+                for i, row in hb_df.iterrows():
+                    if row['v6=v7=1_26_2_25_-2_SM_uplim']:
+                        continue
+                    else:
+                        axes[l].errorbar(row['dist'], row['ratio_v6_v6v7'], 
+                                                    yerr=row['ratio_v6_v6v7_err'],
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor='k',
+                                                    markeredgecolor='k', markeredgewidth=0.8,
+                                                    ecolor='k',
+                                                    color = 'k',
+                                                    elinewidth= 0.7,
+                                                    barsabove= True,
+                                                    zorder=1)
+                        if plot_ratio345:
+                            axes[l].errorbar(row['dist'], row['ratio_v6_v6v7_beam345'], 
+                                                        yerr=row['ratio_v6_v6v7_beam345_err'],
+                                                        marker='o', markersize=linems,
+                                                        markerfacecolor='w',
+                                                        markeredgecolor='k', markeredgewidth=0.8,
+                                                        ecolor='k',
+                                                        color = 'k',
+                                                        elinewidth= 0.7,
+                                                        barsabove= True,
+                                                        zorder=1)
+                            axes[l].plot(row['dist'], row['ratio_v6_v6v7_beam345'], 
+                                            linestyle='',
+                                            marker='o', markersize=linems,
+                                            markerfacecolor='w',
+                                            markeredgecolor='k',
+                                            color = 'k',
+                                            zorder=2)
+                        
+                        axes[l].set_ylabel(r'$v_{6}=1/v_{6}=v_{7}=1$', fontsize = labelsize)
+                        axes[l].set_ylim([0.5, 4.7]) 
+                        yminor_locator = AutoMinorLocator(2)
+                        axes[l].yaxis.set_minor_locator(yminor_locator)
+            minor_locator = AutoMinorLocator(2)
+            axes[l].set_xlim([0.0, 1.42])
+            axes[l].tick_params(direction='in')
+            axes[l].tick_params(axis="both", which='major', length=8)
+            axes[l].tick_params(axis="both", which='minor', length=4)
+            axes[l].xaxis.set_tick_params(which='both', top ='on')
+            axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+            axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
+            axes[l].xaxis.set_minor_locator(minor_locator)
+            axes[l].tick_params(labelleft=True,
+                        labelright=False)
+            if l <=xlabel_ind:
+                axes[l].tick_params(
+                        labelbottom=False)
+            else:
+                axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
+        D_Mpc = 3.5
+        beam_size = 0.020/2 #arcsec
+        xstart = 0.2
+        ypos = 0.0
+        beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
+        axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
+        axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2,ypos), xytext=((xstart+beam_size_pc)/2+0.11,ypos+5.5), weight='bold',
+                            fontsize=fontsize-4, color='k',
+                            horizontalalignment='center',
+                            verticalalignment='center',)
+        for m, mod in enumerate(modelos):
+            if mod == 'model2':
+                mzord = 4
+            else:
+                mzord = 2
+            save_name += mod+'_'
+            modelo = modelos[mod]
+            mod_color = modelo[3]
+            factor_model_hc3n = modelo[4][0]
+            factor_model_dust = modelo[4][1]
+            factor_model_ff   = modelo[4][2]
+            if len(modelo)<=5:
+                LTE = True
+            else:
+                LTE = modelo[6]
+            if convolve:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
+            else:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
+            for l,line in enumerate(mykeys_flux):
+                if l == 0:
+                    if 'model' in mod:
+                        modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
+                    else:
+                        modstr = mod
+                    axes[l].text(xtextpos, ytextpos, modstr,
+                                                color = mod_color,  
+                                                horizontalalignment='right',
+                                                verticalalignment='top',
+                                                fontsize=fontsize,
+                                                transform=axes[l].transAxes)
+                    ytextpos = ytextpos -0.052
+                if line not in ['plot_T', 'plot_x', 'plot_col', 'ratio_v6_v6v7']: 
+                    if plot_smoothed_lines:
+                        axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '--', zorder=mzord)
+                    axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=mzord)
+                
+                elif line in ['ratio_v6_v6v7']:
+                    mol_ratio = m_molec['v6=1_24_-1_23_1_SM_beam_orig']/m_molec['v6=v7=1_26_2_25_-2_SM_beam_orig']
+                    axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
+        if len(modelos) == 1:
+            for m, mod in enumerate(modelos):
+                save_name = modelo = modelos[mod][0]
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        else:
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
+    # subset of Line profiles figure
+    if line_profiles_subset:
+        # line profiles
+        print('line profiles subset')
+        figsize = 20
+        naxis = 3
+        maxis = 2
+        labelsize = 32
+        ticksize = 24
+        fontsize = 28
+        linems = 6
+        color_beam_orig = 'k'
+        color_beam_345 = 'k'
+        facecolor_beam_345 = 'w'
+        fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
+        gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])   
+        if maxis ==3:
+            gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+            xlabel_ind = 9
+            mykeys_flux = ['v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
+                    'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
+                    'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
+                    'v=0_26_25_SM', 'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM', 'ratio_v6_v6v7']
+            xtextpos = 0.15
+            ytextpos = 0.95
+        else:
+            gs1.update(wspace = 0.20, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+            xlabel_ind = 2
+            mykeys_flux = ['v=0_26_25_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM',
+                        'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM', 'v4=1_26_25_SM']
+            xtextpos = 0.90
+            ytextpos = 0.85
+        axes=[]
+        ytext = 0.95
+        ytext2 = 0.95
+        save_name = ''
+        for l,line in enumerate(mykeys_flux):
+            axes.append(fig.add_subplot(gs1[l]))
+            if line not in ['plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:   
+                for i,row in hb_df.iterrows():
+                    if row['dist']<=line_column[line][0]:
+                        ysep = (line_column[line][2][1]-line_column[line][2][0])*0.04
+                        if 3*row[line+'_mJy_kms_beam_orig_errcont'] > row[line+'_mJy_kms_beam_orig']:
+                            hb_df.loc[i, line+'_uplim'] = True
+                            axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_orig_errcont'], 
+                                                uplims=True,
+                                                yerr=ysep,#3*row[line+'_mJy_kms_beam_orig_err']*0.15,
+                                                marker='o', markersize=linems,
+                                                markerfacecolor=color_beam_orig,
+                                                markeredgecolor=color_beam_orig, markeredgewidth=0.8,
+                                                ecolor=color_beam_orig,
+                                                color = color_beam_orig,
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                        else:
+                            # Adding 10% error to the inner rings
+                            if row['dist']<0.35:
+                                errplot = row[line+'_mJy_kms_beam_orig_errcont']*1.25
+                            else:
+                                errplot = row[line+'_mJy_kms_beam_orig_errcont']
+                            hb_df.loc[i, line+'_uplim'] = False
+                            axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_orig'], 
+                                            yerr=errplot,
+                                            marker='o', markersize=linems,
+                                            markerfacecolor=color_beam_orig,
+                                            markeredgecolor=color_beam_orig, markeredgewidth=0.8,
+                                            ecolor=color_beam_orig,
+                                            color =color_beam_orig,
+                                            elinewidth= 0.7,
+                                            barsabove= True,
+                                            zorder=2)
+                        if plot_smoothed:
+                            if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
+                                axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
+                                                    uplims=True,
+                                                    yerr=ysep,
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor=facecolor_beam_345,
+                                                    markeredgecolor=color_beam_345, markeredgewidth=0.8,
+                                                    ecolor=color_beam_345,
+                                                    color = color_beam_345,
+                                                    elinewidth= 0.7,
+                                                    barsabove= True,
+                                                    zorder=1)
+                                axes[l].plot(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
+                                                    linestyle='',
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor=facecolor_beam_345,
+                                                    markeredgecolor=color_beam_345,
+                                                    color = color_beam_345,
+                                                    zorder=2)
+                            else:
+                                # Adding 10% error to the inner rings
+                                if row['dist']<0.35:
+                                    errplot = row[line+'_mJy_kms_beam_345_errcont']*1.25
+                                else:
+                                    errplot = row[line+'_mJy_kms_beam_345_errcont']
+                                axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_345'], 
+                                                yerr=errplot,
+                                                marker='o', markersize=linems,
+                                                markerfacecolor=facecolor_beam_345,
+                                                markeredgecolor=color_beam_345, markeredgewidth=0.8,
+                                                ecolor=color_beam_345,
+                                                color =color_beam_345,
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                                axes[l].plot(row['dist'], row[line+'_mJy_kms_beam_345'], 
+                                                    linestyle='',
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor=facecolor_beam_345,
+                                                    markeredgecolor=color_beam_345,
+                                                    color = color_beam_345,
+                                                    zorder=2) 
+                axes[l].set_ylim(line_column[line][2])  
+                yminor_locator = AutoMinorLocator(2)
+                axes[l].yaxis.set_minor_locator(yminor_locator)
+                axes[l].text(0.9, 0.95, line_column[line][1].split('$')[-1],
+                                horizontalalignment='right',
+                                verticalalignment='top',
+                                fontsize=fontsize,
+                                transform=axes[l].transAxes)
+                a = line_column[line][1].split(' ')[0]
+                axes[l].set_ylabel(a+r'$\;(\text{mJy}\:\,\text{km}\,\,\text{s}^{-1}\:\,\text{beam}^{-1})$', fontsize=labelsize)
+            minor_locator = AutoMinorLocator(2)
+            axes[l].set_xlim([0.0, 1.42])
+            axes[l].tick_params(direction='in')
+            axes[l].tick_params(axis="both", which='major', length=8)
+            axes[l].tick_params(axis="both", which='minor', length=4)
+            axes[l].xaxis.set_tick_params(which='both', top ='on')
+            axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+            axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
+            axes[l].xaxis.set_minor_locator(minor_locator)
+            axes[l].tick_params(labelleft=True,
+                        labelright=False)
+            if l <=xlabel_ind:
+                axes[l].tick_params(
+                        labelbottom=False)
+            else:
+                axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)                            
+        for m, mod in enumerate(modelos):
+            if mod == 'model2':
+                mzord = 4
+            else:
+                mzord = 2
+            save_name += mod+'_'
+            modelo = modelos[mod]
+            mod_color = modelo[3]
+            factor_model_hc3n = modelo[4][0]
+            factor_model_dust = modelo[4][1]
+            factor_model_ff   = modelo[4][2]
+            if len(modelo)<=5:
+                LTE = True
+            else:
+                LTE = modelo[6]
+            if convolve:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
+            else:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
+            for l,line in enumerate(mykeys_flux):
+                if l == 0:
+                    if 'model' in mod:
+                        modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
+                    else:
+                        modstr = mod
+                    axes[l].text(xtextpos, ytextpos, modstr,
+                                                color = mod_color,  
+                                                horizontalalignment='right',
+                                                verticalalignment='top',
+                                                fontsize=fontsize,
+                                                transform=axes[l].transAxes)
+                    ytextpos = ytextpos -0.052
+                if line not in ['plot_T', 'plot_x', 'plot_col', 'ratio_v6_v6v7']: 
+                    if plot_smoothed:
+                        axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '--', zorder=mzord)
+                    axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=mzord)
+        if len(modelos) == 1:
+            for m, mod in enumerate(modelos):
+                save_name = modelo = modelos[mod][0]
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese_subset'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        else:
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_presen_subset'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
+    # Line ratios figure   
+    if line_ratios:
+        # Line ratios
+        figsize = 10
+        naxis = 2
+        maxis = 1
+        labelsize = 28
+        ticksize = 20
+        fontsize = 18
+        contms = 8
+        axcolor = 'k'
+        color_beam_orig = 'k'
+        color_beam_345 = 'k'
+        facecolor_beam_345 = 'None'
+        fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
+        gs1 = gridspec.GridSpec(maxis, naxis)   
+        gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+        xlabel_ind = -1
+        mykeys_flux = ['v71_v61_2423', 'v6_v6v7']
+        xtextpos = 0.15
+        ytextpos = 0.95
+        axes=[]
+        ytext = 0.95
+        ytext2 = 0.95
+        save_name = ''
+        # Making upper lim ratios
+        ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM', r'$v_{6}=1/v_{6}=v_{7}=1$', [1.1, 4.7]],
+                    'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM', r'$v_{7}=1/v_{6}=1$', [0.6, 4.7]],
+                    'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM', r'$v_{7}=1/v_{6}=1 \:\: (26-25)$', [0.5, 5.7]],
+                    'v0_v71_2625': ['v=0_26_25_SM', 'v7=1_26_1_25_-1_SM', r'$v=0/v_{7}=1 \:\: (26-25)$', [0.0, 8.7]],
+                    }
         
-            axes[l].set_ylim(line_column[line][2])  
-            yminor_locator = AutoMinorLocator(2)
-            axes[l].yaxis.set_minor_locator(yminor_locator)
-            axes[l].text(0.9, 0.95, line_column[line][1].split('$')[-1],
-                            horizontalalignment='right',
-                            verticalalignment='top',
-                            fontsize=fontsize,
-                            transform=axes[l].transAxes)
-            a = line_column[line][1].split(' ')[0]
-            axes[l].set_ylabel(a+r'$\;(\text{mJy}\:\,\text{km}\,\,\text{s}^{-1}\:\,\text{beam}^{-1})$', fontsize=labelsize)
-        elif line == 'ratio_v6_v6v7':
+        for r, ratio in enumerate(ratio_lines):
+            hb_df['ratio_'+ratio+'_uplim'] = False
+        for i, row in hb_df.iterrows():
+            for r, ratio in enumerate(ratio_lines):
+                uplim1 = 3*row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']
+                uplim2 = 3*row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']
+                if uplim1 or uplim2:
+                    hb_df.loc[i, 'ratio_'+ratio+'_uplim'] = True
+        
+        for l,ratio in enumerate(mykeys_flux):
+            axes.append(fig.add_subplot(gs1[l]))
             plot_ratio345 = False
             for i, row in hb_df.iterrows():
-                if row['v6=v7=1_26_2_25_-2_SM_uplim']:
+                if row['ratio_'+ratio+'_uplim']: # At least one of the lines is an upper limit
                     continue
                 else:
-                    axes[l].errorbar(row['dist'], row['ratio_v6_v6v7'], 
-                                                 yerr=row['ratio_v6_v6v7_err'],
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor='k',
-                                                 markeredgecolor='k', markeredgewidth=0.8,
-                                                 ecolor='k',
-                                                 color = 'k',
-                                                 elinewidth= 0.7,
-                                                 barsabove= True,
-                                                 zorder=1)
+                    axes[l].errorbar(row['dist'], row['ratio_'+ratio], 
+                                                yerr=row['ratio_'+ratio+'_err'],
+                                                marker='o', markersize=linems,
+                                                markerfacecolor='k',
+                                                markeredgecolor='k', markeredgewidth=0.8,
+                                                ecolor='k',
+                                                color = 'k',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
                     if plot_ratio345:
-                        axes[l].errorbar(row['dist'], row['ratio_v6_v6v7_beam345'], 
-                                                     yerr=row['ratio_v6_v6v7_beam345_err'],
-                                                     marker='o', markersize=linems,
-                                                     markerfacecolor='w',
-                                                     markeredgecolor='k', markeredgewidth=0.8,
-                                                     ecolor='k',
-                                                     color = 'k',
-                                                     elinewidth= 0.7,
-                                                     barsabove= True,
-                                                     zorder=1)
-                        axes[l].plot(row['dist'], row['ratio_v6_v6v7_beam345'], 
-                                         linestyle='',
-                                         marker='o', markersize=linems,
-                                         markerfacecolor='w',
-                                         markeredgecolor='k',
-                                         color = 'k',
-                                         zorder=2)
+                        axes[l].errorbar(row['dist'], row['ratio_'+ratio+'_beam345'], 
+                                                    yerr=row['ratio_'+ratio+'_beam345_err'],
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor='w',
+                                                    markeredgecolor='k', markeredgewidth=0.8,
+                                                    ecolor='k',
+                                                    color = 'k',
+                                                    elinewidth= 0.7,
+                                                    barsabove= True,
+                                                    zorder=1)
+                        axes[l].plot(row['dist'], row['ratio_'+ratio+'_beam345'], 
+                                        linestyle='',
+                                        marker='o', markersize=linems,
+                                        markerfacecolor='w',
+                                        markeredgecolor='k',
+                                        color = 'k',
+                                        zorder=2)
                     
-                    axes[l].set_ylabel(r'$v_{6}=1/v_{6}=v_{7}=1$', fontsize = labelsize)
-                    axes[l].set_ylim([0.5, 4.7]) 
+                    axes[l].set_ylabel(ratio_lines[ratio][2], fontsize = labelsize)
+                    axes[l].set_ylim(ratio_lines[ratio][3]) 
                     yminor_locator = AutoMinorLocator(2)
                     axes[l].yaxis.set_minor_locator(yminor_locator)
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
-        if l <=xlabel_ind:
-            axes[l].tick_params(
-                       labelbottom=False)
-        else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-
-    D_Mpc = 3.5
-    beam_size = 0.020/2 #arcsec
-    xstart = 0.2
-    ypos = 0.0
-    beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
-    axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
-    axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2,ypos), xytext=((xstart+beam_size_pc)/2+0.11,ypos+5.5), weight='bold',
-                          fontsize=fontsize-4, color='k',
-                          horizontalalignment='center',
-                          verticalalignment='center',)
-                            
-    for m, mod in enumerate(modelos):
-        if mod == 'model2':
-            mzord = 4
-        else:
-            mzord = 2
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        factor_model_hc3n = modelo[4][0]
-        factor_model_dust = modelo[4][1]
-        factor_model_ff   = modelo[4][2]
-        if len(modelo)<=5:
-            LTE = True
-        else:
-            LTE = modelo[6]
-        if convolve:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
-        else:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-        for l,line in enumerate(mykeys_flux):
-            if l == 0:
-                if 'model' in mod:
-                    modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
-                else:
-                    modstr = mod
-                axes[l].text(xtextpos, ytextpos, modstr,
-                                            color = mod_color,  
-                                            horizontalalignment='right',
-                                            verticalalignment='top',
-                                            fontsize=fontsize,
-                                            transform=axes[l].transAxes)
-                ytextpos = ytextpos -0.052
-            if line not in ['plot_T', 'plot_x', 'plot_col', 'ratio_v6_v6v7']: 
-                if plot_smoothed_lines:
-                    axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '--', zorder=mzord)
-                axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=mzord)
-            
-            elif line in ['ratio_v6_v6v7']:
-                mol_ratio = m_molec['v6=1_24_-1_23_1_SM_beam_orig']/m_molec['v6=v7=1_26_2_25_-2_SM_beam_orig']
-                axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
-    if len(modelos) == 1:
+                    
+            minor_locator = AutoMinorLocator(2)
+            axes[l].set_xlim([0.0, 1.42])
+            axes[l].tick_params(direction='in')
+            axes[l].tick_params(axis="both", which='major', length=8)
+            axes[l].tick_params(axis="both", which='minor', length=4)
+            axes[l].xaxis.set_tick_params(which='both', top ='on')
+            axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+            axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
+            axes[l].xaxis.set_minor_locator(minor_locator)
+            axes[l].tick_params(labelleft=True,
+                        labelright=False)
+            if l <=xlabel_ind:
+                axes[l].tick_params(
+                        labelbottom=False)
+            else:
+                axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
+        # Model ratios
         for m, mod in enumerate(modelos):
-            save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
-    
-    # line profiles
-    print('line profiles 2')
-    figsize = 20
-    naxis = 3
-    maxis = 2
-    
-    labelsize = 32
-    ticksize = 24
-    fontsize = 28
-    linems = 6
-    color_beam_orig = 'k'
-    color_beam_345 = 'k'
-    facecolor_beam_345 = 'w'
-    fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])   
-    if maxis ==3:
-        gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-        xlabel_ind = 9
-        mykeys_flux = ['v7=1_24_1_23_-1_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_24_-1_23_1_SM',
-                   'v6=1_26_-1_25_1_SM', 'v7=2_24_0_23_0_SM', 'v7=2_26_0_25_0_SM', 
-                   'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM',
-                   'v=0_26_25_SM', 'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM', 'ratio_v6_v6v7']
+            if mod == 'model2':
+                mzord = 4
+            else:
+                mzord = 2
+            save_name += mod+'_'
+            modelo = modelos[mod]
+            mod_color = modelo[3]
+            factor_model_hc3n = modelo[4][0]
+            factor_model_dust = modelo[4][1]
+            factor_model_ff   = modelo[4][2]
+            if len(modelo)<=5:
+                LTE = True
+            else:
+                LTE = modelo[6]
+            if convolve:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
+            else:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
+
+            for l,ratio in enumerate(mykeys_flux):
+                if l == 0:
+                    if 'model' in mod:
+                        modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
+                    else:
+                        modstr = mod
+                    axes[l].text(xtextpos, ytextpos, modstr,
+                                                color = mod_color,  
+                                                horizontalalignment='right',
+                                                verticalalignment='top',
+                                                fontsize=fontsize,
+                                                transform=axes[l].transAxes)
+                mol_ratio = m_molec[ratio_lines[ratio][0]+'_beam_orig']/m_molec[ratio_lines[ratio][1]+'_beam_orig']
+                axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
+                if plot_ratio345:
+                    mol_ratio345 = m_molec345[ratio_lines[ratio][0]+'_beam_345']/m_molec345[ratio_lines[ratio][1]+'_beam_345']
+                    axes[l].plot(m_molec345[0], mol_ratio345, color=mod_color, linestyle= '--', zorder=2)
+            ytextpos = ytextpos -0.045
+        
+        D_Mpc = 3.5
+        beam_size = 0.020/2 #arcsec
+        xstart = 1.15
+        ypos = 0.85
+        beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
+        axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
+        axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2+0.57,ypos), xytext=((xstart+beam_size_pc)/2+0.57,ypos+0.1), weight='bold',
+                            fontsize=fontsize-4, color='k',
+                            horizontalalignment='center',
+                            verticalalignment='center',)
+        if len(modelos) == 1:
+            for m, mod in enumerate(modelos):
+                save_name = modelo = modelos[mod][0]
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_ratios2_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        else:
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios2_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
+    # Line ratios figure big labels
+    if line_ratios_BIG:
+        # Line ratios
+        figsize = 10
+        naxis = 2
+        maxis = 1
+        labelsize = 35
+        tickfontsize = 28
+        fontsize = 25
+        contms = 10
+        linems = 10
+        axcolor = 'k'
+        color_beam_orig = 'k'
+        color_beam_345 = 'k'
+        facecolor_beam_345 = 'None'
+        fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
+        gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+        gs1.update(wspace = 0.125, hspace=0.0, top=0.95, bottom = 0.05)#, left=0.05, right=0.80)
+        xlabel_ind = -1
+        mykeys_flux = ['v71_v61_2423', 'v6_v6v7']
         xtextpos = 0.15
         ytextpos = 0.95
-    else:
-        gs1.update(wspace = 0.20, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-        xlabel_ind = 2
-        mykeys_flux = ['v=0_26_25_SM', 'v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM',
-                       'v5=1_v7=3_26_1_0_25_-1_0_SM', 'v6=v7=1_26_2_25_-2_SM', 'v4=1_26_25_SM']
-        xtextpos = 0.90
-        ytextpos = 0.85
+        axes=[]
+        ytext = 0.95
+        ytext2 = 0.95
+        save_name = ''
+        # Making upper lim ratios
+        ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM', r'$v_{6}=1/v_{6}=v_{7}=1$', [1.1, 4.7]],
+                    'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM', r'$v_{7}=1/v_{6}=1$', [0.6, 4.7]],
+                    'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM', r'$v_{7}=1/v_{6}=1 \:\: (26-25)$', [0.5, 5.7]],
+                    'v0_v71_2625': ['v=0_26_25_SM', 'v7=1_26_1_25_-1_SM', r'$v=0/v_{7}=1 \:\: (26-25)$', [0.0, 8.7]],
+                    }
+        for r, ratio in enumerate(ratio_lines):
+            hb_df['ratio_'+ratio+'_uplim'] = False
+        for i, row in hb_df.iterrows():
+            for r, ratio in enumerate(ratio_lines):
+                uplim1 = 3*row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']
+                uplim2 = 3*row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']
+                if uplim1 or uplim2:
+                    hb_df.loc[i, 'ratio_'+ratio+'_uplim'] = True
+        for l,ratio in enumerate(mykeys_flux):
+            axes.append(fig.add_subplot(gs1[l]))
+            plot_ratio345 = False
+            for i, row in hb_df.iterrows():
+                
+                if row['ratio_'+ratio+'_uplim']: # At least one of the lines is an upper limit
+                    continue
+                else:
+                    axes[l].errorbar(row['dist'], row['ratio_'+ratio], 
+                                                yerr=row['ratio_'+ratio+'_err'],
+                                                marker='o', markersize=linems,
+                                                markerfacecolor='k',
+                                                markeredgecolor='k', markeredgewidth=0.8,
+                                                ecolor='k',
+                                                color = 'k',
+                                                elinewidth= 0.7,
+                                                barsabove= True,
+                                                zorder=1)
+                    if plot_ratio345:
+                        axes[l].errorbar(row['dist'], row['ratio_'+ratio+'_beam345'], 
+                                                    yerr=row['ratio_'+ratio+'_beam345_err'],
+                                                    marker='o', markersize=linems,
+                                                    markerfacecolor='w',
+                                                    markeredgecolor='k', markeredgewidth=0.8,
+                                                    ecolor='k',
+                                                    color = 'k',
+                                                    elinewidth= 0.7,
+                                                    barsabove= True,
+                                                    zorder=1)
+                        axes[l].plot(row['dist'], row['ratio_'+ratio+'_beam345'], 
+                                        linestyle='',
+                                        marker='o', markersize=linems,
+                                        markerfacecolor='w',
+                                        markeredgecolor='k',
+                                        color = 'k',
+                                        zorder=2)
+                    
+                    axes[l].set_ylabel(ratio_lines[ratio][2], fontsize = labelsize)
+                    axes[l].set_ylim(ratio_lines[ratio][3]) 
+                    yminor_locator = AutoMinorLocator(2)
+                    axes[l].yaxis.set_minor_locator(yminor_locator)
+            minor_locator = AutoMinorLocator(2)
+            axes[l].set_xlim([0.0, 1.42])
+            axes[l].tick_params(direction='in')
+            axes[l].tick_params(axis="both", which='major', length=8)
+            axes[l].tick_params(axis="both", which='minor', length=4)
+            axes[l].xaxis.set_tick_params(which='both', top ='on')
+            axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+            axes[l].tick_params(axis='both', which='major', labelsize=tickfontsize)
+            axes[l].xaxis.set_minor_locator(minor_locator)
+            axes[l].tick_params(labelleft=True,
+                        labelright=False)
+            if l <=xlabel_ind:
+                axes[l].tick_params(
+                        labelbottom=False)
+            else:
+                axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
+        # Model ratios
+        for m, mod in enumerate(modelos):
+            if mod == 'model2':
+                mzord = 4
+            else:
+                mzord = 2
+            save_name += mod+'_'
+            modelo = modelos[mod]
+            mod_color = modelo[3]
+            factor_model_hc3n = modelo[4][0]
+            factor_model_dust = modelo[4][1]
+            factor_model_ff   = modelo[4][2]
+            if len(modelo)<=5:
+                LTE = True
+            else:
+                LTE = modelo[6]
+            if convolve:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
+            else:
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
 
-    axes=[]
-    ytext = 0.95
-    ytext2 = 0.95
-    save_name = ''
-    
-            
-    for l,line in enumerate(mykeys_flux):
-        axes.append(fig.add_subplot(gs1[l]))
-        if line not in ['plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:   
-            for i,row in hb_df.iterrows():
-                if row['dist']<=line_column[line][0]:
-                    ysep = (line_column[line][2][1]-line_column[line][2][0])*0.04
-                    if 3*row[line+'_mJy_kms_beam_orig_errcont'] > row[line+'_mJy_kms_beam_orig']:
-                        hb_df.loc[i, line+'_uplim'] = True
-                        axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_orig_errcont'], 
-                                             uplims=True,
-                                             yerr=ysep,#3*row[line+'_mJy_kms_beam_orig_err']*0.15,
-                                             marker='o', markersize=linems,
-                                             markerfacecolor=color_beam_orig,
-                                             markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                             ecolor=color_beam_orig,
-                                             color = color_beam_orig,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
+            for l,ratio in enumerate(mykeys_flux):
+                if l == 0:
+                    if 'model' in mod:
+                        modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
                     else:
-                        # Adding 10% error to the inner rings
-                        if row['dist']<0.35:
-                            errplot = row[line+'_mJy_kms_beam_orig_errcont']*1.25
-                        else:
-                            errplot = row[line+'_mJy_kms_beam_orig_errcont']
-                        hb_df.loc[i, line+'_uplim'] = False
-                        axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_orig'], 
-                                         yerr=errplot,
-                                         marker='o', markersize=linems,
-                                         markerfacecolor=color_beam_orig,
-                                         markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                         ecolor=color_beam_orig,
-                                         color =color_beam_orig,
-                                         elinewidth= 0.7,
-                                         barsabove= True,
-                                         zorder=2)
-                    if plot_smoothed:
-                        if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
-                            axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
-                                                 uplims=True,
-                                                 yerr=ysep,#3*row[line+'_mJy_kms_beam_345_errcont']*0.15,
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor=facecolor_beam_345,
-                                                 markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                                 ecolor=color_beam_345,
-                                                 color = color_beam_345,
-                                                 elinewidth= 0.7,
-                                                 barsabove= True,
-                                                 zorder=1)
-                            axes[l].plot(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
-                                                 linestyle='',
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor=facecolor_beam_345,
-                                                 markeredgecolor=color_beam_345,
-                                                 color = color_beam_345,
-                                                 zorder=2)
-                        else:
-                            # Adding 10% error to the inner rings
-                            if row['dist']<0.35:
-                                errplot = row[line+'_mJy_kms_beam_345_errcont']*1.25
-                            else:
-                                errplot = row[line+'_mJy_kms_beam_345_errcont']
-                            axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_345'], 
-                                             yerr=errplot,
-                                             marker='o', markersize=linems,
-                                             markerfacecolor=facecolor_beam_345,
-                                             markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                             ecolor=color_beam_345,
-                                             color =color_beam_345,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                            axes[l].plot(row['dist'], row[line+'_mJy_kms_beam_345'], 
-                                                 linestyle='',
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor=facecolor_beam_345,
-                                                 markeredgecolor=color_beam_345,
-                                                 color = color_beam_345,
-                                                 zorder=2) 
-        
-            axes[l].set_ylim(line_column[line][2])  
-            yminor_locator = AutoMinorLocator(2)
-            axes[l].yaxis.set_minor_locator(yminor_locator)
-            axes[l].text(0.9, 0.95, line_column[line][1].split('$')[-1],
-                            horizontalalignment='right',
-                            verticalalignment='top',
-                            fontsize=fontsize,
-                            transform=axes[l].transAxes)
-            a = line_column[line][1].split(' ')[0]
-            axes[l].set_ylabel(a+r'$\;(\text{mJy}\:\,\text{km}\,\,\text{s}^{-1}\:\,\text{beam}^{-1})$', fontsize=labelsize)
-
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
-        if l <=xlabel_ind:
-            axes[l].tick_params(
-                       labelbottom=False)
-        else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-
-                            
-    for m, mod in enumerate(modelos):
-        if mod == 'model2':
-            mzord = 4
-        else:
-            mzord = 2
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        factor_model_hc3n = modelo[4][0]
-        factor_model_dust = modelo[4][1]
-        factor_model_ff   = modelo[4][2]
-        if len(modelo)<=5:
-            LTE = True
-        else:
-            LTE = modelo[6]
-        if convolve:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
-        else:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-
-        for l,line in enumerate(mykeys_flux):
-            if l == 0:
-                if 'model' in mod:
-                    modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
-                else:
-                    modstr = mod
-                axes[l].text(xtextpos, ytextpos, modstr,
-                                            color = mod_color,  
-                                            horizontalalignment='right',
-                                            verticalalignment='top',
-                                            fontsize=fontsize,
-                                            transform=axes[l].transAxes)
-                ytextpos = ytextpos -0.052
-            if line not in ['plot_T', 'plot_x', 'plot_col', 'ratio_v6_v6v7']: 
-                if plot_smoothed:
-                    axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '--', zorder=mzord)
-                axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=mzord)
-    if len(modelos) == 1:
-        for m, mod in enumerate(modelos):
-            save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese_subset'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_presen_subset'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
-    
-    
-    
-    figsize = 10
-    naxis = 2
-    maxis = 1
-    labelsize = 28
-    ticksize = 20
-    fontsize = 18
-    contms = 8
-    axcolor = 'k'
-    color_beam_orig = 'k'
-    color_beam_345 = 'k'
-    facecolor_beam_345 = 'None'
-    fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-    gs1.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    xlabel_ind = -1
-    
-    mykeys_flux = ['v71_v61_2423', 'v6_v6v7']
-    
-    xtextpos = 0.15
-    ytextpos = 0.95
-
-    axes=[]
-    ytext = 0.95
-    ytext2 = 0.95
-    save_name = ''
-    
-    # Making upper lim ratios
-    ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM', r'$v_{6}=1/v_{6}=v_{7}=1$', [1.1, 4.7]],
-                   'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM', r'$v_{7}=1/v_{6}=1$', [0.6, 4.7]],
-                   'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM', r'$v_{7}=1/v_{6}=1 \:\: (26-25)$', [0.5, 5.7]],
-                   'v0_v71_2625': ['v=0_26_25_SM', 'v7=1_26_1_25_-1_SM', r'$v=0/v_{7}=1 \:\: (26-25)$', [0.0, 8.7]],
-                   }
-    
-    for r, ratio in enumerate(ratio_lines):
-        hb_df['ratio_'+ratio+'_uplim'] = False
-    for i, row in hb_df.iterrows():
-        for r, ratio in enumerate(ratio_lines):
-            uplim1 = 3*row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']
-            uplim2 = 3*row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']
-            if uplim1 or uplim2:
-                hb_df.loc[i, 'ratio_'+ratio+'_uplim'] = True
-    
-    for l,ratio in enumerate(mykeys_flux):
-        axes.append(fig.add_subplot(gs1[l]))
-        plot_ratio345 = False
-        for i, row in hb_df.iterrows():
-            
-            if row['ratio_'+ratio+'_uplim']: # At least one of the lines is an upper limit
-                continue
-            else:
-                axes[l].errorbar(row['dist'], row['ratio_'+ratio], 
-                                             yerr=row['ratio_'+ratio+'_err'],
-                                             marker='o', markersize=linems,
-                                             markerfacecolor='k',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
+                        modstr = mod
+                    axes[l].text(xtextpos, ytextpos, modstr,
+                                                color = mod_color,  
+                                                horizontalalignment='right',
+                                                verticalalignment='top',
+                                                fontsize=fontsize,
+                                                transform=axes[l].transAxes)
+                mol_ratio = m_molec[ratio_lines[ratio][0]+'_beam_orig']/m_molec[ratio_lines[ratio][1]+'_beam_orig']
+                axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
                 if plot_ratio345:
-                    axes[l].errorbar(row['dist'], row['ratio_'+ratio+'_beam345'], 
-                                                 yerr=row['ratio_'+ratio+'_beam345_err'],
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor='w',
-                                                 markeredgecolor='k', markeredgewidth=0.8,
-                                                 ecolor='k',
-                                                 color = 'k',
-                                                 elinewidth= 0.7,
-                                                 barsabove= True,
-                                                 zorder=1)
-                    axes[l].plot(row['dist'], row['ratio_'+ratio+'_beam345'], 
-                                     linestyle='',
-                                     marker='o', markersize=linems,
-                                     markerfacecolor='w',
-                                     markeredgecolor='k',
-                                     color = 'k',
-                                     zorder=2)
-                
-                axes[l].set_ylabel(ratio_lines[ratio][2], fontsize = labelsize)
-                axes[l].set_ylim(ratio_lines[ratio][3]) 
-                yminor_locator = AutoMinorLocator(2)
-                axes[l].yaxis.set_minor_locator(yminor_locator)
-                
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
-        if l <=xlabel_ind:
-            axes[l].tick_params(
-                       labelbottom=False)
+                    mol_ratio345 = m_molec345[ratio_lines[ratio][0]+'_beam_345']/m_molec345[ratio_lines[ratio][1]+'_beam_345']
+                    axes[l].plot(m_molec345[0], mol_ratio345, color=mod_color, linestyle= '--', zorder=2)
+            ytextpos = ytextpos -0.045
+        D_Mpc = 3.5
+        beam_size = 0.020/2 #arcsec
+        xstart = 1.15
+        ypos = 0.85
+        beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
+        axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
+        axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2+0.57,ypos), xytext=((xstart+beam_size_pc)/2+0.57,ypos+0.1), weight='bold',
+                            fontsize=fontsize-4, color='k',
+                            horizontalalignment='center',
+                            verticalalignment='center',)
+        if len(modelos) == 1:
+            for m, mod in enumerate(modelos):
+                save_name = modelo = modelos[mod][0]
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_ratios2_big_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
         else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-    # Model ratios
-    for m, mod in enumerate(modelos):
-        if mod == 'model2':
-            mzord = 4
-        else:
-            mzord = 2
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        factor_model_hc3n = modelo[4][0]
-        factor_model_dust = modelo[4][1]
-        factor_model_ff   = modelo[4][2]
-        if len(modelo)<=5:
-            LTE = True
-        else:
-            LTE = modelo[6]
-        if convolve:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-        else:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-
-        for l,ratio in enumerate(mykeys_flux):
-            if l == 0:
-                if 'model' in mod:
-                    modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
-                else:
-                    modstr = mod
-                axes[l].text(xtextpos, ytextpos, modstr,
-                                            color = mod_color,  
-                                            horizontalalignment='right',
-                                            verticalalignment='top',
-                                            fontsize=fontsize,
-                                            transform=axes[l].transAxes)
-            mol_ratio = m_molec[ratio_lines[ratio][0]+'_beam_orig']/m_molec[ratio_lines[ratio][1]+'_beam_orig']
-            axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
-            if plot_ratio345:
-                mol_ratio345 = m_molec345[ratio_lines[ratio][0]+'_beam_345']/m_molec345[ratio_lines[ratio][1]+'_beam_345']
-                axes[l].plot(m_molec345[0], mol_ratio345, color=mod_color, linestyle= '--', zorder=2)
-        ytextpos = ytextpos -0.045
-    
-    D_Mpc = 3.5
-    beam_size = 0.020/2 #arcsec
-    xstart = 1.15
-    ypos = 0.85
-    beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
-    axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
-    axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2+0.57,ypos), xytext=((xstart+beam_size_pc)/2+0.57,ypos+0.1), weight='bold',
-                          fontsize=fontsize-4, color='k',
-                          horizontalalignment='center',
-                          verticalalignment='center',)
-    
-    
-    if len(modelos) == 1:
-        for m, mod in enumerate(modelos):
-            save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_ratios2_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios2_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
-    
-    figsize = 10
-    naxis = 2
-    maxis = 1
-    labelsize = 35
-    tickfontsize = 28
-    fontsize = 25
-    contms = 10
-    linems = 10
-    axcolor = 'k'
-    color_beam_orig = 'k'
-    color_beam_345 = 'k'
-    facecolor_beam_345 = 'None'
-    fig = plt.figure(figsize=(figsize*naxis/maxis*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-    gs1.update(wspace = 0.125, hspace=0.0, top=0.95, bottom = 0.05)#, left=0.05, right=0.80)
-    xlabel_ind = -1
-    
-    mykeys_flux = ['v71_v61_2423', 'v6_v6v7']
-    
-    xtextpos = 0.15
-    ytextpos = 0.95
-
-    axes=[]
-    ytext = 0.95
-    ytext2 = 0.95
-    save_name = ''
-    
-    # Making upper lim ratios
-    ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM', r'$v_{6}=1/v_{6}=v_{7}=1$', [1.1, 4.7]],
-                   'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM', r'$v_{7}=1/v_{6}=1$', [0.6, 4.7]],
-                   'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM', r'$v_{7}=1/v_{6}=1 \:\: (26-25)$', [0.5, 5.7]],
-                   'v0_v71_2625': ['v=0_26_25_SM', 'v7=1_26_1_25_-1_SM', r'$v=0/v_{7}=1 \:\: (26-25)$', [0.0, 8.7]],
-                   }
-    
-    for r, ratio in enumerate(ratio_lines):
-        hb_df['ratio_'+ratio+'_uplim'] = False
-    for i, row in hb_df.iterrows():
-        for r, ratio in enumerate(ratio_lines):
-            uplim1 = 3*row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']
-            uplim2 = 3*row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont'] > row[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']
-            if uplim1 or uplim2:
-                hb_df.loc[i, 'ratio_'+ratio+'_uplim'] = True
-    
-    for l,ratio in enumerate(mykeys_flux):
-        axes.append(fig.add_subplot(gs1[l]))
-        plot_ratio345 = False
-        for i, row in hb_df.iterrows():
-            
-            if row['ratio_'+ratio+'_uplim']: # At least one of the lines is an upper limit
-                continue
-            else:
-                axes[l].errorbar(row['dist'], row['ratio_'+ratio], 
-                                             yerr=row['ratio_'+ratio+'_err'],
-                                             marker='o', markersize=linems,
-                                             markerfacecolor='k',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                if plot_ratio345:
-                    axes[l].errorbar(row['dist'], row['ratio_'+ratio+'_beam345'], 
-                                                 yerr=row['ratio_'+ratio+'_beam345_err'],
-                                                 marker='o', markersize=linems,
-                                                 markerfacecolor='w',
-                                                 markeredgecolor='k', markeredgewidth=0.8,
-                                                 ecolor='k',
-                                                 color = 'k',
-                                                 elinewidth= 0.7,
-                                                 barsabove= True,
-                                                 zorder=1)
-                    axes[l].plot(row['dist'], row['ratio_'+ratio+'_beam345'], 
-                                     linestyle='',
-                                     marker='o', markersize=linems,
-                                     markerfacecolor='w',
-                                     markeredgecolor='k',
-                                     color = 'k',
-                                     zorder=2)
-                
-                axes[l].set_ylabel(ratio_lines[ratio][2], fontsize = labelsize)
-                axes[l].set_ylim(ratio_lines[ratio][3]) 
-                yminor_locator = AutoMinorLocator(2)
-                axes[l].yaxis.set_minor_locator(yminor_locator)
-                
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=tickfontsize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
-        if l <=xlabel_ind:
-            axes[l].tick_params(
-                       labelbottom=False)
-        else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-    # Model ratios
-    for m, mod in enumerate(modelos):
-        if mod == 'model2':
-            mzord = 4
-        else:
-            mzord = 2
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        factor_model_hc3n = modelo[4][0]
-        factor_model_dust = modelo[4][1]
-        factor_model_ff   = modelo[4][2]
-        if len(modelo)<=5:
-            LTE = True
-        else:
-            LTE = modelo[6]
-        if convolve:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-        else:
-            mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-
-        for l,ratio in enumerate(mykeys_flux):
-            if l == 0:
-                if 'model' in mod:
-                    modstr = mod.split('l')[0]+'l'+' '+mod.split('l')[1]
-                else:
-                    modstr = mod
-                axes[l].text(xtextpos, ytextpos, modstr,
-                                            color = mod_color,  
-                                            horizontalalignment='right',
-                                            verticalalignment='top',
-                                            fontsize=fontsize,
-                                            transform=axes[l].transAxes)
-            mol_ratio = m_molec[ratio_lines[ratio][0]+'_beam_orig']/m_molec[ratio_lines[ratio][1]+'_beam_orig']
-            axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
-            if plot_ratio345:
-                mol_ratio345 = m_molec345[ratio_lines[ratio][0]+'_beam_345']/m_molec345[ratio_lines[ratio][1]+'_beam_345']
-                axes[l].plot(m_molec345[0], mol_ratio345, color=mod_color, linestyle= '--', zorder=2)
-        ytextpos = ytextpos -0.045
-    
-    D_Mpc = 3.5
-    beam_size = 0.020/2 #arcsec
-    xstart = 1.15
-    ypos = 0.85
-    beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
-    axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
-    axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2+0.57,ypos), xytext=((xstart+beam_size_pc)/2+0.57,ypos+0.1), weight='bold',
-                          fontsize=fontsize-4, color='k',
-                          horizontalalignment='center',
-                          verticalalignment='center',)
-    
-    
-    if len(modelos) == 1:
-        for m, mod in enumerate(modelos):
-            save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_ratios2_big_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios2_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios2_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
 
 def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
     mykeys = list(line_column.keys())
@@ -5627,33 +5503,23 @@ def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, 
              'v=0_26_25_SM', 'v4=1_26_25_SM', 'v6=2_24_0_23_0_SM']
         if plot_opacity == False:
             mykeys.append('ratio_v6_v6v7')
-    
-    #hb_df['ratio_v6_v6v7'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']
-    #hb_df['ratio_v6_v6v7_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_orig']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_orig']**2))**2)
-    #hb_df['ratio_v6_v6v7_beam345'] = hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']
-    #hb_df['ratio_v6_v6v7_beam345_err'] = np.sqrt((hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345_errcont']/hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345'])**2+(hb_df['v6=1_24_-1_23_1_SM_mJy_kms_beam_345']*hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345_errcont']/(hb_df['v6=v7=1_26_2_25_-2_SM_mJy_kms_beam_345']**2))**2)
-    
-    
+
     ratio_lines = {'v6_v6v7': ['v6=1_24_-1_23_1_SM', 'v6=v7=1_26_2_25_-2_SM'],
                    'v71_v61_2423': ['v7=1_24_1_23_-1_SM', 'v6=1_24_-1_23_1_SM'],
                    'v71_v61_2625': ['v7=1_26_1_25_-1_SM', 'v6=1_26_-1_25_1_SM'],
                    'v0_v71_2625': ['v=0_26_25_SM', 'v7=1_26_1_25_-1_SM'],
                    }
-    
     for r, ratio in enumerate(ratio_lines):
         hb_df['ratio_'+ratio] = hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']
         hb_df['ratio_'+ratio+'_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_orig']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_orig']**2))**2)
         hb_df['ratio_'+ratio+'_beam345'] = hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']
         hb_df['ratio_'+ratio+'_beam345_err'] = np.sqrt((hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345_errcont']/hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345'])**2+(hb_df[ratio_lines[ratio][0]+'_mJy_kms_beam_345']*hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345_errcont']/(hb_df[ratio_lines[ratio][1]+'_mJy_kms_beam_345']**2))**2)
-    
-    
     plot_lineabs = False
     if plot_lineabs:
         # line profiles
         figsize = 20
         naxis = 3
         maxis = 4
-        
         labelsize = 18
         ticksize = 16
         fontsize = 14

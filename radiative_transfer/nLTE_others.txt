@@ -1,46 +1,65 @@
 # =============================================================================
-# Modelling Data
+# OLD RADIATIVE TRANSFER METHODS - NOT WORKING
 # =============================================================================
 
-from astrothesispy.utiles import u_conversion
-from astrothesispy.utiles import utiles
 
 
+
+import numpy as np
+import os
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 from matplotlib.lines import Line2D
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib
-
-import numpy as np
-import os
 from math import atan2,degrees
 import scipy
+
 import pandas as pd
+
+from ferpy import u_conversion
+from ferpy import utiles
 import astropy.units as u
 import inspect
 from scipy import interpolate
 import collections
+import seaborn as sns
 from tqdm import tqdm
+# Plotting
+#plot_profiles = True
+#plot_SED = False
 
-# Min size 0.039" 
-# tam_min_pc = 0.039*17/2
-# factor_tam_min = tam_min_pc**2
+# Model paths
+#model_path = '/Users/frico/Documents/Ed/modelos_hc3n/modelos2'
+#model_name = 'mhc3n_2_tgas350_tdust350'
 
-# # Max size 0.1" 
-# tam_max_pc = 0.1*17/2
-# factor_tam_max = tam_max_pc**2
+# Model Factor
+#model_factor = 0.7#0.1854 #0.7
+
+# Fig out dir
+#figoutdir = model_path+'/figures'
         
-# # Observed values SHC14
-# hc3n_v0_24_23_obs = 54.08 #mJy/beam
-# hc3n_v0_39_38_obs = 70.29 #mJy
-# hc3n_v0_ratio_obs = hc3n_v0_39_38_obs/hc3n_v0_24_23_obs
+# Tamano minimo 0.039" 
+tam_min_pc = 0.039*17/2
+factor_tam_min = tam_min_pc**2
 
-# hc3n_v7_24_23_obs = 22.05 #mJy
-# hc3n_v7_39_38_obs = 44.59 #mJy
-# hc3n_v7_ratio_obs = hc3n_v7_39_38_obs/hc3n_v7_24_23_obs
-# luminosity_obs = 2.928e9 # lsun
+# Tamano max 0.1" 
+tam_max_pc = 0.1*17/2
+factor_tam_max = tam_max_pc**2
+        
+
+# Observed values HC14
+hc3n_v0_24_23_obs = 54.08 #mJy/beam
+hc3n_v0_39_38_obs = 70.29 #mJy
+hc3n_v0_ratio_obs = hc3n_v0_39_38_obs/hc3n_v0_24_23_obs
+
+hc3n_v7_24_23_obs = 22.05 #mJy
+hc3n_v7_39_38_obs = 44.59 #mJy
+hc3n_v7_ratio_obs = hc3n_v7_39_38_obs/hc3n_v7_24_23_obs
+
+luminosity_obs = 2.928e9 # lsun
+
 
 
 
@@ -51,7 +70,7 @@ class data:
 def line_finder(lambda_mu, model_prof, unit='mJy'):
     """
     Returns the flux peak in mJy, the integrated flux in mJy km/s
-    and the entire line profile from the nLTE models
+    and the entire line profile
     model_prof = model_name+'_.prof'
     """
     tqdm.write('\tSearching line at {0:1.2f} microns'.format(lambda_mu))
@@ -77,9 +96,141 @@ def line_finder(lambda_mu, model_prof, unit='mJy'):
         tqdm.write('\t\tIpeak='+'%1.3f' %peak+'mJy'+'\tI='+'%1.3f' % int_flux+'mJy km/s')
     if unit=='uJy':
         tqdm.write(f'\t\tIpeak={peak*1000:1.3e}uJy\tI={int_flux*1000:1.3e}uJy km/s')
+    
+    # Cuando hay dos lineas muy proximas :S
+#    profile_list = []
+#    int_flux2 = 0.0 # mJy km/s
+#    chunks_lims = [profile_lim[x:x+2] for x in range(0, len(profile_lim), 2)]
+#    for lims in chunks_lims:
+#        profile = model_prof.loc[lims[0]:lims[1]]
+#        profile_list.append(profile)
+#        profile.reset_index(drop=True, inplace=True)
+#        
+#        for i, row in profile.iterrows():
+#            if i < len(profile)-1:
+#                int_flux2 = int_flux2 + profile.loc[i, 'I_Ic_mJy']*(profile.loc[i+1, 'V_kms'] - profile.loc[i, 'V_kms'])
+    #print('\t\tIpeak='+'%1.2f' %peak+'mJy'+'\tI='+'%1.2f' % int_flux2+'mJy km/s')    
+   
     return profile, peak, int_flux
 
-def profile_plotter(transitions_df, Jplot, filas = 2, columnas = 1,
+
+
+def profile_plotter(ratios_dict, transitions_df, Jplot, filas = 2, columnas = 1,
+                        v0_color = 'k', v7_color = 'r', v6_color = 'blue',
+                        linewidth = 0.7, labelsize = 12, velocity_limits=[-100, 100],
+                        intensity_limits=['NA', 'NA'], first_last_xlabel = False):
+    """
+    Jplot list with J-J-1 transitions to plot
+    """
+    tqdm.write('\tPlotting line profiles')
+    # Plotting line profiles
+    label_y =  r"Flux density (mJy)" 
+    label_x = r"V (km/s)"
+    m = filas    # rows
+    n = columnas # columns
+    dx, dy = 1.2, 1
+    figsize = plt.figaspect(float(dy * m) / float(dx * n))
+    fig = plt.figure(figsize=figsize)
+    gs1 = gridspec.GridSpec(m, n)    
+    gs1.update(wspace = 0.0, hspace=0.0, top=0.95, bottom = 0.05)
+    # Generating specified number of axis
+    axis = []
+    axis_ind = []
+    for i in range(m*n):
+        axis.append(fig.add_subplot(gs1[i]))
+    # Generating axis index
+    ind = 0
+    axis_ind = []
+    for i  in range(m):
+        axis_ind.append([])
+        for j in range(n):
+            axis_ind[i].append(ind)
+            ind += 1
+    #for j in range(m*n):
+        # Plotting J=24(+1)-23(-1)
+    for j, trans in enumerate(Jplot):
+        # Plotting spectrum
+        v0 = transitions_df.loc[(transitions_df['vib'] == 'v=0')  & (transitions_df['J'] == trans) & (transitions_df['parity'] == '1f')]
+        v7 = transitions_df.loc[(transitions_df['vib'] == 'v7=1')  & (transitions_df['J'] == trans) & (transitions_df['parity'] == '1e')]
+        v6 = transitions_df.loc[(transitions_df['vib'] == 'v6=1')  & (transitions_df['J'] == trans) & (transitions_df['parity'] == '1f')]
+
+        axis[j].plot(v0.profile.values[0]['V_kms'], v0.profile.values[0]['I_Ic_mJy'], linewidth=linewidth, color=v0_color)
+        axis[j].plot(v7.profile.values[0]['V_kms'], v7.profile.values[0]['I_Ic_mJy'], linewidth=linewidth, color=v7_color)
+        axis[j].plot(v6.profile.values[0]['V_kms'], v6.profile.values[0]['I_Ic_mJy'], linewidth=linewidth, color=v6_color)
+        # Line name
+        axis[j].text(0.1, 0.9,
+                    trans, ha='left', va='center',
+                    transform=axis[j].transAxes,
+                    rotation='horizontal', fontsize=8)
+        
+        
+        #axis[j].text(0.1, 0.80,
+        #            r'HC$_3$N,v=0 ratio='+'%1.1f' % line_ratios.ratio_v0, ha='left', va='center',
+        #            transform=axis[j].transAxes,
+        #            rotation='horizontal', fontsize=8)
+        axis[j].text(0.1, 0.85,
+                    r'HC$_3$N v0/v7 ='+'%1.1f' % ratios_dict['v0_v7']['integ_'+trans], ha='left', va='center',
+                    transform=axis[j].transAxes,
+                    rotation='horizontal', fontsize=8)
+        if j == 1:
+            axis[j].text(0.1, 0.80,
+                        r'v=0 '+Jplot[0]+'/'+Jplot[1]+' ='+'%1.1f' % ratios_dict['v=0']['integ_24-23_16-15'], ha='left', va='center',
+                        transform=axis[j].transAxes, color=v0_color,
+                        rotation='horizontal', fontsize=8)
+            axis[j].text(0.1, 0.75,
+                        r'v7=1 '+Jplot[0]+'/'+Jplot[1]+' ='+'%1.1f' % ratios_dict['v7=1']['integ_24-23_16-15'], ha='left', va='center',
+                        transform=axis[j].transAxes, color=v7_color,
+                        rotation='horizontal', fontsize=8)
+            axis[j].text(0.1, 0.70,
+                        r'v6=1 '+Jplot[0]+'/'+Jplot[1]+' ='+'%1.1f' % ratios_dict['v7=1']['integ_24-23_16-15'], ha='left', va='center',
+                        transform=axis[j].transAxes, color=v6_color,
+                        rotation='horizontal', fontsize=8)
+        
+    # Left Figures
+    left_ind = []
+    for i in range(m):
+        left_ind.append(axis_ind[i][0])
+        
+    # Max_value 
+    
+    all_profiles = pd.concat(transitions_df.profile.values, ignore_index=True)
+    maxval = np.nanmax(all_profiles['I_Ic_mJy'])
+    # Bottom Figures
+    bottom_figures = axis_ind[-1]
+    intensity_limits_total = [-0.5, maxval]
+    for i, axw in enumerate(axis):
+        #majorLocator = MultipleLocator(20)
+        #axw.yaxis.set_major_locator(majorLocator)
+        # Solo ponemos titulo a los ejes y si estan a la izquierda del todo
+        axw.minorticks_on()
+        axw.tick_params(axis='both', which='major', labelsize=labelsize, length=5, direction='in')
+        axw.tick_params(axis='both', which='minor', labelsize=labelsize, direction='in')
+        axw.xaxis.set_tick_params(top =True, which='both')
+        axw.yaxis.set_tick_params(right=True, which='both', labelright=False)
+        # Limite en el eje x
+        if velocity_limits != ['NA', 'NA']: # Si no se especifican limites python coge el minimo y maximo de cada expectro
+            axw.set_xlim(velocity_limits)    # Limites introducidos
+        # Limite en el eje y
+        if intensity_limits != ['NA', 'NA']: # Si no especificamos limites ejey coge el maximo y minimo disponible del espectro
+            axw.set_ylim(intensity_limits)
+        else:
+            axw.set_ylim([intensity_limits_total[0], intensity_limits_total[1]+intensity_limits_total[1]*0.4]) # Para que el maximo en el eje y sea el mismo en todos los espectros
+        if i in left_ind:
+            axw.set_ylabel(label_y, fontsize=14)
+        else:
+            axw.set_yticklabels([])
+        # Solo ponemos titulo a los ejes x si estan abajo del todo
+        if i in bottom_figures:
+            axw.set_xlabel(label_x, fontsize=14)
+            if first_last_xlabel == False:
+                plt.setp(axw.get_xticklabels()[0], visible=False)    
+                plt.setp(axw.get_xticklabels()[-1], visible=False)
+        else:
+            axw.set_xticklabels([])
+    return fig, axis
+    
+
+def profile_plotter_new(ratios_dict, transitions_df, Jplot, filas = 2, columnas = 1,
                         colors = ['k', 'r', 'b'], factor=1,
                         linewidth = 0.7, labelsize = 12, velocity_limits=[-100, 100],
                         intensity_limits=['NA', 'NA'], first_last_xlabel = False):
@@ -110,6 +261,8 @@ def profile_plotter(transitions_df, Jplot, filas = 2, columnas = 1,
         for j in range(n):
             axis_ind[i].append(ind)
             ind += 1
+    #for j in range(m*n):
+        # Plotting J=24(+1)-23(-1)
     for v,vib in enumerate(['v=0', 'v7=1', 'v6=1']):
         y_st = 0.85
         for j, trans in enumerate(Jplot):
@@ -141,15 +294,18 @@ def profile_plotter(transitions_df, Jplot, filas = 2, columnas = 1,
                         transform=axis[v].transAxes, color = colors[j],
                         rotation='horizontal', fontsize=8)
             y_st = y_st - 0.05
+        
         axis[v].text(0.1, 0.9,
                     r'HC$_3$N '+vib, ha='left', va='center',
                     transform=axis[v].transAxes,
                     rotation='horizontal', fontsize=8)
-
+       
+        
     # Left Figures
     left_ind = []
     for i in range(m):
         left_ind.append(axis_ind[i][0])
+        
     # Max_value 
     all_profiles = pd.concat(transitions_df.profile.values, ignore_index=True)
     maxval = np.nanmax(all_profiles['I_Ic_mJy'])
@@ -157,26 +313,30 @@ def profile_plotter(transitions_df, Jplot, filas = 2, columnas = 1,
     bottom_figures = axis_ind[-1]
     intensity_limits_total = [-0.5, maxval]
     for i, axw in enumerate(axis):
+        #majorLocator = MultipleLocator(20)
+        #axw.yaxis.set_major_locator(majorLocator)
+        # Solo ponemos titulo a los ejes y si estan a la izquierda del todo
         axw.minorticks_on()
         axw.tick_params(axis='both', which='major', labelsize=labelsize, length=5, direction='in')
         axw.tick_params(axis='both', which='minor', labelsize=labelsize, direction='in')
         axw.xaxis.set_tick_params(top =True, which='both')
         axw.yaxis.set_tick_params(right=True, which='both', labelright=False)
         # Limite en el eje x
-        if velocity_limits != ['NA', 'NA']: 
-            axw.set_xlim(velocity_limits)
+        if velocity_limits != ['NA', 'NA']: # Si no se especifican limites python coge el minimo y maximo de cada expectro
+            axw.set_xlim(velocity_limits)    # Limites introducidos
         # Limite en el eje y
-        if intensity_limits != ['NA', 'NA']:
+        if intensity_limits != ['NA', 'NA']: # Si no especificamos limites ejey coge el maximo y minimo disponible del espectro
             if isinstance(intensity_limits[0], list):
                 axw.set_ylim(intensity_limits[i])
             else:
                 axw.set_ylim(intensity_limits)
         else:
-            axw.set_ylim([intensity_limits_total[0], intensity_limits_total[1]+intensity_limits_total[1]*0.4]) 
+            axw.set_ylim([intensity_limits_total[0], intensity_limits_total[1]+intensity_limits_total[1]*0.4]) # Para que el maximo en el eje y sea el mismo en todos los espectros
         if i in left_ind:
             axw.set_ylabel(label_y, fontsize=14)
         else:
             axw.set_yticklabels([])
+        # Solo ponemos titulo a los ejes x si estan abajo del todo
         if i in bottom_figures:
             axw.set_xlabel(label_x, fontsize=14)
             if first_last_xlabel == False:
@@ -186,10 +346,118 @@ def profile_plotter(transitions_df, Jplot, filas = 2, columnas = 1,
             axw.set_xticklabels([])
     return fig, axis
 
+def profile_plotter_old(v_0, v_7, v_6, line_ratios, Jplot,
+                    v0_color = 'k', v7_color = 'r', v6_color = 'blue',
+                    linewidth = 0.7, labelsize = 12, filas = 2, columnas = 1,
+                    velocity_limits=[-100, 100], intensity_limits=['NA', 'NA'],
+                    line_names = [r'HC$_3$N 24(+1)-23(-1)', r'HC$_3$N 39(+1)-38(-1)'],
+                    first_last_xlabel = False):
+    """
+    Jplot list with J-J-1 transitions to plot
+    """
+    print('\tPlotting line profiles')
+    # Plotting line profiles
+    label_y =  r"Flux density (mJy)" 
+    label_x = r"V (km/s)"
+    m = filas    # rows
+    n = columnas # columns
+    dx, dy = 1.2, 1
+    figsize = plt.figaspect(float(dy * m) / float(dx * n))
+    fig = plt.figure(figsize=figsize)
+    gs1 = gridspec.GridSpec(m, n)    
+    gs1.update(wspace = 0.0, hspace=0.0, top=0.95, bottom = 0.05)
+    # Generating specified number of axis
+    axis = []
+    axis_ind = []
+    for i in range(m*n):
+        axis.append(fig.add_subplot(gs1[i]))
+    # Generating axis index
+    ind = 0
+    axis_ind = []
+    for i  in range(m):
+        axis_ind.append([])
+        for j in range(n):
+            axis_ind[i].append(ind)
+            ind += 1
+    #for j in range(m*n):
+        # Plotting J=24(+1)-23(-1)
+    for j,p in enumerate(Jplot):
+        # Plotting spectrum
+        axis[j].plot(v_0.profile[p]['V_kms'], v_0.profile[p]['I_Ic_mJy'], linewidth=linewidth, color=v0_color)
+        axis[j].plot(v_7.profile[p]['V_kms'], v_7.profile[p]['I_Ic_mJy'], linewidth=linewidth, color=v7_color)
+        if not np.isnan(v_6.profile[p]):
+            axis[j].plot(v_6.profile[p]['V_kms'], v_6.profile[p]['I_Ic_mJy'], linewidth=linewidth, color=v6_color)
+        # Line name
+        axis[j].text(0.1, 0.9,
+                    line_names[j], ha='left', va='center',
+                    transform=axis[j].transAxes,
+                    rotation='horizontal', fontsize=8)
+        axis[j].text(0.1, 0.85,
+                    r'HC$_3$N,v7=1 ratio='+'%1.1f' % line_ratios.ratio_v7, ha='left', va='center',
+                    transform=axis[j].transAxes,
+                    rotation='horizontal', fontsize=8)
+        
+        axis[j].text(0.1, 0.80,
+                    r'HC$_3$N,v=0 ratio='+'%1.1f' % line_ratios.ratio_v0, ha='left', va='center',
+                    transform=axis[j].transAxes,
+                    rotation='horizontal', fontsize=8)
+        axis[j].text(0.1, 0.75,
+                    r'HC$_3$N v0/v7 '+p+' ratio='+'%1.1f' % line_ratios.ratio_v0v7[p], ha='left', va='center',
+                    transform=axis[j].transAxes,
+                    rotation='horizontal', fontsize=8)
+        
+    # Left Figures
+    left_ind = []
+    for i in range(m):
+        left_ind.append(axis_ind[i][0])
+    # Bottom Figures
+    bottom_figures = axis_ind[-1]
+    if not np.isnan(v_6.profile24_23):
+        intensity_limits_total = [-0.05,
+                                 np.nanmax([v_0.profile24_23['I_Ic_mJy'].max(),
+                                            v_0.profile39_38['I_Ic_mJy'].max(),
+                                            v_7.profile24_23['I_Ic_mJy'].max(),
+                                            v_7.profile39_38['I_Ic_mJy'].max(),
+                                            v_6.profile24_23['I_Ic_mJy'].max(),
+                                            v_6.profile39_38['I_Ic_mJy'].max()])]
+    else:
+        intensity_limits_total = [-0.05,
+                                 np.nanmax([v_0.profile24_23['I_Ic_mJy'].max(),
+                                            v_0.profile39_38['I_Ic_mJy'].max(),
+                                            v_7.profile24_23['I_Ic_mJy'].max(),
+                                            v_7.profile39_38['I_Ic_mJy'].max()])]
+    for i, ax in enumerate(axis):
+        majorLocator = MultipleLocator(20)
+        ax.yaxis.set_major_locator(majorLocator)
+        # Solo ponemos titulo a los ejes y si estan a la izquierda del todo
+        ax.minorticks_on()
+        ax.tick_params(axis='both', which='major', labelsize=labelsize, length=5, direction='in')
+        ax.tick_params(axis='both', which='minor', labelsize=labelsize, direction='in')
+        ax.xaxis.set_tick_params(top =True, which='both')
+        ax.yaxis.set_tick_params(right=True, which='both', labelright=False)
+        # Limite en el eje x
+        if velocity_limits != ['NA', 'NA']: # Si no se especifican limites python coge el minimo y maximo de cada expectro
+            ax.set_xlim(velocity_limits)    # Limites introducidos
+        # Limite en el eje y
+        if intensity_limits != ['NA', 'NA']: # Si no especificamos limites ejey coge el maximo y minimo disponible del espectro
+            ax.set_ylim(intensity_limits)
+        else:
+            ax.set_ylim([intensity_limits_total[0], intensity_limits_total[1]+intensity_limits_total[1]*0.4]) # Para que el maximo en el eje y sea el mismo en todos los espectros
+        if i in left_ind:
+            ax.set_ylabel(label_y, fontsize=14)
+        else:
+            ax.set_yticklabels([])
+        # Solo ponemos titulo a los ejes x si estan abajo del todo
+        if i in bottom_figures:
+            ax.set_xlabel(label_x, fontsize=14)
+            if first_last_xlabel == False:
+                plt.setp(ax.get_xticklabels()[0], visible=False)    
+                plt.setp(ax.get_xticklabels()[-1], visible=False)
+        else:
+            ax.set_xticklabels([])
+    return fig, axis
+
 def get_tau100(model_path, model_name):
-    """
-        Gets tau100 from the molecule models
-    """
     # Optical Depths
     model_taudust = pd.read_csv(model_path+'/'+model_name+'_.taudust', delim_whitespace= True)
     model_taudust.columns = ['lambda_um', 'taudust']
@@ -200,9 +468,6 @@ def get_tau100(model_path, model_name):
     return tau100.values[0]
 
 def get_tau100_dustmod(model_path, model_name):
-    """
-        Gets tau100 from the dust models
-    """
     # Optical Depths
     model_taudust = pd.read_csv(model_path+'/'+model_name+'_.tau', delim_whitespace= True, header=None)
     model_taudust.columns = ['lambda_um', 'taudust', 'otro']
@@ -214,9 +479,6 @@ def get_tau100_dustmod(model_path, model_name):
     return tau100.values[0]
 
 def get_taulambda(model_path, model_name, lambda_um):
-    """
-        Gets tau for the specified wavelength lambda in microns
-    """
     # Optical Depths
     model_taudust = pd.read_csv(model_path+'/'+model_name+'_.taudust', delim_whitespace= True)
     model_taudust.columns = ['lambda_um', 'taudust']
@@ -230,9 +492,6 @@ def get_taulambda(model_path, model_name, lambda_um):
 
 
 def SED_plotter(model_iso, model_spire, model_taudust, distance_pc, luminosity_total):
-    """
-        Plots the model Spectral Energy Distribution and SEDs from other papers
-    """
     tqdm.write('\tPlotting SED and continuum opacity')
     # Observational SED from perez-beaupuits 2018
     script_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -296,6 +555,7 @@ def SED_plotter(model_iso, model_spire, model_taudust, distance_pc, luminosity_t
         ax.yaxis.set_major_locator(majorLocator)
         # Solo ponemos titulo a los ejes y si estan a la izquierda del todo
         ax.minorticks_on()
+        #ax.tick_params(axis='both', which='minor', direction='in', top=True, right=True)
         ax.tick_params(axis='both', which='major', labelsize=12, length=5, direction='in')
         ax.tick_params(axis='both', which='minor', labelsize=12, direction='in')
         ax.xaxis.set_tick_params(top =True, which='both')
@@ -308,6 +568,7 @@ def SED_plotter(model_iso, model_spire, model_taudust, distance_pc, luminosity_t
     axis[0].set_ylabel(r'Flux density (Jy)', fontsize=14)
     axis[1].set_ylabel(r'Optical depth $\tau$', fontsize=14)
     axis[1].set_xlabel(r'Wavelength ($\mu$m)', fontsize=14)
+    
     axis[0].text(0.1, 0.9,
                         'L='+ '% 1.2E' % luminosity_total + r' L$_\odot$', ha='left', va='center',
                         transform=axis[j].transAxes,
@@ -315,9 +576,6 @@ def SED_plotter(model_iso, model_spire, model_taudust, distance_pc, luminosity_t
     return fig, axis
 
 def SED_plotter_only_mod(model_iso, model_spire, model_taudust, distance_pc, luminosity_total):
-    """
-        Plots the model Spectral Energy Distribution
-    """
     print('\tPlotting SED and continuum opacity')
     # Observational SED from perez-beaupuits 2018
     script_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -344,6 +602,7 @@ def SED_plotter_only_mod(model_iso, model_spire, model_taudust, distance_pc, lum
         ax.yaxis.set_major_locator(majorLocator)
         # Solo ponemos titulo a los ejes y si estan a la izquierda del todo
         ax.minorticks_on()
+        #ax.tick_params(axis='both', which='minor', direction='in', top=True, right=True)
         ax.tick_params(axis='both', which='major', labelsize=12, length=5, direction='in')
         ax.tick_params(axis='both', which='minor', labelsize=12, direction='in')
         ax.xaxis.set_tick_params(top =True, which='both')
@@ -365,9 +624,6 @@ def SED_plotter_only_mod(model_iso, model_spire, model_taudust, distance_pc, lum
 
 def tau_profiles(model_tau, v6, linewidth=0.7,
                  v0_color = 'k', v7_color='r', v6_color='b'):
-    """
-        Plots the tau profiles for the line transitions
-    """
     tqdm.write('\tPlotting line opacities')
     m = 2    # rows
     n = 1    # columns
@@ -422,9 +678,6 @@ def tau_profiles(model_tau, v6, linewidth=0.7,
 
 def tau_profiles_new(model_tau, v6, linewidth=0.7,
                  v0_color = 'k', v7_color='r', v6_color='b'):
-    """
-        Plots the tau profiles for the line transitions
-    """
     tqdm.write('\tPlotting line opacities')
     m = 2    # rows
     n = 1    # columns
@@ -478,9 +731,6 @@ def tau_profiles_new(model_tau, v6, linewidth=0.7,
         
 
 def only_luminosity_cal(distance_pc, model_path, model_name):
-    """
-        Calculates the model luminosity
-    """
     factor = 1 # No more factor to change size
     # =============================================================================
     # SED and tau_continuum
@@ -530,9 +780,6 @@ def only_luminosity_cal(distance_pc, model_path, model_name):
     return luminosity_total
 
 def only_luminosity_cal2(distance_pc, model_path, model_name, freq_Hz_list, tol = 0.005):
-    """
-        Calculates the model luminosity
-    """
     factor = 1 # No more factor to change size
     # =============================================================================
     # SED and tau_continuum
@@ -587,6 +834,17 @@ def only_luminosity_cal2(distance_pc, model_path, model_name, freq_Hz_list, tol 
         a = model_spire.loc[(model_spire['lambda_um'] >= freq_microns*(1-tol)) & (model_spire['lambda_um'] <= freq_microns*(1+tol))]
         a.reset_index(inplace=True)
         freqs_df_dict[str(int(freq_Hz/1e9))] = a
+    # freq_aver = (np.average(a['lambda_um'])*u.um).to(u.Hz, equivalencies=u.spectral())
+    # intens_aver_Jy = np.average(a['Ic_Jy'])
+    # luminosity_freq_Lsun = 0
+    # for i, row in a.iterrows():
+    #     if i == 0:
+    #         continue
+    #     else:
+    #         luminosity_freq_Lsun += (a['Ic_ergscm2um'][i]*
+    #                           (a['lambda_um'][i]-a['lambda_um'][i-1])*
+    #                           4.*3.14159*(distance_pc*(1*u.pc).to(u.cm).value)**2)/(3.8e33)
+    
     return luminosity_total, freqs_df_dict
     
         
@@ -595,24 +853,36 @@ def luminosity_calculator(calculate_luminosity, distance_pc, model_path, model_n
                           plot_profiles, plot_SED, figoutdir, linesinfo, factor = 1,  velocity_limits=[-100, 100],
                           intensity_limits=['NA', 'NA'], fig_format='png'):
     """
-        Calculates the model luminosity, gets the line profiles and plots them, the SED and tau continuum
-        v6=True includes v6 in the calculations
-        Generally v7=1e is blended v6=1f
-        inter_ratios = ['24-23', '16-15'] list with ratios to make and plot
+    v6=True includes v6 in the calculations
+    Generally v7=1e is blended v6=1f
+    inter_ratios = ['24-23', '16-15'] list with ratios to make and plot
     """
+    #inter_ratios = ['24-23', '16-15']
+    #factor = 1 # No more factor to change size
+    #print('\n\n')
+    
     # =============================================================================
     # # Line profiles
     # =============================================================================
+    #dist_pc = 3.5e6 # pc
+    #model_size = 1. * factor # pc 
     if plot_profiles == True or plot_SED==True:
         if not os.path.exists(figoutdir):
             os.makedirs(figoutdir)
     # Loading model line profile
+    #model_path = '/Users/frico/Documents/Ed/modelos_hc3n/with_v6'
+    #model_name = 'hc3nsblum2p1e11cd1p0e25exp1p0nsh30rad17col2p0e17vt30kabs1td960'
     model_prof = pd.read_csv(model_path+'/'+model_name+'_.prof', delim_whitespace= True, comment='!', header=None)#, skiprows=[0])
     model_prof.columns = ['lambda_um', 'I_ergscm2um', 'I_Ic_ergscm2um', 'V_kms']
+    
     # Conversion erg/s/cm^2/um to mJy
     model_prof['I_Ic_mJy'] = u_conversion.ergscmum_to_mjy(model_prof['I_Ic_ergscm2um'], model_prof['lambda_um'])
     # Multiplying intensities by factor^2
-    model_prof['I_Ic_mJy'] = model_prof['I_Ic_mJy']*(factor)
+    model_prof['I_Ic_mJy'] = model_prof['I_Ic_mJy']*(factor)#*(factor**2)
+    
+    
+    
+    
     transitions_df = pd.read_csv(linesinfo, delim_whitespace= True, header=0, comment='#')
     transitions_df['alams'] =   (np.array(transitions_df['freq_Hz'])*u.Hz).to(u.um, equivalencies=u.spectral())
     transitions_df['V_kms'] = np.nan
@@ -621,6 +891,7 @@ def luminosity_calculator(calculate_luminosity, distance_pc, model_path, model_n
     transitions_df['integ_intens'] = np.nan
     transitions_df['parity'] = np.nan
     profiles = []
+    
     for index, row in transitions_df.iterrows():
         print(f'Line: {row.vib} {row.J} {row.par}')
         profile, peak, integ_intens = line_finder(lambda_mu=row['alams'], model_prof=model_prof, unit='mJy') 
@@ -631,9 +902,13 @@ def luminosity_calculator(calculate_luminosity, distance_pc, model_path, model_n
             transitions_df.loc[index,'parity'] = '1e'
         else:
             transitions_df.loc[index,'parity'] = '1f'
-    transitions_df['profile'] = profiles
+    transitions_df['profile'] = profiles # couldnt create it inside an iterrows iterable
+    
+    
     ratios_dict = {}
     vib_states = transitions_df['vib'].unique().tolist()
+    
+    
     # Ratios between same vib. state
     ratios_dict = {}
     # Ratios between same vib. state
@@ -642,6 +917,7 @@ def luminosity_calculator(calculate_luminosity, distance_pc, model_path, model_n
         ratios_dict[vib] = {}
         for s, s_ratio in enumerate(str_ratios):
             int_ratio = s_ratio.split('_')
+        
             vibs_df = transitions_df[transitions_df['vib'] == vib]
             # Generally v7=1e is blended v6=1f
             # We use 1f for v7=1 and 1e for v6=1 then
@@ -649,12 +925,18 @@ def luminosity_calculator(calculate_luminosity, distance_pc, model_path, model_n
                 par = '1e'
             else:
                 par = '1f'
+                
+            #peak_ratios = utiles.ratio_btw_listelemnt_asc(lista)
+            #str_ratios  = str_btw_listelemnt_asc(lista)
             jup_peak = vibs_df.loc[(vibs_df['J'] == int_ratio[0]) & (vibs_df['parity'] == par), 'peak'].values[0]
             jup_integ = vibs_df.loc[(vibs_df['J'] == int_ratio[0]) & (vibs_df['parity'] == par), 'integ_intens'].values[0]
             jlow_peak = vibs_df.loc[(vibs_df['J'] == int_ratio[1]) & (vibs_df['parity'] == par), 'peak'].values[0]
             jlow_integ = vibs_df.loc[(vibs_df['J'] == int_ratio[1]) & (vibs_df['parity'] == par), 'integ_intens'].values[0]
+    
             ratios_dict[vib]['peak_'+int_ratio[0]+'_'+int_ratio[1]] =  jup_peak/jlow_peak
             ratios_dict[vib]['integ_'+int_ratio[0]+'_'+int_ratio[1]] =  jup_integ/jlow_integ
+
+    
     # Ratios between ground and v7=1
     ratios_dict['v0_v7'] = {}
     for ratio in inter_ratios:
@@ -667,7 +949,7 @@ def luminosity_calculator(calculate_luminosity, distance_pc, model_path, model_n
     #  Plotting profiles
     # =============================================================================
     if plot_profiles == True:
-        fig, axis = profile_plotter(ratios_dict, transitions_df, Jplot=inter_ratios, filas = 3, columnas = 1,
+        fig, axis = profile_plotter_new(ratios_dict, transitions_df, Jplot=inter_ratios, filas = 3, columnas = 1,
                                         colors = ['k', 'r', 'b'], factor=1,
                                         linewidth = 0.7, labelsize = 12, velocity_limits=velocity_limits,
                                         intensity_limits=intensity_limits, first_last_xlabel = False)
@@ -724,16 +1006,18 @@ def luminosity_calculator(calculate_luminosity, distance_pc, model_path, model_n
         print('\t\tL='+'%1.2E' % luminosity_total+' Lsun')
     else:
         luminosity_total = -1
+
     # Plotting SED
     if plot_SED == True:
         fig, axis = SED_plotter(model_iso, model_spire, model_taudust, distance_pc, luminosity_total)  
         fig.savefig(figoutdir+'/'+model_name+'_f'+'%1.1f' % factor +'_SED.'+fig_format, bbox_inches='tight', transparent=True, dpi=400, format=fig_format)
         plt.close()
+        
     return luminosity_total, transitions_df, ratios_dict
 
 def labelLine_fit(xvals,yvals,xpos, ypos,ax, color='k', label=None,align=True,**kwargs):
     """
-        Labeling lines
+    Labeling lines
     """
     xdata = xvals.tolist()
     ydata = yvals.tolist()
@@ -784,25 +1068,29 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
                        xvar, yvar, zvar, integrated,
                        legend = False
                        ):
-    """
-        Plots the model gas density in a 2D map
-    """
     fig = plt.figure()
     ax = plt.axes()
     x = models_df[xvar]
     y = models_df[yvar]
     z = models_df[zvar]
+
+    
+
     # Generating linearspace for maps
     xi, yi = np.linspace(x.min(), x.max(), 1000), np.linspace(y.min(), y.max(), 1000)
     xi, yi = np.meshgrid(xi, yi)
     rbf = scipy.interpolate.Rbf(x, y, z, function='linear', smooth=0.5)
     zi = rbf(xi, yi)
+    
     # Check if all elements in z are the same -> cant make contours
     lev = np.linspace(z.min(), z.max(), 20)
     lev = np.arange(100, 600+50, 50)
+                    
+
     # Plotting Temperature contours and colorbar
     cs = ax.contourf(xi, yi, zi,  cmap="Reds", origin='lower', levels=lev)
     cbar = plt.colorbar(cs)
+    
     # Getting unique values of densities
     unique_dens = models_df.central_nh.unique()
     s_unique_dens = np.sort(unique_dens)
@@ -812,6 +1100,7 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
     bb_p = [1e8]
     nppplot = aa_p+bb_p
     nppplot   = s_unique_dens
+
     # Solid line densities contours
     nnnp2 = [5E5, 1E6, 5E6, 1E7, 5E7, 1E8]
     cmap_blues = matplotlib.cm.get_cmap('winter_r')#('Blues')
@@ -820,7 +1109,11 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
     custom_lines_dens = []
     custom_lines_txt_dens = []
     models_df.drop_duplicates(inplace=True)
+    
     s_nppplot = np.sort(nppplot)
+    
+    
+    
     # Connecting models with same density
     if d_slicer == 'Xdust':
         color_list_b = np.linspace(0.1, 1,color_ndens_lim )#len(unique_dens))
@@ -851,6 +1144,7 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
                 #ax.plot(model_dens[xvar], model_dens[yvar], marker='None', linestyle=linestyle, color=color, markersize = 0.8, linewidth= lw, zorder=3)#=cmap_blues(color_list_b[n])
                 ax.plot(model_dens[xvar], model_dens[yvar], marker='None', linestyle=linestyle, color=cmap_blues(color_list_b[n]), markersize = 0.8, linewidth= lw, zorder=3)#=cmap_blues(color_list_b[n])
                 label_text = '%1.1E' % ndens
+                
             # Plotting on selected density contours
             if ndens in nnnp2:
                 if ndens == 5e5:
@@ -895,6 +1189,7 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
                 models_df['cond_Nd_'+'%1.1E' % dcol] = (models_df['Ndust']/dcol > 0.98) & (models_df['Ndust']/dcol < 1.02)
                 dcol_sel = models_df[models_df['cond_Nd_'+'%1.1E' % dcol] == True]['Ndust'].values[0]
                 custom_lines_txt_dcol.append('Nd='+'%1.1E' % dcol_sel)
+                
         for n, dcol in enumerate(s_unique_col):
             # df Mask for density
             models_df['cond_Nd_'+'%1.1E' % dcol] = (models_df['Ndust']/dcol > 0.98) & (models_df['Ndust']/dcol < 1.02)
@@ -916,6 +1211,20 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
         ax.set_ylim([14,17])
     else:
         yvar_obs = yvar        
+    # Seetting limits depending on vars
+#    if xvar == 'ratio_v7':
+#        ax.set_xlim([1,3])
+#    elif xvar == 'ratio_v724_23':
+#        ax.set_xlim([1,6])
+#    elif xvar == 'ratio_v739_38':
+#        ax.set_xlim([0,15])
+#    elif xvar == 'ratio_v0':
+#        ax.set_xlim([0.5,2.5])
+#    if yvar == 'ratio_v724_23':
+#        ax.set_ylim([1.5,5])
+#    elif yvar == 'ratio_v739_38':
+#        ax.set_ylim([0,15])
+#        
     # Observed values
     observed_df['Ind_ok'].astype(float)
     observed_df = observed_df.sort_values(by=['Ind_ok'], ascending = True)
@@ -926,6 +1235,7 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
                 ax.text(orow[xvar_obs], orow[yvar_obs],
                         str(int(orow['Ind_ok'])), ha='left', va='bottom', color='k',
                         rotation='horizontal', fontsize=9, zorder =11)
+    
     # Checking if saving path exists
     out_dir = results_path+'/'+'Figures/'
     if not os.path.exists(out_dir):
@@ -939,16 +1249,19 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
         ylabel = 'v=0 (24-23) / v7=1 (24-23)'
     elif yvar == 'ratio_v739_38':
         ylabel = 'v=0 (39-38) / v7=1 (39-38)'    
+    
     else:
         ylabel = yvar
     if zvar == 'central_T':
         zlabel = r'T$_{\rm{dust}}$ (K)'
     else:
         zlabel = zvar
+        
     # Setting labels
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     cbar.ax.set_ylabel(zlabel)
+    
     # Legend 
     if legend==True:
         custom_lines_dens = []
@@ -958,17 +1271,16 @@ def plot_model_nHT_map(models_df, observed_df, results_path, d_slicer,
                 linestyle='-'
                 custom_lines_dens.append(Line2D([0], [0], color='0.4', lw=0.5, linestyle=linestyle))
                 custom_lines_txt_dens.append('nH='+'%1.1E' % ndens)
+    
     ax.tick_params(axis='both', which='both', direction='in')
     ax.minorticks_on()
     ax.xaxis.set_tick_params(which='both', top =True)
     ax.yaxis.set_tick_params(which='both', right=True, labelright=False)
+    
     return fig, ax
 
 def model_slicer(models_df, slicer, only_one_value, cmap,
                  fig, ax, xvar, yvar,  s_order, linestyle, linewidth, integrated,xlimits, ylimist, plotvalue=False):
-    """
-        Connects models with same parameter value
-    """
     if integrated == True:
         xvar_p = xvar + '_int'
         yvar_p = yvar + '_int'
@@ -980,6 +1292,8 @@ def model_slicer(models_df, slicer, only_one_value, cmap,
     elif s_order == 'y':
         sort = yvar_p
         
+    
+    ### Connecting models with same parameter value
     # Rounding esponential numbers
     models_df[slicer+'_round'] = models_df[slicer].apply(lambda x: utiles.rounding_exp(x, 1))
     # Unique values
@@ -997,6 +1311,7 @@ def model_slicer(models_df, slicer, only_one_value, cmap,
         color_list = np.linspace(0.1, 1, len(sliced_list))
     if only_one_value != False:
         sliced_list = [only_one_value]
+    
     # Subsetting for each unique value
     plotted_colors = []
     for i, sli in enumerate(sliced_list):
@@ -1021,6 +1336,7 @@ def model_slicer(models_df, slicer, only_one_value, cmap,
                 ax.plot(model_sel[xvar_p], model_sel[yvar_p], marker='None',
                     linestyle=linestyle, color=cmap_plot(color_list[i]),
                     markersize = 0.8, linewidth= linewidth, zorder =18)
+            
     print('\t'+slicer+'\tMin.:'+'%1.2E' % np.min(sliced_list)+'\tMax:'+'%1.2E' % np.max(sliced_list))
     return plotted_colors
 
@@ -1036,6 +1352,8 @@ def model_slicer_T(models_df, slicer, only_one_value, cmap,
         sort = xvar_p
     elif s_order == 'y':
         sort = yvar_p
+        
+    
     ### Connecting models with same parameter value
     # Rounding esponential numbers
     models_df[slicer+'_round'] = models_df[slicer].apply(lambda x: utiles.rounding_exp(x, 1))
@@ -1054,8 +1372,10 @@ def model_slicer_T(models_df, slicer, only_one_value, cmap,
         color_list = np.linspace(0.1, 1, len(sliced_list))
     if only_one_value != False:
         sliced_list = [only_one_value]
+    
     # Subsetting for each unique value
     plotted_colors = []
+    
     models_df['cond_nh_max'] = (models_df['nH_u']==models_df['nH_u'].max())
     model_sel_nh = models_df[models_df['cond_nh_max'] == True]
     
@@ -1063,9 +1383,18 @@ def model_slicer_T(models_df, slicer, only_one_value, cmap,
         models_df['cond_'+slicer+'_'+'%1.1E' % sli] = (models_df[slicer+'_round']/sli > 0.95) & (models_df[slicer+'_round']/sli < 1.05)
         model_sel = models_df[models_df['cond_'+slicer+'_'+'%1.1E' % sli] == True]
         model_sel = model_sel.sort_values(by=[sort], ascending = True)  
+        
         if i != 0:
+            x = model_sel[xvar_p]
+            y = model_sel[yvar_p]
+            
             x = model_sel[xvar_p].tolist()
+            #x = x + [x[-1]]*20
+            #x_prev = x_prev + [x_prev[-1]]*20
             y = model_sel[yvar_p].tolist()
+            #y = y + [y[-1]]*20
+            #y_prev = y_prev + [y_prev[-1]]*20
+            
             z = np.polyfit(x, y, 3)
             p = np.poly1d(z)
             xp = np.linspace(0,5,100)
@@ -1087,6 +1416,8 @@ def model_slicer_T(models_df, slicer, only_one_value, cmap,
     print('\t'+slicer+'\tMin.:'+'%1.2E' % np.min(sliced_list)+'\tMax:'+'%1.2E' % np.max(sliced_list))
     return plotted_colors
 
+
+
 def model_slicer_nH(models_df, slicer, only_one_value, cmap,
                  fig, ax, xvar, yvar,  s_order, linestyle, linewidth, integrated, plot_slicer):
     if integrated == True:
@@ -1098,6 +1429,8 @@ def model_slicer_nH(models_df, slicer, only_one_value, cmap,
     if s_order == 'x':
         sort = xvar_p
     elif s_order == 'y':
+        sort = yvar_p
+        
     
     ### Connecting models with same parameter value
     # Rounding esponential numbers
@@ -1108,15 +1441,17 @@ def model_slicer_nH(models_df, slicer, only_one_value, cmap,
     if slicer == 'Tdust' or slicer == 'central_T' :
         sliced_list = [100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600]
     elif slicer == 'nH_u':
+        #sliced_list = [1e6, 2e6, 3e6, 4e6, 5e6]#, 6e6, 7e6, 8e6, 9e6, 1e7]
         import_dens = [1e6,  5e6, 1e7, 5e7]
     if cmap[0] == 'color':
         color_list = [cmap[1]]*len(sliced_list)
     else:
     # colormap
-        cmap_plot = matplotlib.cm.get_cmap(cmap)
+        cmap_plot = matplotlib.cm.get_cmap(cmap)#('Blues')
         color_list = np.linspace(0.1, 1, len(sliced_list))
     if only_one_value != False:
         sliced_list = [only_one_value]
+    
     # Subsetting for each unique value
     plotted_colors = []
     data_y = {}
@@ -1153,10 +1488,7 @@ def plot_observed_ratios(fig, ax, observed_df, results_path,
                          xvar, yvar, integrated, print_ylabel, print_xlabel, fontsize, color,
                          new_intens=False 
                          ):
-    """
-        Plot the observed ratios
-    """
-    
+
     
     # To get the same column from obsserved_df
     if xvar == 'central_T':
