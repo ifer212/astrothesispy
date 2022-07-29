@@ -275,8 +275,8 @@ if zoom_cont219_plot:
                     pxm=row['subpxsum']
                     pym=row['subpysum']
                     if row['Source_altern_sub_final'] == '10c':
-                        pxm += 3
-                        pym += 1
+                        pxm += 4
+                        pym += 3
                     axes[p].annotate(row['Source_altern_sub_final'], xy=(px219, py219), xytext=(int(px219+pxm), int(py219+pym)), fontsize=sscfontsize,
                                 arrowprops={'headwidth': 0.1, 'headlength': 0.1, 'width':0.5, 'color': 'k'},
                                 va='center', color = 'k', zorder=4) 
