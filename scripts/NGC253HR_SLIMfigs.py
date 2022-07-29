@@ -78,7 +78,7 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     cubo_219_aboverms_mask = utiles_cubes.sigma_mask(cont219_cube.fitsdata[0,0,:,:], rms_219, 2.0)
     cubo_219_aboverms = np.copy(cont219_cube.fitsdata[0,0,:,:])
     cubo_219_aboverms[cubo_219_aboverms_mask.mask] = np.nan    
-    RA, Dec = utiles.RADec_position(49, 20, tex_cube.wcs, origin=1)
+    RA, Dec = utiles_cubes.RADec_position(49, 20, tex_cube.wcs, origin=1)
     # J = 24-23
     m0_v0_2423 = moments_pre+'NGC253_'+source+'_HC3N_v0_24_23'+moments_suf+'.fits'
     m0_v0_2423_cube = utiles_cubes.Cube_Handler('m02423', moment_cube_path+m0_v0_2423)
@@ -137,8 +137,8 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     gs1 = gridspec.GridSpec(maxis, naxis)  
     gs1.update(wspace = 0.0, hspace=0.28, top=0.95, bottom = 0.05, left=0.05, right=0.80)
     
-    RA_start, Dec_start = utiles.RADec_position(47, 70, wcs_plot, origin = 1)
-    RA_end, Dec_end = utiles.RADec_position(91, 118, wcs_plot, origin = 1)
+    RA_start, Dec_start = utiles_cubes.RADec_position(47, 70, wcs_plot, origin = 1)
+    RA_end, Dec_end = utiles_cubes.RADec_position(91, 118, wcs_plot, origin = 1)
     # Adding wcs frame
     wcs_plot.wcs.ctype = ['RA---SIN', 'DEC--SIN']
     axes = []
