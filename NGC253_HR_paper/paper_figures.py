@@ -2,17 +2,20 @@ import os
 
 from astrothesispy.scripts import NGC253HR_contfigs
 
-D_Mpc = 3.5
+
 cont219_plot = False
 zoom_cont219_plot = False
 moments_plot = False
 ringspectra_plot = False
 LTE2D_plot = True
+LTEprofiles_plot = True
 
 # =============================================================================
-# Global paths
+# Global vars & paths
 # =============================================================================
+D_Mpc = 3.5
 source = 'SHC_13'
+molecule = 'HC3Nvib_J24J26'
 NGC253_path = '/mnt/c/Users/Usuario/Documents/CAB/NGC253_HR/'
 results_path = f'{NGC253_path}Results_v2/'
 cont_path = 'Continuums/'
@@ -21,7 +24,6 @@ location_path = ''
 fig_path = f'{NGC253_path}new_figs/'
 if not os.path.exists(fig_path):
     os.makedirs(fig_path)
-
 # =============================================================================
 # Continuum & Moments figures
 # =============================================================================
@@ -44,4 +46,8 @@ if ringspectra_plot:
 
 if LTE2D_plot:
     # Figure 5
-    
+    NGC253HR_contfigs.plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = molecule, source = source, D_Mpc = D_Mpc)
+
+if LTEprofiles_plot:
+    # Figure 6
+    NGC253HR_contfigs.plot_SLIMprofiles(NGC253_path, fig_path)

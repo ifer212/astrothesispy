@@ -5,6 +5,7 @@ from astrothesispy.utiles import utiles_plot as plot_utiles
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import LogNorm
+from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import pandas as pd
 import numpy as np
 
@@ -17,7 +18,7 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # SLIM figures
 # =============================================================================
 
-def plot_SLIM2D(NGC253_path,  cont_path, location_path, results_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5):
+def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5):
     """
         Figure 5 for NGC253 HR paper
     """
@@ -249,28 +250,25 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, results_path, fig_path, 
     plot_utiles.Beam_plotter(px=28, py=py, bmin=columndens_cube.bmin*3600, bmaj=columndens_cube.bmaj*3600,
                                 pixsize=columndens_cube.pylen*3600, pa=columndens_cube.bpa, axis=axes[0], wcs=columndens_cube.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
-    
-    
     fig.savefig(fig_path+source+'_SLIM_cubes_'+molecule+'_no_profile_noM0_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
 
 
-if plot_slim_profiles:
-    style = 'onecol' # 'twocol'
-    
+def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, style = 'onecol'):
+    """
+        Figure 6 for NGC253 HR paper
+        style = "onecol" plots one column with two rows
+        style = "twocol" plots two colunms with one row
+    """
+
     only_SM = True
-    labelsize = 28
-    ticksize = 24
+    labelsize = 32
+    ticksize = 28
     # Cubes
-    D_Mpc = 3.5 
-    source = 'SHC_13'
-    molecule = 'HC3Nvib_J24J26'
-    userpath = '/Users/frico'
-    path = userpath+'/Documents/data/NGC253_HR/SHC/'
-    cont_cube_path = userpath+'/Documents/data/NGC253_HR/Continuums/'+source+'/'
-    dustmod_radpc = 17 # All dustmodels are ran with r=17pc
-    line_cube_path = '/Users/frico/Documents/data/NGC253_HR/SHC/'+source+'/contsub/'
-    final_results_path = '/Users/frico/Documents/data/NGC253_HR/Results_v2/'
+    path = f'{NGC253_path}SHC/'
+    final_results_path = f'{NGC253_path}Results_v2/'
+    slim_cube_path = f'{path}{source}/SLIM/'
+    madcub_path = f'{slim_cube_path}Figures_v8/'
     # Beams
     beam_orig = np.pi*0.022*0.020/(4*np.log(2))
     beam_345  = np.pi*0.028*0.034/(4*np.log(2))
@@ -281,9 +279,9 @@ if plot_slim_profiles:
     # MADCUBA Temp profile
     ringave_file = 'SLIM_rings_average_v2.xlsx' # Spectra Average
     rings_df = pd.read_excel(final_results_path+ringave_file, header=0)
-    madcub_path = '/Users/frico/Documents/data/NGC253_HR/SHC/SHC_13/SLIM/Figures_v8/'
-    tex_file = 'tex_HC3Nvib_J24J26.csv' # Pixel average
-    col_file = 'coldens_HC3Nvib_J24J26.csv' # Pixel average
+    
+    tex_file = f'tex_{molecule}.csv' # Pixel average
+    col_file = f'coldens_{molecule}.csv' # Pixel average
     madcol_df = pd.read_csv(madcub_path+col_file, header=0, sep=';')
     madcol_df_nouplim = madcol_df[madcol_df['value_err'] > 0]
     madcol_df_nouplim.reset_index(inplace=True)
@@ -340,13 +338,13 @@ if plot_slim_profiles:
     if style == 'twocol':
         m=1
         n=2
-        size_x = 10.#*size_rat
+        size_x = 10.
         size_y = 10
         fig = plt.figure(figsize=(size_x*n*1.2, size_y))
     elif style == 'onecol':
         m=2
         n=1
-        size_x = 10.#*size_rat
+        size_x = 10.
         size_y = 10
         fig = plt.figure(figsize=(size_x, size_y*1.55))
     size_rat = float(n)/float(m)
@@ -360,9 +358,9 @@ if plot_slim_profiles:
         axis.append(fig.add_subplot(gs1[i]))
         
     indspec_col = '0.25'
-    SMringslim_col = redpink
-    ringslim_col   = redpink #'blue' #'limegreen'# 'dodgerblue'
-    pxslim_col = azure
+    SMringslim_col = plot_utiles.redpink
+    ringslim_col   = plot_utiles.redpink
+    pxslim_col = plot_utiles.azure
     # Plotting all points
     for i, var in enumerate(['Tex', 'Col']):
         axis[i].tick_params(direction='in')
@@ -568,5 +566,5 @@ if plot_slim_profiles:
         axis[0].tick_params(labelbottom=False)   
     else:
         axis[0].set_xlabel('r (pc)', fontsize = labelsize)
-    fig.savefig(final_results_path+'Figures/SHC_13_SLIM_Tex_and_logN_profiles_dfcolors_newcols_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{source}_SLIM_Tex_and_logN_profiles_dfcolors_newcols_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
