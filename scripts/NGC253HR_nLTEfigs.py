@@ -1,10 +1,11 @@
 from astrothesispy.radiative_transfer import NGC253HR_nLTE_modelresults
 from astrothesispy.utiles import utiles_nLTEmodel
-
+import matplotlib.gridspec as gridspec
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from glob import glob
 
 presen_figs = False
 paper_figs = True
@@ -142,7 +143,7 @@ if plot_models_absorption:
         sort_dict[mname] = modelo
     colors = cm.gist_rainbow(np.linspace(0, 1, len(sort_dict)))
     colors_r = colors#[::-1]
-    for m,mod in enu
+    for m,mod in enumerate(modelos):
         modelo = sort_dict[str(m)]
         modabs_dict[str(m)] = [modelo, dustmod, rad, colors_r[m], [1, 2.3, 1.9]]
     modelos = modabs_dict

@@ -4996,6 +4996,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
         plt.close()
 
 def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+    source_rad = 1.5
     mykeys = list(line_column.keys())
     plot_only_cont = []#['model2']
     plot_corr_cols = False
@@ -5491,7 +5492,7 @@ def model_convolver(fort_paths, source_rad, model_name, dust_model, my_model_pat
         convmodel[54] = convmodel[54].replace('model_name', model_name)
         file.close()
         with open(convolve_models+'n.f', 'w') as file:
-            	file.writelines(convmodel)
+            file.writelines(convmodel)
         os.chdir(fort_paths)
         subprocess.call('ifort convolve_new_pyn.f', # Generates fort.30 and fort.305
                                 stdout=subprocess.DEVNULL,
@@ -5509,8 +5510,7 @@ def model_convolver(fort_paths, source_rad, model_name, dust_model, my_model_pat
     convdmodel[49] = convdmodel[49].replace('dust_model', dust_model)
     file.close()
     with open(convolve_dustmodels+'n.f', 'w') as file:
-        	file.writelines(convdmodel)
-         
+            file.writelines(convdmodel)
     os.chdir(fort_paths)
     subprocess.call('ifort dustconvolve_new_pyn.f', # Generates fort.31
                             stdout=subprocess.DEVNULL,
@@ -5765,158 +5765,3 @@ def model_reader_comp(modelo, fort_paths, factor_model_hc3n, factor_model_ff, fa
             if not LTE:
                 tau_molec[line+'_tau'] = tau_molec[line_column[line][3]]
     return mdust, m_molec, m_molec345, rout_model_hc3n_pc, tau_molec, tau_dust
-
-def plot_models(line_column, modelos, figrt_path, my_model_path):
-    figsize = 20
-    naxis = 3
-    maxis = 3
-    labelsize = 18
-    ticksize = 16
-    fontsize = 14
-    axcolor = 'k'
-    color_beam_orig = 'g'
-    color_beam_345 = 'r'
-    fig = plt.figure(figsize=(figsize*1.15, figsize*0.85))
-    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
-    gs1.update(wspace = 0.08, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    axes=[]
-    for l,line in enumerate(line_column):
-        axes.append(fig.add_subplot(gs1[l]))
-        if line == 'plot_conts':
-            axes[l].set_ylim([0.05, 20])  
-            for i,row in cont_df.iterrows():
-                axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam'], 
-                                             yerr=row['F235GHz_mjy_beam_err'],
-                                             marker='o', markersize=6,
-                                             markerfacecolor='None',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                axes[l].errorbar(row['dist'], row['F235GHz_mjy_beam345'], 
-                                             yerr=row['F235GHz_mjy_beam345_err'],
-                                             marker='o', markersize=6,
-                                             markerfacecolor='k',
-                                             markeredgecolor='k', markeredgewidth=0.8,
-                                             ecolor='k',
-                                             color = 'k',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-            
-                axes[l].errorbar(row['dist'], row['F345GHz_mjy_beam'], 
-                                             yerr=row['F345GHz_mjy_beam_err'],
-                                             marker='o', markersize=6,
-                                             markerfacecolor='0.5',
-                                             markeredgecolor='0.5', markeredgewidth=0.8,
-                                             ecolor='0.5',
-                                             color = '0.5',
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                
-                axes[l].set_yscale('log')
-        else:
-
-            for i,row in hb_df.iterrows():
-                if row['dist']<=line_column[line][0]:
-                    
-                    ysep = (line_column[line][2][1]-line_column[line][2][0])*0.04
-                    if 3*row[line+'_mJy_kms_beam_orig_errcont'] > row[line+'_mJy_kms_beam_orig']:
-                        axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_orig_errcont'], 
-                                             uplims=True,
-                                             yerr=ysep,#3*row[line+'_mJy_kms_beam_orig_err']*0.15,
-                                             marker='o', markersize=5,
-                                             markerfacecolor=color_beam_orig,
-                                             markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                             ecolor=color_beam_orig,
-                                             color = color_beam_orig,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_orig'], 
-                                         yerr=row[line+'_mJy_kms_beam_orig_errcont'],
-                                         marker='o', markersize=5,
-                                         markerfacecolor=color_beam_orig,
-                                         markeredgecolor=color_beam_orig, markeredgewidth=0.8,
-                                         ecolor=color_beam_orig,
-                                         color =color_beam_orig,
-                                         elinewidth= 0.7,
-                                         barsabove= True,
-                                         zorder=2)
-                    if 3*row[line+'_mJy_kms_beam_345_errcont'] > row[line+'_mJy_kms_beam_345']:
-                        axes[l].errorbar(row['dist'], 3*row[line+'_mJy_kms_beam_345_errcont'], 
-                                             uplims=True,
-                                             yerr=ysep,#3*row[line+'_mJy_kms_beam_345_errcont']*0.15,
-                                             marker='o', markersize=5,
-                                             markerfacecolor=color_beam_345,
-                                             markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                             ecolor=color_beam_345,
-                                             color = color_beam_345,
-                                             elinewidth= 0.7,
-                                             barsabove= True,
-                                             zorder=1)
-                    else:
-                        axes[l].errorbar(row['dist'], row[line+'_mJy_kms_beam_345'], 
-                                         yerr=row[line+'_mJy_kms_beam_345_errcont'],
-                                         marker='o', markersize=5,
-                                         markerfacecolor=color_beam_345,
-                                         markeredgecolor=color_beam_345, markeredgewidth=0.8,
-                                         ecolor=color_beam_345,
-                                         color =color_beam_345,
-                                         elinewidth= 0.7,
-                                         barsabove= True,
-                                         zorder=2)
-            
-            axes[l].set_ylim(line_column[line][2])  
-            yminor_locator = AutoMinorLocator(2)
-            axes[l].yaxis.set_minor_locator(yminor_locator)
-            axes[l].text(0.9, 0.95, line_column[line][1],
-                            horizontalalignment='right',
-                            verticalalignment='top',
-                            fontsize=fontsize,
-                            transform=axes[l].transAxes)
-        minor_locator = AutoMinorLocator(2)
-        axes[l].set_xlim([0.0, 1.42])
-        
-        axes[l].tick_params(direction='in')
-        axes[l].tick_params(axis="both", which='major', length=8)
-        axes[l].tick_params(axis="both", which='minor', length=4)
-        axes[l].xaxis.set_tick_params(which='both', top ='on')
-        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
-        axes[l].tick_params(axis='both', which='major', labelsize=ticksize)
-        axes[l].xaxis.set_minor_locator(minor_locator)
-        axes[l].tick_params(labelleft=True,
-                       labelright=False)
-        
-        if l <6:
-            axes[l].tick_params(
-                       labelbottom=False)
-        else:
-            axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-        #if l%3==0:
-        #    axes[l].set_ylabel(r'Tdust \& Tex (K)', fontsize = labelsize)
-    save_name = ''
-    for m, mod in enumerate(modelos):
-        save_name += mod+'_'
-        modelo = modelos[mod]
-        mod_color = modelo[3]
-        mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path)
-        for l,line in enumerate(line_column):
-            if line == 'plot_conts':
-                axes[l].set_ylim([0.05, 20])  
-                
-                axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam'], color=mod_color, zorder=2)
-                axes[l].plot(mdust[0],mdust['F235GHz_mjy_beam345'], color=mod_color, zorder=2)
-                axes[l].plot(mdust[0],mdust['F345GHz_mjy_beam'], color=mod_color, zorder=2)
-                axes[l].plot(m_molec345[0], m_molec345['F235GHz_mjy_beam345'], color=mod_color, linestyle= '--', zorder=2)
-                axes[l].plot(m_molec[0], m_molec['F235GHz_mjy_beam'], color=mod_color, linestyle= '--', zorder=2)
-            else:
-                axes[l].plot(m_molec345[0], m_molec345[line+'_beam_345'], color=mod_color, linestyle= '-', zorder=2)
-                axes[l].plot(m_molec[0], m_molec[line+'_beam_orig'], color=mod_color, linestyle= '-', zorder=2)
-
-
-    fig.savefig(figrt_path+'NGC253_'+save_name+'SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
