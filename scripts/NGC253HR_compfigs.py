@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib as mpl
 
+from astrothesispy.radiative_transfer import NGC253HR_nLTE_modelresults
+from astrothesispy.utiles import utiles_plot as plot_utiles
+
 mpl.rc('text', usetex=True)
 mpl.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
 mpl.rc('xtick', color='k', direction='in', labelsize=6)
@@ -27,66 +30,66 @@ def plot_LIR_comp(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, pfalz
     axis.append(fig.add_subplot(gs[2]))
     
     from matplotlib.lines import Line2D
-    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=azure, markersize=11, linestyle=''),
-                       Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=redpink, markersize=11, linestyle=''),
-                       Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=green, markersize=11, linestyle='')]
+    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=plot_utiles.azure, markersize=11, linestyle=''),
+                       Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=plot_utiles.redpink, markersize=11, linestyle=''),
+                       Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=plot_utiles.green, markersize=11, linestyle='')]
 
     # Create the figure
     axis[0].legend(handles=legend_elements, loc='upper left', frameon=False)
     
     # LIR vs R
-    axis[0].plot(np.log10(modsum_df['R_pc']), np.log10(modsum_df['Ltot_Lsun']), marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(modsum_df['R_pc']), np.log10(modsum_df['Ltot_Lsun']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['log_Ltot_err'] = 0.5#np.log10(modsum_df['Ltot_name_Lsun'])-np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']) #(10**np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']))*(1/np.log(10))/(10**np.log10(modsum_df['Ltot_name_Lsun']))
     axis[0].errorbar(np.log10(modsum_df['R_pc']), np.log10(modsum_df['Ltot_Lsun']), 
                                                  yerr=modsum_df['log_Ltot_err'],
                                                  marker='o', markersize=ms,
-                                                 markerfacecolor=redpink,
+                                                 markerfacecolor=plot_utiles.redpink,
                                                  markeredgecolor='k', markeredgewidth=0.8,
                                                  ecolor='k',
-                                                 color = redpink,
+                                                 color = plot_utiles.redpink,
                                                  elinewidth= 0.8,
                                                  barsabove= True,
                                                  zorder=1)
-    axis[0].plot(np.log10(hc_df['r_pc']), np.log10(hc_df['LIR_Lsun']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[0].plot(np.log10(rolffs_df['r_pc']), np.log10(rolffs_df['LIR_Lsun']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(hc_df['r_pc']), np.log10(hc_df['LIR_Lsun']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(rolffs_df['r_pc']), np.log10(rolffs_df['LIR_Lsun']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row['r_pc']), np.log10(hc_df.loc[indx, 'r_pc'])]
             y_vals = [np.log10(row['LIR_Lsun']), np.log10(hc_df.loc[indx, 'LIR_Lsun'])]
-            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
         x_val = np.log10(row['LIR_Lsun'])
     for i, row in bgn_df.iterrows():
         y_vals = [np.log10(row['LIR_Lsun']), np.log10(row['LIR2_Lsun'])]
         x_vals = [np.log10(row['R_out_pc']), np.log10(row['R_out2_pc'])]
-        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
 
     if only_HC!=True:
-        axis[0].plot(np.log10(pfalzner_df['size_pc']/2), np.log10(pfalzner_df['Lum_Lsun']), marker = '^', color = violet, linestyle ='', markeredgecolor='k', ms = ms)
-        axis[0].plot(np.log10(lada_df['size_pc']/2), np.log10(lada_df['Lum_Lsun']), marker = '^', color = dviolet, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[0].plot(np.log10(pfalzner_df['size_pc']/2), np.log10(pfalzner_df['Lum_Lsun']), marker = '^', color = plot_utiles.violet, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[0].plot(np.log10(lada_df['size_pc']/2), np.log10(lada_df['Lum_Lsun']), marker = '^', color = plot_utiles.dviolet, linestyle ='', markeredgecolor='k', ms = ms)
         axis[0].plot(np.log10(portout_df['r_eff_pc']), np.log10(portout_df['Lum_Lsun']), marker = '^', color = 'pink', linestyle ='', markeredgecolor='k', ms = ms)
         axis[0].plot(np.log10(portin_df['r_eff_pc']), np.log10(portin_df['Lum_Lsun']), marker = '^', color = 'orchid', linestyle ='', markeredgecolor='k', ms = ms)
 
     axis[0].set_xlabel(r'$\log{R}$ (pc)', fontsize=labelsize)
     axis[0].set_ylabel(r'$\log{L_{\text{IR}}}$ (L$_{\odot}$)', fontsize=labelsize)
     # LIR /Mgas vs LIR
-    axis[1].plot(np.log10(modsum_df['Ltot_Lsun']), np.log10(modsum_df['LIR/Mgas_corr']), marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[1].plot(np.log10(modsum_df['Ltot_Lsun']), np.log10(modsum_df['LIR/Mgas_corr']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['LtotMgas_err'] = np.sqrt((Lmod_err*modsum_df['Ltot_Lsun']/modsum_df['Mgas_Msun_corr'])**2+(modsum_df['Ltot_Lsun']*(0*Lmod_err/2)*modsum_df['Mgas_Msun_corr']/(modsum_df['Mgas_Msun_corr']**2))**2)
     modsum_df['log_LtotMgas_err'] = (10**np.log10(modsum_df['LtotMgas_err']))*(1/np.log(10))/(10**np.log10(modsum_df['LIR/Mgas_corr']))
     axis[1].errorbar(np.log10(modsum_df['Ltot_Lsun']), np.log10(modsum_df['LIR/Mgas_corr']), 
                                                  yerr=modsum_df['log_LtotMgas_err'],
                                                  xerr=modsum_df['log_Ltot_err'],
                                                  marker='o', markersize=ms,
-                                                 markerfacecolor=redpink,
+                                                 markerfacecolor=plot_utiles.redpink,
                                                  markeredgecolor='k', markeredgewidth=0.8,
                                                  ecolor='k',
-                                                 color = redpink,
+                                                 color = plot_utiles.redpink,
                                                  elinewidth= 0.8,
                                                  barsabove= True,
                                                  zorder=1)
-    axis[1].plot(np.log10(hc_df['LIR_Lsun']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[1].plot(np.log10(rolffs_df['LIR_Lsun']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[1].plot(np.log10(hc_df['LIR_Lsun']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[1].plot(np.log10(rolffs_df['LIR_Lsun']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
@@ -94,7 +97,7 @@ def plot_LIR_comp(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, pfalz
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row['LIR_Lsun']), np.log10(hc_df.loc[indx, 'LIR_Lsun'])]
             y_vals = [np.log10(row['LIR/Mgas']), np.log10(hc_df.loc[indx, 'LIR/Mgas'])]
-            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
 
         x_val = np.log10(row['LIR_Lsun'])
         y_val = np.log10(row['LIR/Mgas'])
@@ -103,7 +106,7 @@ def plot_LIR_comp(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, pfalz
     for i, row in bgn_df.iterrows():
         x_vals = [np.log10(row['LIR_Lsun']), np.log10(row['LIR2_Lsun'])]
         y_vals = [np.log10(row['LIR/Mgas']), np.log10(row['LIR2/Mgas'])]
-        axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         #xpos = 
         #ypos = 
         axis[1].annotate(row['Source'], xy=(x_vals[0],y_vals[0]), xytext=(x_vals[0]+row['LIRMH2_xpos']*x_vals[0],y_vals[0]+row['LIRMH2_ypos']*y_vals[0]),
@@ -112,29 +115,29 @@ def plot_LIR_comp(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, pfalz
     axis[1].set_xlabel(r'$\log{L_{\text{IR}}}$ (L$_{\odot}$)', fontsize=labelsize)
     axis[1].set_ylabel(r'$\log{L_{\text{IR}}/M_{\text{H2}}}$ (L$_{\odot}$/M$_{\odot}$)', fontsize=labelsize)
     # LIR/pc2 vs LIR
-    axis[2].plot(np.log10(modsum_df['Ltot_Lsun']), np.log10(modsum_df['SigmaIR_Lsun_pc2']), marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(np.log10(modsum_df['Ltot_Lsun']), np.log10(modsum_df['SigmaIR_Lsun_pc2']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['SigmaIR_err'] = Lmod_err*modsum_df['Ltot_Lsun']/(np.pi*modsum_df['R_pc']**2)
     modsum_df['log_SigmaIR_err'] = (10**np.log10(modsum_df['SigmaIR_err']))*(1/np.log(10))/(10**np.log10(modsum_df['SigmaIR_Lsun_pc2']))
     axis[2].errorbar(np.log10(modsum_df['Ltot_name_Lsun']), np.log10(modsum_df['SigmaIR_Lsun_pc2']), 
                                                  yerr=modsum_df['log_SigmaIR_err'],
                                                  xerr=modsum_df['log_Ltot_err'],
                                                  marker='o', markersize=ms,
-                                                 markerfacecolor=redpink,
+                                                 markerfacecolor=plot_utiles.redpink,
                                                  markeredgecolor='k', markeredgewidth=0.8,
                                                  ecolor='k',
-                                                 color = redpink,
+                                                 color = plot_utiles.redpink,
                                                  elinewidth= 0.8,
                                                  barsabove= True,
                                                  zorder=1)
-    axis[2].plot(np.log10(hc_df['LIR_Lsun']), np.log10(hc_df['SigmaIR_Lsun_pc2']), marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[2].plot(np.log10(rolffs_df['LIR_Lsun']), np.log10(rolffs_df['SigmaIR_Lsun_pc2']), marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(np.log10(hc_df['LIR_Lsun']), np.log10(hc_df['SigmaIR_Lsun_pc2']), marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(np.log10(rolffs_df['LIR_Lsun']), np.log10(rolffs_df['SigmaIR_Lsun_pc2']), marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row['LIR_Lsun']), np.log10(hc_df.loc[indx, 'LIR_Lsun'])]
             y_vals = [np.log10(row['SigmaIR_Lsun_pc2']), np.log10(hc_df.loc[indx, 'SigmaIR_Lsun_pc2'])]
-            axis[2].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[2].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
         x_val = np.log10(row['LIR_Lsun'])
         y_val = np.log10(row['SigmaIR_Lsun_pc2'])
         axis[2].annotate(name, xy=(x_val,y_val), xytext=(x_val, y_val),
@@ -142,12 +145,12 @@ def plot_LIR_comp(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, pfalz
     for i, row in bgn_df.iterrows():
         x_vals = [np.log10(row['LIR_Lsun']), np.log10(row['LIR2_Lsun'])]
         y_vals = [np.log10(row['SigmaIR_Lsun_pc2']), np.log10(row['SigmaIR2_Lsun_pc2'])]
-        axis[2].plot(x_vals, y_vals, marker='o', color='k', markerfacecolor=green, linestyle ='-', markeredgecolor='k', ms = ms)
+        axis[2].plot(x_vals, y_vals, marker='o', color='k', markerfacecolor=plot_utiles.green, linestyle ='-', markeredgecolor='k', ms = ms)
         axis[2].annotate(row['Source'], xy=(x_vals[0],y_vals[0]), xytext=(x_vals[0]+row['SigmaIR_xpos']*x_vals[0],y_vals[0]+row['SigmaIR_ypos']*y_vals[0]),
                 arrowprops={'arrowstyle': '-', 'color': 'k'}, va='center', color = 'k')
     if only_HC!=True:
-        axis[2].plot(np.log10(pfalzner_df['Lum_Lsun']), np.log10(pfalzner_df['SigmaIR_Lsun_pc2']), marker = '^', color = violet, linestyle ='', markeredgecolor='k', ms = ms)
-        axis[2].plot(np.log10(lada_df['Lum_Lsun']), np.log10(lada_df['SigmaIR_Lsun_pc2']), marker = '^', color = dviolet, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[2].plot(np.log10(pfalzner_df['Lum_Lsun']), np.log10(pfalzner_df['SigmaIR_Lsun_pc2']), marker = '^', color = plot_utiles.violet, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[2].plot(np.log10(lada_df['Lum_Lsun']), np.log10(lada_df['SigmaIR_Lsun_pc2']), marker = '^', color = plot_utiles.dviolet, linestyle ='', markeredgecolor='k', ms = ms)
         axis[2].plot(np.log10(portout_df['Lum_Lsun']), np.log10(portout_df['SigmaIR_Lsun_pc2']), marker = '^', color = 'pink', linestyle ='', markeredgecolor='k', ms = ms)
         axis[2].plot(np.log10(portin_df['Lum_Lsun']), np.log10(portin_df['SigmaIR_Lsun_pc2']), marker = '^', color = 'orchid', linestyle ='', markeredgecolor='k', ms = ms)
     
@@ -188,9 +191,9 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     axis.append(fig.add_subplot(gs[3]))
     
     from matplotlib.lines import Line2D
-    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=azure, markersize=11, linestyle=''),
-                       Line2D([0], [0], marker='o', markeredgecolor='k', label='Proto-SSC13a', markerfacecolor=redpink, markersize=11, linestyle=''),
-                       Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=green, markersize=11, linestyle='')]
+    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=plot_utiles.azure, markersize=11, linestyle=''),
+                       Line2D([0], [0], marker='o', markeredgecolor='k', label='Proto-SSC13a', markerfacecolor=plot_utiles.redpink, markersize=11, linestyle=''),
+                       Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=plot_utiles.green, markersize=11, linestyle='')]
 
     # Create the figure
     axis[0].legend(handles=legend_elements, loc='upper left', frameon=False)
@@ -201,30 +204,30 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     modsum_df['SigmaIR_err'] = Lmod_err*modsum_df['Ltot_Lsun']/(np.pi*modsum_df['R_pc']**2)
     modsum_df['log_SigmaIR_err'] = (10**np.log10(modsum_df['SigmaIR_err']))*(1/np.log(10))/(10**np.log10(modsum_df['SigmaIR_Lsun_pc2']))
     modyvar_err = modsum_df['log_SigmaIR_err'] 
-    axis[0].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['log_Ltot_err'] = 0.5#np.log10(modsum_df['Ltot_name_Lsun'])-np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']) #(10**np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']))*(1/np.log(10))/(10**np.log10(modsum_df['Ltot_name_Lsun']))
     axis[0].errorbar(modxvar, modyvar, 
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
     # HCs
     xvarlab = 'r_pc'
     yvarlab = 'SigmaIR_Lsun_pc2'
-    axis[0].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[0].plot(np.log10(rolffs_df[xvarlab]**2), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(rolffs_df[xvarlab]**2), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row[xvarlab]**2), np.log10(hc_df.loc[indx, xvarlab]**2)]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -251,7 +254,7 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     for i, row in bgn_df.iterrows():
         x_vals = [np.log10(row[xvarlab]**2), np.log10(row[xvarlab2]**2)]
         y_vals = [np.log10(row[yvarlab]), np.log10(row[yvarlab2])]
-        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             halign = 'right'
@@ -313,28 +316,28 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
         bgnxvarlab2 = 'SigmaH2_Msun2_pc2'
         
     modyvar_err = 0.5
-    axis[1].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[1].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     if not panel_2_MH2_R2:
         axis[1].errorbar(modxvar, modyvar, 
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
     # HCs
     if panel_2_MH2_R2:
-        axis[1].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-        axis[1].plot(np.log10(rolffs_df[xvarlab]**2), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(rolffs_df[xvarlab]**2), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     else:
         x_lin = np.linspace(10**3.5, 10**6.4,200)
         y_lin = 100*x_lin
         axis[1].plot(np.log10(x_lin), np.log10(y_lin), color='k', marker='', linestyle='--', zorder=0)
-        axis[1].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-        axis[1].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
@@ -344,7 +347,7 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
             else:
                 x_vals = [np.log10(row[xvarlab]), np.log10(hc_df.loc[indx, xvarlab])]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -372,7 +375,7 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
             y_vals = [np.log10(row[bgnyvarlab]), np.log10(row[bgnyvarlab])]
         else:
             y_vals = [np.log10(row[bgnyvarlab]), np.log10(row[bgnyvarlab2])]
-        axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             ind_text = 1
@@ -425,14 +428,14 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     modsum_df['LtotMgas_err'] = np.sqrt((Lmod_err*modsum_df['Ltot_Lsun']/modsum_df['Mgas_Msun_corr'])**2+(modsum_df['Ltot_Lsun']*(0*Lmod_err/2)*modsum_df['Mgas_Msun_corr']/(modsum_df['Mgas_Msun_corr']**2))**2)
     modsum_df['log_LtotMgas_err'] = (10**np.log10(modsum_df['LtotMgas_err']))*(1/np.log(10))/(10**np.log10(modsum_df['LIR/Mgas_corr']))
     modyvar_err = modsum_df['log_LtotMgas_err']
-    axis[2].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     axis[2].errorbar(modxvar, modyvar, 
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
@@ -440,15 +443,15 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     yvarlab = 'LIR/Mgas'
     xvarlab = 'Mass_Msun'
     axis[2].hlines(2, xmin=np.log10(np.nanmin(rolffs_df[xvarlab])), xmax=np.log10(np.nanmax(bgn_df['MH2_Msun'])), color='k', linestyles='--',zorder=0)
-    axis[2].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[2].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row[xvarlab]), np.log10(hc_df.loc[indx, xvarlab])]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[2].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[2].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -472,7 +475,7 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     for i, row in bgn_df.iterrows():
         x_vals = [np.log10(row[xvarlab]), np.log10(row[xvarlab])]
         y_vals = [np.log10(row[yvarlab]), np.log10(row[yvarlab2])]
-        axis[2].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[2].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             ind_text = 1
@@ -522,15 +525,15 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     modsum_df['log_SigmaIR_err'] = (10**np.log10(modsum_df['SigmaIR_err']))*(1/np.log(10))/(10**np.log10(modsum_df['SigmaIR_Lsun_pc2']))
     modyvar_err = modsum_df['log_LtotMgas_err']
     modxvar_err = modsum_df['log_SigmaIR_err'] 
-    axis[3].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[3].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     axis[3].errorbar(modxvar, modyvar, 
                      xerr = modxvar_err,
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
@@ -538,15 +541,15 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     yvarlab = 'LIR/Mgas'
     xvarlab = 'SigmaIR_Lsun_pc2'
     axis[3].hlines(2, xmin=np.log10(np.nanmin(rolffs_df[xvarlab])), xmax=np.log10(np.nanmax(bgn_df['SigmaIR2_Lsun_pc2'])), color='k', linestyles='--')
-    axis[3].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[3].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[3].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[3].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row[xvarlab]), np.log10(hc_df.loc[indx, xvarlab])]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[3].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[3].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -576,7 +579,7 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
         x_vals = [np.log10(row[xvarlab]), np.log10(xval2)]
         
         y_vals = [np.log10(row[yvarlab]), np.log10(row[yvarlab2])]
-        axis[3].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[3].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             ind_text = 1
@@ -634,7 +637,11 @@ def plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, p
     fig.savefig(final_results_path+'LIR_comp_ALL_v3.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
-def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True):
+def plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.5, only_HC = True, fig_name = ''):
+    """
+        Comparison btw HC, SHC and AGNs
+    """
+    modsum_df, hc_df, rolffs_df, bgn_df, pfalzner_df, lada_df, portout_df, portin_df = NGC253HR_nLTE_modelresults.models_calculations(results_path, source, D_Mpc)
     ms = 12
     figsize = 8
     naxis = 2
@@ -655,9 +662,9 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     axis.append(fig.add_subplot(gs[3]))
     
     from matplotlib.lines import Line2D
-    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=azure, markersize=13, linestyle=''),
-                       Line2D([0], [0], marker='o', markeredgecolor='k', label='Proto-SSC13a', markerfacecolor=redpink, markersize=13, linestyle=''),
-                       Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=green, markersize=13, linestyle='')]
+    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=plot_utiles.azure, markersize=13, linestyle=''),
+                       Line2D([0], [0], marker='o', markeredgecolor='k', label='Proto-SSC13a', markerfacecolor=plot_utiles.redpink, markersize=13, linestyle=''),
+                       Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=plot_utiles.green, markersize=13, linestyle='')]
 
     # Create the figure
     axis[0].legend(handles=legend_elements, loc='upper left', frameon=False, fontsize=fontsize)
@@ -668,30 +675,31 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     modsum_df['SigmaIR_err'] = Lmod_err*modsum_df['Ltot_Lsun']/(np.pi*modsum_df['R_pc']**2)
     modsum_df['log_SigmaIR_err'] = (10**np.log10(modsum_df['SigmaIR_err']))*(1/np.log(10))/(10**np.log10(modsum_df['SigmaIR_Lsun_pc2']))
     modyvar_err = modsum_df['log_SigmaIR_err'] 
-    axis[0].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['log_Ltot_err'] = 0.5#np.log10(modsum_df['Ltot_name_Lsun'])-np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']) #(10**np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']))*(1/np.log(10))/(10**np.log10(modsum_df['Ltot_name_Lsun']))
     axis[0].errorbar(modxvar, modyvar, 
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
     # HCs
     xvarlab = 'r_pc'
     yvarlab = 'SigmaIR_Lsun_pc2'
-    axis[0].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[0].plot(np.log10(rolffs_df[xvarlab]**2), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+
+    axis[0].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(np.array(rolffs_df[xvarlab])**2), np.log10(np.array(rolffs_df[yvarlab])),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row[xvarlab]**2), np.log10(hc_df.loc[indx, xvarlab]**2)]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -707,8 +715,6 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
                 ym = -0.055
             axis[0].annotate(row['Source'], xy=(x_vals[ind_text],y_vals[ind_text]), xytext=(x_vals[ind_text]+xm,y_vals[ind_text]+ym),
                      ha=halign, va=valign, color = 'k', fontsize=fontsize)
-
-    
     
     # BGNs 
     xvarlab= 'R_out_pc'
@@ -718,7 +724,7 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     for i, row in bgn_df.iterrows():
         x_vals = [np.log10(row[xvarlab]**2), np.log10(row[xvarlab2]**2)]
         y_vals = [np.log10(row[yvarlab]), np.log10(row[yvarlab2])]
-        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             halign = 'right'
@@ -780,28 +786,28 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
         bgnxvarlab2 = 'SigmaH2_Msun2_pc2'
         
     modyvar_err = 0.5
-    axis[1].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[1].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     if not panel_2_MH2_R2:
         axis[1].errorbar(modxvar, modyvar, 
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
     # HCs
     if panel_2_MH2_R2:
-        axis[1].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-        axis[1].plot(np.log10(rolffs_df[xvarlab]**2), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(hc_df[xvarlab]**2),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(rolffs_df[xvarlab]**2), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     else:
         x_lin = np.linspace(10**3.5, 10**6.4,200)
         y_lin = 100*x_lin
         axis[1].plot(np.log10(x_lin), np.log10(y_lin), color='k', marker='', linestyle='--', zorder=0)
-        axis[1].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-        axis[1].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+        axis[1].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
@@ -811,7 +817,7 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
             else:
                 x_vals = [np.log10(row[xvarlab]), np.log10(hc_df.loc[indx, xvarlab])]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -839,7 +845,7 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
             y_vals = [np.log10(row[bgnyvarlab]), np.log10(row[bgnyvarlab])]
         else:
             y_vals = [np.log10(row[bgnyvarlab]), np.log10(row[bgnyvarlab2])]
-        axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             ind_text = 1
@@ -892,14 +898,14 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     modsum_df['LtotMgas_err'] = np.sqrt((Lmod_err*modsum_df['Ltot_Lsun']/modsum_df['Mgas_Msun_corr'])**2+(modsum_df['Ltot_Lsun']*(0*Lmod_err/2)*modsum_df['Mgas_Msun_corr']/(modsum_df['Mgas_Msun_corr']**2))**2)
     modsum_df['log_LtotMgas_err'] = (10**np.log10(modsum_df['LtotMgas_err']))*(1/np.log(10))/(10**np.log10(modsum_df['LIR/Mgas_corr']))
     modyvar_err = modsum_df['log_LtotMgas_err']
-    axis[2].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     axis[2].errorbar(modxvar, modyvar, 
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
@@ -907,15 +913,15 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     yvarlab = 'LIR/Mgas'
     xvarlab = 'Mass_Msun'
     axis[2].hlines(2, xmin=np.log10(np.nanmin(rolffs_df[xvarlab])), xmax=np.log10(np.nanmax(bgn_df['MH2_Msun'])), color='k', linestyles='--',zorder=0)
-    axis[2].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[2].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[2].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row[xvarlab]), np.log10(hc_df.loc[indx, xvarlab])]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[2].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[2].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -939,7 +945,7 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     for i, row in bgn_df.iterrows():
         x_vals = [np.log10(row[xvarlab]), np.log10(row[xvarlab])]
         y_vals = [np.log10(row[yvarlab]), np.log10(row[yvarlab2])]
-        axis[2].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[2].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             ind_text = 1
@@ -989,15 +995,15 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     modsum_df['log_SigmaIR_err'] = (10**np.log10(modsum_df['SigmaIR_err']))*(1/np.log(10))/(10**np.log10(modsum_df['SigmaIR_Lsun_pc2']))
     modyvar_err = modsum_df['log_LtotMgas_err']
     modxvar_err = modsum_df['log_SigmaIR_err'] 
-    axis[3].plot(modxvar, modyvar, marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[3].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     axis[3].errorbar(modxvar, modyvar, 
                      xerr = modxvar_err,
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
-                     markerfacecolor=redpink,
+                     markerfacecolor=plot_utiles.redpink,
                      markeredgecolor='k', markeredgewidth=0.8,
                      ecolor='k',
-                     color = redpink,
+                     color = plot_utiles.redpink,
                      elinewidth= 0.8,
                      barsabove= True,
                      zorder=1)
@@ -1005,15 +1011,15 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
     yvarlab = 'LIR/Mgas'
     xvarlab = 'SigmaIR_Lsun_pc2'
     axis[3].hlines(2, xmin=np.log10(np.nanmin(rolffs_df[xvarlab])), xmax=np.log10(np.nanmax(bgn_df['SigmaIR2_Lsun_pc2'])), color='k', linestyles='--')
-    axis[3].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[3].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[3].plot(np.log10(hc_df[xvarlab]),  np.log10(hc_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[3].plot(np.log10(rolffs_df[xvarlab]), np.log10(rolffs_df[yvarlab]),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row[xvarlab]), np.log10(hc_df.loc[indx, xvarlab])]
             y_vals = [np.log10(row[yvarlab]), np.log10(hc_df.loc[indx, yvarlab])]
-            axis[3].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[3].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
             ind_text = 0
             if row['Source'] == 'SgrB2(M)':
                 ind_text = 1
@@ -1043,7 +1049,7 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
         x_vals = [np.log10(row[xvarlab]), np.log10(xval2)]
         
         y_vals = [np.log10(row[yvarlab]), np.log10(row[yvarlab2])]
-        axis[3].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[3].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         ind_text = 0
         if row['Source'] == 'Arp220E':
             ind_text = 1
@@ -1098,10 +1104,10 @@ def plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, final_results_pat
         axis[v].tick_params(labelleft=True,
                        labelright=False)
         
-    fig.savefig(final_results_path+'LIR_comp_ALL_big_v3.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{fig_name}LIR_comp_ALL_big_v3.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
-def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_path, pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True):
+def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, results_path, pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True):
     ms = 12
     figsize = 8
     naxis = 2
@@ -1118,38 +1124,38 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
     axis.append(fig.add_subplot(gs[1]))
     
     from matplotlib.lines import Line2D
-    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=azure, markersize=11, linestyle=''),
-                        Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=redpink, markersize=11, linestyle=''),
-                        Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=green, markersize=11, linestyle='')]
+    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=plot_utiles.azure, markersize=11, linestyle=''),
+                        Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=plot_utiles.redpink, markersize=11, linestyle=''),
+                        Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=plot_utiles.green, markersize=11, linestyle='')]
 
     # Create the figure
     axis[0].legend(handles=legend_elements, loc='upper left', frameon=False, bbox_to_anchor=(0.05,0.95))
     
     # LIR vs R
-    #axis[0].plot(np.log10(modsum_df['Ltot_Lsun']), np.log10(modsum_df['R_pc']), marker='o', color=redpink, linestyle ='', markeredgecolor='k')
+    #axis[0].plot(np.log10(modsum_df['Ltot_Lsun']), np.log10(modsum_df['R_pc']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k')
     
-    axis[0].plot(np.log10(modsum_df['R_pc']), np.log10(modsum_df['Ltot_name_Lsun']), marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(modsum_df['R_pc']), np.log10(modsum_df['Ltot_name_Lsun']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['log_Ltot_name_err'] = (10**np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']))*(1/np.log(10))/(10**np.log10(modsum_df['Ltot_name_Lsun']))
     axis[0].errorbar(np.log10(modsum_df['R_pc']), np.log10(modsum_df['Ltot_name_Lsun']), 
                                                     yerr=modsum_df['log_Ltot_name_err'],
                                                     marker='o', markersize=ms,
-                                                    markerfacecolor=redpink,
+                                                    markerfacecolor=plot_utiles.redpink,
                                                     markeredgecolor='k', markeredgewidth=0.8,
                                                     ecolor='k',
-                                                    color = redpink,
+                                                    color = plot_utiles.redpink,
                                                     elinewidth= 0.8,
                                                     barsabove= True,
                                                     zorder=1)
     
-    axis[0].plot(np.log10(hc_df['r_pc']), np.log10(hc_df['LIR_Lsun']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[0].plot(np.log10(rolffs_df['r_pc']), np.log10(rolffs_df['LIR_Lsun']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(hc_df['r_pc']), np.log10(hc_df['LIR_Lsun']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(rolffs_df['r_pc']), np.log10(rolffs_df['LIR_Lsun']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row['r_pc']), np.log10(hc_df.loc[indx, 'r_pc'])]
             y_vals = [np.log10(row['LIR_Lsun']), np.log10(hc_df.loc[indx, 'LIR_Lsun'])]
-            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
         axis[0].annotate(name, xy=(np.log10(row['r_pc']),np.log10(row['LIR_Lsun'])), xytext=(np.log10(row['r_pc'])+row['LIR_xpos'], np.log10(row['LIR_Lsun'])+row['LIR_ypos']),
                     va='center', color = 'k')
 
@@ -1161,7 +1167,7 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
                 plname = row['Source']
             y_vals = [np.log10(row['LIR_Lsun']), np.log10(row['LIR2_Lsun'])]
             x_vals = [np.log10(row['R_out_pc']), np.log10(row['R_out2_pc'])]
-            axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+            axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
             axis[0].annotate(plname, xy=(x_vals[0],y_vals[0]), xytext=(x_vals[0]+row['LIR_xpos']*x_vals[0],y_vals[0]+row['LIR_ypos']*y_vals[0]),
                         va='center', color = 'k')
         
@@ -1170,23 +1176,23 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
     axis[0].set_ylabel(r'$\log{L_{\text{IR}}}$ (L$_{\odot}$)', fontsize=labelsize)
     
     # LIR /Mgas vs LIR
-    #axis[1].plot(modsum_df['LIR/Mgas'], modsum_df['Ltot_Lsun'], marker='o', color=redpink, linestyle ='', markeredgecolor='k')
-    axis[1].plot(np.log10(modsum_df['SigmaIR_name_Lsun_pc2']), np.log10(modsum_df['LIR_name/Mgas']), marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    #axis[1].plot(modsum_df['LIR/Mgas'], modsum_df['Ltot_Lsun'], marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k')
+    axis[1].plot(np.log10(modsum_df['SigmaIR_name_Lsun_pc2']), np.log10(modsum_df['LIR_name/Mgas']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['LtotMgas_name_err'] = np.sqrt((Lmod_err*modsum_df['Ltot_name_Lsun']/modsum_df['Mgas_Msun'])**2+(modsum_df['Ltot_name_Lsun']*(0*Lmod_err/2)*modsum_df['Mgas_Msun']/(modsum_df['Mgas_Msun']**2))**2)
     modsum_df['log_LtotMgas_name_err'] = (10**np.log10(modsum_df['LtotMgas_name_err']))*(1/np.log(10))/(10**np.log10(modsum_df['LIR_name/Mgas']))
     axis[1].errorbar(np.log10(modsum_df['SigmaIR_name_Lsun_pc2']), np.log10(modsum_df['LIR_name/Mgas']), 
                                                     yerr=modsum_df['log_LtotMgas_name_err'],
                                                     xerr=modsum_df['log_SigmaIR_name_err'],
                                                     marker='o', markersize=ms,
-                                                    markerfacecolor=redpink,
+                                                    markerfacecolor=plot_utiles.redpink,
                                                     markeredgecolor='k', markeredgewidth=0.8,
                                                     ecolor='k',
-                                                    color = redpink,
+                                                    color = plot_utiles.redpink,
                                                     elinewidth= 0.8,
                                                     barsabove= True,
                                                     zorder=1)
-    axis[1].plot(np.log10(hc_df['SigmaIR_Lsun_pc2']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[1].plot(np.log10(rolffs_df['SigmaIR_Lsun_pc2']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[1].plot(np.log10(hc_df['SigmaIR_Lsun_pc2']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[1].plot(np.log10(rolffs_df['SigmaIR_Lsun_pc2']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
@@ -1194,7 +1200,7 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row['SigmaIR_Lsun_pc2']), np.log10(hc_df.loc[indx, 'SigmaIR_Lsun_pc2'])]
             y_vals = [np.log10(row['LIR/Mgas']), np.log10(hc_df.loc[indx, 'LIR/Mgas'])]
-            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[1].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
 
         x_val = np.log10(row['SigmaIR_Lsun_pc2'])
         y_val = np.log10(row['LIR/Mgas'])
@@ -1213,7 +1219,7 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
                 plname = row['Source']
             x_vals = [np.log10(row['SigmaIR_Lsun_pc2']), np.log10(row['SigmaIR2_Lsun_pc2'])]
             y_vals = [np.log10(row['LIR/Mgas']), np.log10(row['LIR2/Mgas'])]
-            axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+            axis[1].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
             axis[1].annotate(plname, xy=(x_vals[0],y_vals[0]), xytext=(x_vals[0]+row['LIRMH2sig_xpos']*x_vals[0],y_vals[0]+row['LIRMH2sig_ypos']*y_vals[0]),
                         va='center', color = 'k')
     for v,ax in enumerate(axis):
@@ -1249,31 +1255,31 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
     axis.append(fig.add_subplot(gs[0]))
     
     from matplotlib.lines import Line2D
-    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=azure, markersize=11, linestyle=''),
-                        Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=redpink, markersize=11, linestyle=''),
-                        Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=green, markersize=11, linestyle='')]
+    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=plot_utiles.azure, markersize=11, linestyle=''),
+                        Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=plot_utiles.redpink, markersize=11, linestyle=''),
+                        Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=plot_utiles.green, markersize=11, linestyle='')]
 
     # Create the figure
     axis[0].legend(handles=legend_elements, loc='upper left', frameon=False)
     
     # LIR /Mgas vs LIR
-    #axis[1].plot(modsum_df['LIR/Mgas'], modsum_df['Ltot_Lsun'], marker='o', color=redpink, linestyle ='', markeredgecolor='k')
-    axis[0].plot(np.log10(modsum_df['SigmaIR_name_Lsun_pc2']), np.log10(modsum_df['LIR_name/Mgas']), marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    #axis[1].plot(modsum_df['LIR/Mgas'], modsum_df['Ltot_Lsun'], marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k')
+    axis[0].plot(np.log10(modsum_df['SigmaIR_name_Lsun_pc2']), np.log10(modsum_df['LIR_name/Mgas']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['LtotMgas_name_err'] = np.sqrt((Lmod_err*modsum_df['Ltot_name_Lsun']/modsum_df['Mgas_Msun'])**2+(modsum_df['Ltot_name_Lsun']*(0*Lmod_err/2)*modsum_df['Mgas_Msun']/(modsum_df['Mgas_Msun']**2))**2)
     modsum_df['log_LtotMgas_name_err'] = (10**np.log10(modsum_df['LtotMgas_name_err']))*(1/np.log(10))/(10**np.log10(modsum_df['LIR_name/Mgas']))
     axis[0].errorbar(np.log10(modsum_df['SigmaIR_name_Lsun_pc2']), np.log10(modsum_df['LIR_name/Mgas']), 
                                                     yerr=modsum_df['log_LtotMgas_name_err'],
                                                     xerr=modsum_df['log_SigmaIR_name_err'],
                                                     marker='o', markersize=ms,
-                                                    markerfacecolor=redpink,
+                                                    markerfacecolor=plot_utiles.redpink,
                                                     markeredgecolor='k', markeredgewidth=0.8,
                                                     ecolor='k',
-                                                    color = redpink,
+                                                    color = plot_utiles.redpink,
                                                     elinewidth= 0.8,
                                                     barsabove= True,
                                                     zorder=1)
-    axis[0].plot(np.log10(hc_df['SigmaIR_Lsun_pc2']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[0].plot(np.log10(rolffs_df['SigmaIR_Lsun_pc2']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(hc_df['SigmaIR_Lsun_pc2']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(rolffs_df['SigmaIR_Lsun_pc2']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
@@ -1281,7 +1287,7 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row['SigmaIR_Lsun_pc2']), np.log10(hc_df.loc[indx, 'SigmaIR_Lsun_pc2'])]
             y_vals = [np.log10(row['LIR/Mgas']), np.log10(hc_df.loc[indx, 'LIR/Mgas'])]
-            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
 
         x_val = np.log10(row['SigmaIR_Lsun_pc2'])
         y_val = np.log10(row['LIR/Mgas'])
@@ -1296,7 +1302,7 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
         row['SigmaIR2_Lsun_pc2']
         x_vals = [np.log10(row['SigmaIR_Lsun_pc2']), np.log10(row['SigmaIR2_Lsun_pc2'])]
         y_vals = [np.log10(row['LIR/Mgas']), np.log10(row['LIR2/Mgas'])]
-        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+        axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
         axis[0].annotate(row['Source'], xy=(x_vals[0],y_vals[0]), xytext=(x_vals[0]+row['LIRMH2sig_xpos']*x_vals[0],y_vals[0]+row['LIRMH2sig_ypos']*y_vals[0]),
                     va='center', color = 'k')
     for v,ax in enumerate(axis):
@@ -1333,31 +1339,31 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
     axis.append(fig.add_subplot(gs[0]))
     
     from matplotlib.lines import Line2D
-    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=azure, markersize=11, linestyle=''),
-                        Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=redpink, markersize=11, linestyle=''),
-                        Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=green, markersize=11, linestyle='')]
+    legend_elements = [Line2D([0], [0], marker='o', markeredgecolor='k', label='HCs', markerfacecolor=plot_utiles.azure, markersize=11, linestyle=''),
+                        Line2D([0], [0], marker='o', markeredgecolor='k', label='SHC13a', markerfacecolor=plot_utiles.redpink, markersize=11, linestyle=''),
+                        Line2D([0], [0], marker='o', markeredgecolor='k', label='BGNs', markerfacecolor=plot_utiles.green, markersize=11, linestyle='')]
 
     # Create the figure
     axis[0].legend(handles=legend_elements, loc='upper left', frameon=False)
     
     # LIR /Mgas vs LIR
-    #axis[1].plot(modsum_df['LIR/Mgas'], modsum_df['Ltot_Lsun'], marker='o', color=redpink, linestyle ='', markeredgecolor='k')
-    axis[0].plot(np.log10(modsum_df['Ltot_name_Lsun']), np.log10(modsum_df['LIR_name/Mgas']), marker='o', color=redpink, linestyle ='', markeredgecolor='k', ms = ms)
+    #axis[1].plot(modsum_df['LIR/Mgas'], modsum_df['Ltot_Lsun'], marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k')
+    axis[0].plot(np.log10(modsum_df['Ltot_name_Lsun']), np.log10(modsum_df['LIR_name/Mgas']), marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
     modsum_df['LtotMgas_name_err'] = np.sqrt((Lmod_err*modsum_df['Ltot_name_Lsun']/modsum_df['Mgas_Msun'])**2+(modsum_df['Ltot_name_Lsun']*(0*Lmod_err/2)*modsum_df['Mgas_Msun']/(modsum_df['Mgas_Msun']**2))**2)
     modsum_df['log_LtotMgas_name_err'] = (10**np.log10(modsum_df['LtotMgas_name_err']))*(1/np.log(10))/(10**np.log10(modsum_df['LIR_name/Mgas']))
     axis[0].errorbar(np.log10(modsum_df['Ltot_name_Lsun']), np.log10(modsum_df['LIR_name/Mgas']), 
                                                     yerr=modsum_df['log_LtotMgas_name_err'],
                                                     xerr=modsum_df['log_Ltot_name_err'],
                                                     marker='o', markersize=ms,
-                                                    markerfacecolor=redpink,
+                                                    markerfacecolor=plot_utiles.redpink,
                                                     markeredgecolor='k', markeredgewidth=0.8,
                                                     ecolor='k',
-                                                    color = redpink,
+                                                    color = plot_utiles.redpink,
                                                     elinewidth= 0.8,
                                                     barsabove= True,
                                                     zorder=1)
-    axis[0].plot(np.log10(hc_df['LIR_Lsun']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
-    axis[0].plot(np.log10(rolffs_df['LIR_Lsun']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(hc_df['LIR_Lsun']), np.log10(hc_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
+    axis[0].plot(np.log10(rolffs_df['LIR_Lsun']), np.log10(rolffs_df['LIR/Mgas']),  marker='o', color=plot_utiles.azure, linestyle ='', markeredgecolor='k', ms = ms)
     for i, row in rolffs_df.iterrows():
         name = row['Source'].split('-')[0].split('+')[0].split('.')[0]
         if row['Source'] in hc_df['Source'].tolist():
@@ -1365,7 +1371,7 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
             indx = hc_df.index[hc_df['Source']==row['Source']].tolist()[0]
             x_vals = [np.log10(row['LIR_Lsun']), np.log10(hc_df.loc[indx, 'LIR_Lsun'])]
             y_vals = [np.log10(row['LIR/Mgas']), np.log10(hc_df.loc[indx, 'LIR/Mgas'])]
-            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
+            axis[0].plot(x_vals, y_vals,  marker='o', color='k', markerfacecolor=plot_utiles.azure, linestyle ='-', markeredgecolor='k', ms = ms, zorder=2)
 
         x_val = np.log10(row['LIR_Lsun'])
         y_val = np.log10(row['LIR/Mgas'])
@@ -1380,7 +1386,7 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
                 plname = row['Source']
             x_vals = [np.log10(row['LIR_Lsun']), np.log10(row['LIR2_Lsun'])]
             y_vals = [np.log10(row['LIR/Mgas']), np.log10(row['LIR2/Mgas'])]
-            axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = green, markeredgecolor='k', ms = ms)
+            axis[0].plot(x_vals, y_vals, marker='o', color='k', linestyle ='-', markerfacecolor = plot_utiles.green, markeredgecolor='k', ms = ms)
             axis[0].annotate(plname, xy=(x_vals[0],y_vals[0]), xytext=(x_vals[0]+row['LIRMH2_xpos']*x_vals[0],y_vals[0]+row['LIRMH2_ypos']*y_vals[0]),
                     va='center', color = 'k')
     
@@ -1393,10 +1399,9 @@ def plot_LIR_comp_ind_plots(modsum_df, hc_df, rolffs_df, bgn_df, final_results_p
         axis[v].tick_params(axis="both", which='minor', length=4)
         axis[v].xaxis.set_tick_params(which='both', top ='on')
         axis[v].yaxis.set_tick_params(which='both', right='on', labelright='off')
-            axis[v].tick_params(axis='both', which='major', labelsize=ticksize)
-            #axis[v].xaxis.set_minor_locator(minor_locator)
-            axis[v].tick_params(labelleft=True,
-                        labelright=False)
+        axis[v].tick_params(axis='both', which='major', labelsize=ticksize)
+        axis[v].tick_params(labelleft=True,
+                    labelright=False)
             
         fig.savefig(results_path+'LIRMgas_Lir.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()

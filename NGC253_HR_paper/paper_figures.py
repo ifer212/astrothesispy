@@ -14,7 +14,8 @@ LTEprofiles_plot = False
 SB_models_plot = False
 AGN_models_plot = False
 LTEvelprofile_plot = False
-cloudcloud_plot = True
+cloudcloud_plot = False
+comp_models_plot = True
 
 # =============================================================================
 # Global vars & paths
@@ -89,12 +90,16 @@ if SB_models_plot:
 
 if AGN_models_plot:
     # Figure 10 and 11
-    fig_name = ['Figure_10_', '', 'Figure_1_']
+    fig_name = ['Figure_10_', '', 'Figure_11_']
     NGC253HR_nLTEfigs.nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = D_Mpc, Rcrit = Rcrit, plot_type = 'AGNmods', paper_figs = True, presen_figs = False, fig_name = fig_name)
 
 # =============================================================================
 # Comparisson figures btw HCs, SHCs and AGNs
 # =============================================================================
+if comp_models_plot:
+    # Figure 14
+    fig_name = 'Figure_14_'
+    NGC253HR_compfigs.plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=D_Mpc, fig_name = fig_name)
 
 # SHC_compfig_helper.plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, results_path
 #                                     , pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True)

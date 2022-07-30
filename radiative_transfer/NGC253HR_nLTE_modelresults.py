@@ -367,15 +367,15 @@ def models_calculations(results_path, source, D_Mpc):
     pfalzner_df['Lum_Lsun'] = pfalzner_df['M_Msun']*light_to_mass
     pfalzner_df['SigmaIR_Lsun_pc2'] = pfalzner_df['Lum_Lsun']/(np.pi*(pfalzner_df['size_pc']/2)**2)
     MK_sun = 3.28
-    lada_df = pd.read_excel('/Users/frico/Documents/data/NGC253_HR/Results_v2/SSC_tables/Lada2003.xlsx', header=1)
+    lada_df = pd.read_excel(f'{results_path}SSC_tables/Lada2003.xlsx', header=1)
     lada_df['Lum_Lsun'] = lada_df['Mass_Msun']*light_to_mass
     lada_df['SigmaIR_Lsun_pc2'] = lada_df['Lum_Lsun']/(np.pi*(lada_df['size_pc']/2)**2)
     Mv_sun = 4.8
-    portout_df = pd.read_excel('/Users/frico/Documents/data/NGC253_HR/Results_v2/SSC_tables/Portegies2010_outLG.xlsx', header=1, na_values='-')
+    portout_df = pd.read_excel(f'{results_path}SSC_tables/Portegies2010_outLG.xlsx', header=1, na_values='-')
     portout_df['Mv_mag'] = portout_df['Mv_mag'].astype(float)
     portout_df['Lum_Lsun'] = 10**(0.4*(Mv_sun-portout_df['Mv_mag']))
     portout_df['SigmaIR_Lsun_pc2'] = portout_df['Lum_Lsun']/(np.pi*(portout_df['r_eff_pc'])**2)
-    portin_df = pd.read_excel('/Users/frico/Documents/data/NGC253_HR/Results_v2/SSC_tables/Portegies2010_inLG.xlsx', header=1, na_values='-')
+    portin_df = pd.read_excel(f'{results_path}SSC_tables/Portegies2010_inLG.xlsx', header=1, na_values='-')
     portin_df['Mv_mag'] = portin_df['Mv_mag'].astype(float)
     portin_df['Lum_Lsun'] = 10**(0.4*(Mv_sun-portin_df['Mv_mag']))#light_to_mass*10**portin_df['log_Mphot']#
     portin_df['SigmaIR_Lsun_pc2'] = portin_df['Lum_Lsun']/(np.pi*(portin_df['r_eff_pc'])**2)
