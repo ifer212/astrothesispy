@@ -1,6 +1,8 @@
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import utiles_cubes
 from astrothesispy.utiles import utiles_plot as plot_utiles
+from astrothesispy.utiles import u_conversion
+from astrothesispy.utiles import utiles_nLTEmodel
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -8,6 +10,8 @@ from matplotlib.colors import LogNorm
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import pandas as pd
 import numpy as np
+from copy import deepcopy
+import astropy.units as u
 
 plt.rc('text', usetex=True)
 plt.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
@@ -567,4 +571,268 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
     else:
         axis[0].set_xlabel('r (pc)', fontsize = labelsize)
     fig.savefig(f'{fig_path}{source}_SLIM_Tex_and_logN_profiles_dfcolors_newcols_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    plt.close()
+    
+def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel'):
+    """
+        Plots SLIM velocity profiles and Calculations for the cloud-cloud collision origin of SHC13 and its poss. outflow. mass
+        style = 'onepanel' plots only one panel (one direction)
+        style = 'twocol' plots both directions
+    """
+    labelsize = 34
+    ticksize = 28
+    fontsize = 30
+    # Paths
+    slim_cube_path = f'{NGC253_path}SHC/{source}/SLIM/'
+    vel_path = slim_cube_path+'Vel_'+molecule+'_'+source+'.fits'            
+    profiles_path = slim_cube_path+source+'_velprofiles/'
+    my_model_path = f'{rad_transf_path}/models/mymods/'
+    
+    modelos = {
+                    'model1': ['m13_LTHC3Nsbsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_b3','dustsblum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
+                                    1.5, plot_utiles.azure, [1, 1, 2.0]],
+                    'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
+                                    1.5, plot_utiles.redpink , [1, 2.3, 1.9]],
+                    'model3': ['m23_LTHC3Nsbsig5.5E+07cd1.0E+25q1.0nsh30rad1.5vt5_b7','dustsblum5.0E+10cd1.0E+25exp1.0nsh1002rad17',
+                                    1.5, plot_utiles.green, [1, 1, 1]],
+                    'model4': ['m24_LTHC3Nsbsig5.5E+07cd1.0E+25q1.5nsh30rad1.5vt5_a7','dustsblum5.0E+10cd1.0E+25exp1.5nsh1003rad17',
+                                    1.5, plot_utiles.violet, [1, 1, 1]],
+                    'model5': ['agn4_LTHC3Nagnsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_a6','dustagnlum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
+                                    1.5, plot_utiles.dviolet, [1, 1, 1.0]],
+                    'model6': ['agn5_LTHC3Nagnsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_a2','dustagnlum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
+                                    1.5, plot_utiles.dazure, [1, 1, 1.0]],
+                    'model7': ['agn9_LTHC3Nagnsig1.3E+07cd5.6E+24q1.0nsh30rad1.5vt5_x4','dustagnlum1.2E+10cd5.6E+24exp1.0nsh564rad17',
+                                    1.5, plot_utiles.dgreen, [1, 1, 1.0]],
+                    }
+
+    modelo = modelos[modelname]
+    obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = utiles_nLTEmodel.read_model_input(modelo, my_model_path, results_path, Rcrit)
+    total_mass = np.nansum(Mgas_fromnH2_Msun_profile_corr)
+    
+    
+    #Rings definition
+    start_pc = 0
+    end_pc = 1.5
+    step = 0.1
+    distances_pc = np.arange(start_pc, end_pc+step, step)
+
+    xcenter = 48
+    ycenter = 20
+    vel_cube =  utiles_cubes.Cube_Handler('vels', vel_path)
+    vel_cube_pixlen_pc = u_conversion.lin_size(D_Mpc, vel_cube.pylen*3600).to(u.pc).value
+    plt.imshow(vel_cube.fitsdata[0,0,:,:], origin='lower')
+    plt.plot(xcenter,ycenter,  marker='x')
+    vel_cube_vel_mask =  np.ma.masked_where(vel_cube.fitsdata[0,0,:,:] >= 250, vel_cube.fitsdata[0,0,:,:], copy=True)
+    vel_cube_below250 = np.copy(vel_cube.fitsdata[0,0,:,:])
+    vel_cube_below250[vel_cube_vel_mask.mask] = np.nan
+    vel_cube_below250_crop = vel_cube_below250[17:29,45:57]
+    plt.imshow(vel_cube_below250_crop, origin='lower')
+    # Number of pixels with v<250
+    npix = np.count_nonzero(~np.isnan(vel_cube_below250_crop))
+    sup_below250 = npix*vel_cube_pixlen_pc**2
+    dist_dicts = []
+    for ix in range(vel_cube.shape[3]):
+        for jy in range(vel_cube.shape[2]):
+            pxcenter_dist = np.sqrt((ix-xcenter)*(ix-xcenter) + (jy-ycenter)*(jy-ycenter))
+            pxcenter_dist_pc = pxcenter_dist*vel_cube_pixlen_pc
+            dist_dicts.append({'px': ix, 'py':jy, 'dist_pc':pxcenter_dist_pc})
+    dist_df = pd.DataFrame(dist_dicts)
+
+    px_count_dict = []
+    for i, rad in enumerate(distances_pc):
+        if i < len(distances_pc)-1:
+            ring_dist = (distances_pc[i+1]+distances_pc[i])/2
+            ring_vol = 4/3*np.pi*(distances_pc[i+1]**3-distances_pc[i]**3)
+            ring_sup = np.pi*(distances_pc[i+1]**2-distances_pc[i]**2)
+            ring_dif = distances_pc[i+1]-distances_pc[i]
+            subdf = dist_df[(dist_df['dist_pc']>=distances_pc[i]) & (dist_df['dist_pc']<distances_pc[i+1])]
+            if len(subdf)>0:
+                print(f'{ring_dist:1.2f} \t {len(subdf)}')
+                px_count_dict.append({'dist_pc': ring_dist, 'px_count': len(subdf), 'ring_vol':ring_vol, 'ring_sup':ring_sup, 'ring_dif':ring_dif})
+    px_count_df = pd.DataFrame(px_count_dict)
+    
+    # Generating mass cube from models profile
+    masses_cube = deepcopy(vel_cube.fitsdata[0,0,:,:])*np.nan
+    dens_cube = deepcopy(vel_cube.fitsdata[0,0,:,:])*np.nan
+    dens_sup_cube = deepcopy(vel_cube.fitsdata[0,0,:,:])*np.nan
+    dist_dicts2 = []
+    coldenh2 = 1e25
+    nshells = len(rpc_profile)
+    qexp = 1.5 
+    colden_false = 300
+    pc_to_cm = (1*u.pc).to(u.cm).value
+    atomic_hydrogen_mass_kg = 1.6737236E-27*u.kg 
+    for ix in range(masses_cube.shape[1]):
+        for jy in range(masses_cube.shape[0]):
+            pxcenter_dist = np.sqrt((ix-xcenter)*(ix-xcenter) + (jy-ycenter)*(jy-ycenter))
+            pxcenter_dist_pc = pxcenter_dist*vel_cube_pixlen_pc
+            if np.abs(pxcenter_dist_pc) <= 1.5:
+                idx, close_rad = utiles.find_nearest(rpc_profile, pxcenter_dist_pc)
+                if idx//2 ==0:
+                    rint = rpc_profile[idx]
+                    rout = rpc_profile[idx+1]
+                else:
+                    rint = rpc_profile[idx-1]
+                    rout = rpc_profile[idx]
+                rmed_shell = (rint+rout)/2
+                dens_smooth = (rint/rmed_shell)**qexp
+                sup_profile = (rout*pc_to_cm-rint*pc_to_cm)
+                colden_false = colden_false+dens_smooth*(rout-rint)/pc_to_cm
+                dens = nh2_profile_corr[idx]*2.*atomic_hydrogen_mass_kg.to(u.Msun).value
+                dens_sup = nh2_profile_corr[idx]*ring_dif
+                jdx, dis = utiles.find_nearest(px_count_df['dist_pc'], pxcenter_dist_pc)
+                px_count = px_count_df.loc[jdx,'px_count']
+                ring_vol = px_count_df.loc[jdx,'ring_vol']
+                ring_sup = px_count_df.loc[jdx,'ring_sup']
+                dens_sup = nh2_profile_corr[idx]*ring_sup
+                mass = Mgas_fromnH2_Msun_profile_corr[idx]
+                #dens = nh2_profile_corr[idx]
+            else:
+                mass = np.nan
+                dens = np.nan
+                px_count = np.nan
+                dens_sup = np.nan
+            masses_cube[jy,ix] = mass/px_count
+            dens_cube[jy,ix] = dens
+            dens_sup_cube[jy,ix] = dens_sup/px_count
+            dist_dicts2.append({'px': ix, 'py':jy, 'dist_pc':pxcenter_dist_pc, 'px_count': px_count, 'mass':mass, 'dens':dens})
+    
+    
+    
+    dist_df2 = pd.DataFrame(dist_dicts2)
+    dist_df2 = dist_df2.dropna()
+    masses_cube_crop = masses_cube[3:40,22:68]
+    # Applying vel <250 mask
+    masses_cube_masked = deepcopy(masses_cube)
+    masses_cube_masked[vel_cube_vel_mask.mask] = np.nan
+    masses_cube_below250_crop = masses_cube_masked[17:29,45:57]
+    npix_total = np.count_nonzero(~np.isnan(masses_cube))
+    npix_outfl = np.count_nonzero(~np.isnan(masses_cube_below250_crop))
+    fig = plt.figure()
+    plt.imshow(masses_cube, origin='lower')
+    fig.savefig(f'{fig_path}{source}_masses_cube.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    plt.close()
+
+    # Total mass from models inside region with vels <250km/s
+    # with dens q=1.5
+    # lolim
+    Mass_below250_MSun = np.nansum(masses_cube_below250_crop)
+    
+    # Outflow mass assuming Mass eq. distr along cube
+    # uplim
+    outflow_pc_percen = npix_outfl/npix_total
+    Mass_below250_MSun_uplim = outflow_pc_percen *total_mass
+    
+    # Assuming average surface density 
+    ave_dens_sup = total_mass/(np.pi*1.5**2) # Msun/pc2
+    average_vol_dens = total_mass/(4/3*np.pi*1.5**3) # Msun/pc3
+    mass_2 = ave_dens_sup*npix_outfl*(vel_cube_pixlen_pc**2)
+    
+    routflow = np.sqrt((npix_outfl*vel_cube_pixlen_pc**2)/np.pi)
+    vel_diff = 21 # km/s
+    age1 = 1e4
+    age2 = 5e4
+    factor_conv = 0.5*(1*u.Msun).to(u.g)*(1*u.km**2/u.s**2).to(u.cm**2/u.s**2)
+    Mass_below250_MSun_uplim
+    Outflow_kin_energy_erg_j = 1e41*Mass_below250_MSun_uplim*vel_diff**2
+    Outflow_kin_energy_erg_f = (factor_conv*Mass_below250_MSun_uplim*vel_diff**2).to(u.erg)
+    Outflow_kin_energy_erg_f_mass1e5 = (factor_conv*1e5*vel_diff**2).to(u.erg)
+    L_j_age1 = (Outflow_kin_energy_erg_j*u.erg/(age1*(1*u.yr).to(u.s))).to(u.Lsun).value
+    L_j_age2 = (Outflow_kin_energy_erg_j*u.erg/(age2*(1*u.yr).to(u.s))).to(u.Lsun).value
+    L_f_age1 = (Outflow_kin_energy_erg_f/(age1*(1*u.yr).to(u.s))).to(u.Lsun).value
+    L_f_age2 = (Outflow_kin_energy_erg_f/(age2*(1*u.yr).to(u.s))).to(u.Lsun).value
+    L_f_age1_mass1e5 = (Outflow_kin_energy_erg_f_mass1e5/(age1*(1*u.yr).to(u.s))).to(u.Lsun).value
+    L_f_age2_mass1e5 = (Outflow_kin_energy_erg_f_mass1e5/(age2*(1*u.yr).to(u.s))).to(u.Lsun).value
+
+    # Haowrth2015 clou cloud 
+    # small cloud compression
+    time_compression = (routflow*(1*u.pc).to(u.km)/(vel_diff*(u.km/u.s))).to(u.yr).value
+    
+    # Perpendicular profile to gal rotation
+    profile_NW_SE = pd.read_csv(profiles_path+'vel_NW_SE.csv')
+    profile_NW_SE.columns = ['px', 'V']
+    rmid = len(profile_NW_SE)/2
+    profile_NW_SE['px_res'] = profile_NW_SE['px']-rmid
+    profile_NW_SE['dist_pc'] = profile_NW_SE['px_res']*vel_cube_pixlen_pc
+
+    # Parallel profile to gal rotation
+    profile_NE_SW = pd.read_csv(profiles_path+'vel_NE_SW.csv')
+    profile_NE_SW.columns = ['px', 'V']
+    rmid = len(profile_NE_SW)/2
+    profile_NE_SW['px_res'] = profile_NE_SW['px']-rmid
+    profile_NE_SW['dist_pc'] = profile_NE_SW['px_res']*vel_cube_pixlen_pc
+
+
+    figsize = 14
+    if style=='twocol':
+        naxis = 2
+        maxis = 1
+        fig = plt.figure(figsize=(figsize*1.95, figsize*1.13))
+    elif style == 'onepanel':
+        naxis = 1
+        maxis = 1
+        fig = plt.figure(figsize=(figsize*1.15, figsize*1.))
+    else: 
+        naxis = 1
+        maxis = 2
+        fig = plt.figure(figsize=(figsize, figsize*1.55))
+    gs = gridspec.GridSpec(maxis, naxis)
+    if style == 'onepanel':
+        gs.update(wspace = 0.0, hspace=0.0, top=0.975, bottom = 0.07)
+    else:
+        gs.update(wspace = 0.125, hspace=0.0, top=0.95, bottom = 0.05)
+    
+    axis = []
+    axis.append(fig.add_subplot(gs[0]))
+    if style != 'onepanel':
+        axis.append(fig.add_subplot(gs[1]))
+    
+    axis[0].plot(profile_NW_SE['dist_pc'],profile_NW_SE['V'],color= 'k', linestyle='-',label='data', marker='',lw=1.4)
+    if style != 'onepanel':
+        axis[1].plot(profile_NE_SW['dist_pc']*-1,profile_NE_SW['V'],color= 'k', linestyle='-',label='data', marker='', lw=1.4)
+    axis[0].set_ylim([242, 263])
+    axis[0].set_xlim([-1.58, 1.58])
+    if style != 'onepanel':
+        axis[1].set_ylim([242, 263])
+        axis[1].set_xlim([-1.58, 1.58])
+    
+    axis[0].text(0.15, 0.95, 'SE-NW',
+                            horizontalalignment='right',
+                            verticalalignment='top',
+                            fontsize=fontsize,
+                            transform=axis[0].transAxes)
+    if style != 'onepanel':
+        axis[1].text(0.15, 0.95, 'NE-SW',
+                            horizontalalignment='right',
+                            verticalalignment='top',
+                            fontsize=fontsize,
+                            transform=axis[1].transAxes)
+    
+    for v,ax in enumerate(axis):
+        axis[v].tick_params(direction='in')
+        axis[v].tick_params(axis="both", which='major', length=8)
+        axis[v].tick_params(axis="both", which='minor', length=4)
+        axis[v].xaxis.set_tick_params(which='both', top ='on')
+        axis[v].yaxis.set_tick_params(which='both', right='on', labelright='off')
+        axis[v].tick_params(axis='both', which='major', labelsize=ticksize, width=1.75)
+        for axs in ['top', 'bottom', 'left', 'right']:
+            axis[v].spines[axs].set_linewidth(1.5)  # change width
+        axis[v].tick_params(labelright=False)
+    if style=='twocol':
+        axis[0].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
+        axis[1].tick_params(labelleft=False,
+                       labelright=False)
+        axis[0].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
+    elif style == 'onepanel':
+        axis[0].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
+        axis[0].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
+    else:
+        axis[0].tick_params(labelbottom=False)   
+        axis[0].tick_params(labelleft=True,
+                       labelright=False)
+        axis[0].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
+        axis[1].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
+    if style != 'onepanel':
+        axis[1].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
+    fig.savefig(fig_path+'Vel_radprofile_1x2_'+style+'.pdf', dpi=300)
     plt.close()

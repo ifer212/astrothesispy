@@ -9,14 +9,10 @@ Created on Wed Jul 27 11:57:36 2022
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import utiles_cubes
 from astrothesispy.utiles import utiles_plot as plot_utiles
-from astrothesispy.utiles import u_conversion
 
-import os
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import astropy.units as u
-from astropy.coordinates import SkyCoord, FK5
 from matplotlib.colors import LogNorm
 
 

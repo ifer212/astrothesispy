@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 23 12:41:35 2017
-
-@author: frico
-"""
 #==============================================================================
 #                    
 #                   Utils: Recurrent formulas and functions
@@ -62,8 +56,19 @@ def checkEqual(iterator):
     '''
     return len(set(iterator)) <= 1
 
-# Find string between characters
+def find_nearest(array, value):
+    """
+        Find nearest to value in array
+    """
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx, array[idx]
+
+# 
 def find_between( s, first, last ):
+    """
+        Find string between characters
+    """
     try:
         start = s.index( first ) + len( first )
         end = s.index( last, start )

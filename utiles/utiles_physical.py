@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 21 23:10:13 2022
-
-@author: Fer
-"""
 
 from astropy.modeling.models import BlackBody as blackbody_nu
 

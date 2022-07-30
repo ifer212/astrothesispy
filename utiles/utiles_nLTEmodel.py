@@ -16,6 +16,50 @@ from astrothesispy.utiles import utiles
 from astrothesispy.utiles import utiles_plot
 from astrothesispy.utiles import u_conversion
 
+def densprofile(total_mass, radios, profile, rnube_tot):
+        """ 
+            Density profile of the models
+            dens_0 is the mean final density given a certain profile
+        """
+        atomic_hydrogen_mass_kg = 1.6737236E-27*u.kg 
+        dens_0 = total_mass/(2.*atomic_hydrogen_mass_kg.to(u.Msun).value)/(4/3*np.pi*rnube_tot**3)
+        
+        dens = [] # Density profile (1/r)**profile
+        vols = [] # Volume of each shell
+        v_tot = (4.*np.pi*(rnube_tot**3)/3.)
+        if radios[0] != 0:
+            for h, rad in enumerate(radios):
+                if h < (len(radios)-1):
+                    dens.append(dens_0 * (radios[0]/radios[h])**(profile))
+                    vols.append(4.*np.pi*((radios[h+1]**3) - (radios[h]**3))/3.)
+        else:
+            for h, rad in enumerate(radios):
+                if h < (len(radios)-1):
+                    if radios[h] == 0:
+                        dens.append(0)
+                        vols.append(0)
+                    else:
+                        dens.append(dens_0 * (radios[1]/radios[h])**(profile))
+                        vols.append(4.*np.pi*((radios[h+1]**3) - (radios[h]**3))/3.)
+                else:
+                    dens.append(dens_0 * (radios[1]/radios[h])**(profile))
+                    vols.append(4.*np.pi*((rnube_tot**3) - (radios[h]**3))/3.)
+     
+        # Mean density (weighting each shell by its volume)
+        dens_mean = np.sum(np.array(dens)*np.array(vols))/v_tot
+        # Factor to convert current mean dens to desired dens
+        ff = dens_0/dens_mean
+        # Final densities to give the desired mean density
+        ff_dens = np.array(dens)*ff
+        # Cheching mean density
+        ff_dens_mean = np.sum(np.array(ff_dens)*np.array(vols))/v_tot
+        mass_tot = ff_dens_mean * v_tot *2.*atomic_hydrogen_mass_kg.to(u.Msun).value
+        if profile == 0: 
+            # Just to keep dens of each shell to be dens_0
+            # but actually mean dens is  slightlty <dens_0 
+            # (dens dep with r is huge (v=r^-3))
+            ff_dens = dens
+        return ff_dens, ff_dens_mean, mass_tot
 
 def get_tau100(model_path, model_name):
     """

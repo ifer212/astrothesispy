@@ -12,8 +12,8 @@ ringspectra_plot = False
 LTE2D_plot = False
 LTEprofiles_plot = False
 SB_models_plot = False
-AGN_models_plot = True
-
+AGN_models_plot = False
+LTEvelprofile_plot = True
 
 # =============================================================================
 # Global vars & paths
@@ -49,7 +49,7 @@ if moments_plot:
 if ringspectra_plot:
     # Figure 4
     # spectra from averaged ring, this figure is done inside Madcuba spectra
-    cont = True
+    skip_part = True
     
 # =============================================================================
 # SLIM LTE figures
@@ -62,6 +62,9 @@ if LTEprofiles_plot:
     # Figure 6
     NGC253HR_SLIMfigs.plot_SLIMprofiles(NGC253_path, fig_path)
     
+if LTEvelprofile_plot:
+    # Figure 12
+    NGC253HR_SLIMfigs.plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel')
 # =============================================================================
 # Radiative transfer modelling figures
 # =============================================================================
