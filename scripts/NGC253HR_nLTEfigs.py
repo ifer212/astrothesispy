@@ -15,7 +15,7 @@ comp_LTEvsNLTE = False
 model_difs = False
 
  
-def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = 3.5, Rcrit = 0.85, plot_type = 'SBmods', paper_figs = True, presen_figs = False, fortcomp=False):
+def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = 3.5, Rcrit = 0.85, plot_type = 'SBmods', paper_figs = True, presen_figs = False, fortcomp=False, fig_name = ['', '', '',]):
     """
         Plotting model results
         plot_type = "SBmods" plots the SB models (distributed star formation)
@@ -106,7 +106,7 @@ def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path
         convolve = True # Using or not convolved fluxes (for adjacent rings)
         
         utiles_nLTEmodel.plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, fig_path, fig_path,
-                                                           fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp)
+                                                           fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp, fig_name=fig_name)
 
 if get_chi2_and_ind_plot:
     for i,modelo in enumerate(modelos):

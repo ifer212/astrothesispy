@@ -3602,7 +3602,8 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
                                       my_model_path, figmod_path, figrt_path, fort_paths, results_path,
                                       writename = True, plot_CH3CN = False, plot_col = True,
                                       cont_modelplot = 'model2',
-                                      plot_opacity = False, D_Mpc = 3.5, source_rad=0, fortcomp=False):
+                                      plot_opacity = False, D_Mpc = 3.5, source_rad=0, fortcomp=False,
+                                      fig_name = ['', '', '',]):
     """ 
         Plots nLTE models for the final version of the paper
         convolve = False gets the model data without convolving by the beam
@@ -4310,9 +4311,9 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figmod_path}{fig_name[0]}NGC253_{save_name}_conts_big_SM_papfin{convstr}.pdf', bbox_inches='tight', transparent=True, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figrt_path}{fig_name[0]}NGC253_{save_name}_conts_big_SM_papfin{convstr}.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
     # Line profiles figure
     if line_profiles:
@@ -4550,9 +4551,9 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(f'{figmod_path}{fig_name[1]}NGC253_{save_name}_lines_SM_prese{convstr}.pdf', bbox_inches='tight', transparent=True, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figrt_path}{fig_name[1]}NGC253_{save_name}_lines_SM_papfin{convstr}.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
     # subset of Line profiles figure
     if line_profiles_subset:
@@ -5043,9 +5044,9 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(figmod_path+'NGC253_'+save_name+'_ratios2_big_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(f'{figmod_path}{fig_name[2]}NGC253_{save_name}_ratios2_big_papfin{convstr}.pdf', bbox_inches='tight', transparent=True, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios2_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figrt_path}{fig_name[2]}NGC253_{save_name}_ratios2_big_SM_papfin{convstr}.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
 
 def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, results_path, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):

@@ -3,7 +3,7 @@ import os
 from astrothesispy.scripts import NGC253HR_contfigs
 from astrothesispy.scripts import NGC253HR_SLIMfigs
 from astrothesispy.scripts import NGC253HR_nLTEfigs
-
+from astrothesispy.scripts import NGC253HR_compfigs
 
 cont219_plot = False
 zoom_cont219_plot = False
@@ -13,7 +13,8 @@ LTE2D_plot = False
 LTEprofiles_plot = False
 SB_models_plot = False
 AGN_models_plot = False
-LTEvelprofile_plot = True
+LTEvelprofile_plot = False
+cloudcloud_plot = True
 
 # =============================================================================
 # Global vars & paths
@@ -36,18 +37,22 @@ rad_transf_path = '/mnt/c/Users/Usuario/Documents/CAB/radtransf/program/'
 # =============================================================================
 if cont219_plot:
     # Figure 1
-    NGC253HR_contfigs.plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc)
+    fig_name = 'Figure_1_'
+    NGC253HR_contfigs.plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc, fig_name = fig_name)
     
 if zoom_cont219_plot:
     # Figure 2
-    NGC253HR_contfigs.plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc)
+    fig_name = 'Figure_2_'
+    NGC253HR_contfigs.plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc, fig_name = fig_name)
     
 if moments_plot:
     # Figure 3
-    NGC253HR_contfigs.plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = D_Mpc, source = source)
+    fig_name = 'Figure_3_'
+    NGC253HR_contfigs.plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = D_Mpc, source = source, fig_name = fig_name)
     
 if ringspectra_plot:
     # Figure 4
+    fig_name = 'Figure_4_'
     # spectra from averaged ring, this figure is done inside Madcuba spectra
     skip_part = True
     
@@ -56,26 +61,36 @@ if ringspectra_plot:
 # =============================================================================
 if LTE2D_plot:
     # Figure 5
-    NGC253HR_SLIMfigs.plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = molecule, source = source, D_Mpc = D_Mpc)
+    fig_name = 'Figure_5_'
+    NGC253HR_SLIMfigs.plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = molecule, source = source, D_Mpc = D_Mpc, fig_name = fig_name)
 
 if LTEprofiles_plot:
     # Figure 6
-    NGC253HR_SLIMfigs.plot_SLIMprofiles(NGC253_path, fig_path)
+    fig_name = 'Figure_6_'
+    NGC253HR_SLIMfigs.plot_SLIMprofiles(NGC253_path, fig_path, fig_name = fig_name)
     
 if LTEvelprofile_plot:
     # Figure 12
-    NGC253HR_SLIMfigs.plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel')
+    fig_name = 'Figure_12_'
+    NGC253HR_SLIMfigs.plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = fig_name)
+
+if cloudcloud_plot:
+    # Figure 13
+    fig_name = 'Figure_13_'
+    NGC253HR_SLIMfigs.plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26', D_Mpc = 3.5, style = 'onecol', fig_name = fig_name)
+
 # =============================================================================
 # Radiative transfer modelling figures
 # =============================================================================
-
 if SB_models_plot:
     # Figures 7, 8 and 9
-    NGC253HR_nLTEfigs.nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = D_Mpc, Rcrit = Rcrit, plot_type = 'SBmods', paper_figs = True, presen_figs = False)
+    fig_name = ['Figure_7_', 'Figure_8_', 'Figure_9_']
+    NGC253HR_nLTEfigs.nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = D_Mpc, Rcrit = Rcrit, plot_type = 'SBmods', paper_figs = True, presen_figs = False, fig_name = fig_name)
 
 if AGN_models_plot:
     # Figure 10 and 11
-    NGC253HR_nLTEfigs.nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = D_Mpc, Rcrit = Rcrit, plot_type = 'AGNmods', paper_figs = True, presen_figs = False)
+    fig_name = ['Figure_10_', '', 'Figure_1_']
+    NGC253HR_nLTEfigs.nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = D_Mpc, Rcrit = Rcrit, plot_type = 'AGNmods', paper_figs = True, presen_figs = False, fig_name = fig_name)
 
 # =============================================================================
 # Comparisson figures btw HCs, SHCs and AGNs

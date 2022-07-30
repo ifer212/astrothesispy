@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 import astropy.units as u
+from scipy import ndimage
 
 plt.rc('text', usetex=True)
 plt.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
@@ -22,7 +23,7 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # SLIM figures
 # =============================================================================
 
-def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5):
+def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, fig_name = ''):
     """
         Figure 5 for NGC253 HR paper
     """
@@ -254,11 +255,10 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     plot_utiles.Beam_plotter(px=28, py=py, bmin=columndens_cube.bmin*3600, bmaj=columndens_cube.bmaj*3600,
                                 pixsize=columndens_cube.pylen*3600, pa=columndens_cube.bpa, axis=axes[0], wcs=columndens_cube.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
-    fig.savefig(fig_path+source+'_SLIM_cubes_'+molecule+'_no_profile_noM0_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{fig_name}{source}_SLIM_cubes_{molecule}_no_profile_noM0_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
-
-
-def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, style = 'onecol'):
+    
+def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, style = 'onecol', fig_name = ''):
     """
         Figure 6 for NGC253 HR paper
         style = "onecol" plots one column with two rows
@@ -570,10 +570,10 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
         axis[0].tick_params(labelbottom=False)   
     else:
         axis[0].set_xlabel('r (pc)', fontsize = labelsize)
-    fig.savefig(f'{fig_path}{source}_SLIM_Tex_and_logN_profiles_dfcolors_newcols_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{fig_name}{source}_SLIM_Tex_and_logN_profiles_dfcolors_newcols_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
-def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel'):
+def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = ''):
     """
         Plots SLIM velocity profiles and Calculations for the cloud-cloud collision origin of SHC13 and its poss. outflow. mass
         style = 'onepanel' plots only one panel (one direction)
@@ -834,5 +834,326 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         axis[1].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
     if style != 'onepanel':
         axis[1].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
-    fig.savefig(fig_path+'Vel_radprofile_1x2_'+style+'.pdf', dpi=300)
+    fig.savefig(f'{fig_path}{fig_name}Vel_radprofile_1x2_'+style+'.pdf', dpi=300)
     plt.close()
+    
+def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26', D_Mpc = 3.5, style = 'onecol', fig_name = ''):
+    """
+        Plots the Position-Velocity diagram for the cloud-cloud collision
+        style = 'onecol' one column two rows
+        style = 'twocol' two cols one row
+    """
+    labelsize = 20
+    cbar_labelfont = 20
+    ticklabelsize = 16
+    fontsize = 20
+    cbar_tickfont = 14
+
+    slimpath = f'{NGC253_path}SHC/{source}/SLIM/'
+    cube = f'{slimpath}Vel_{molecule}_{source}.fits'
+    cont_cube = f'{NGC253_path}Continuums/{source}/MAD_CUB_219GHz_continuum.I.image.pbcor_{source}_pycut_coord.fits'
+
+    cubo = utiles_cubes.Cube_Handler('cubo', cube)
+    cubocont = utiles_cubes.Cube_Handler('cubocont', cont_cube)
+    rms_219 = 1.307E-5#8.629E-6
+    cubo_219_aboverms_mask = utiles_cubes.sigma_mask(cubocont.fitsdata[0,0,:,:], rms_219, 2.0)
+    cubo_219_aboverms = np.copy(cubocont.fitsdata[0,0,:,:])
+    cubo_219_aboverms[cubo_219_aboverms_mask.mask] = np.nan
+    
+    # Velocity min and max
+    if source == 'SHC_13':
+        vel_min = 235
+        vel_max = 265
+    else:
+        utiles.round_to_multiple(np.nanmin(cube.fitsdata[0,0,:,:]), 5)
+        utiles.round_to_multiple(np.nanmax(cube.fitsdata[0,0,:,:]), 5)
+    vel_ticks = list(np.linspace(vel_min, vel_max, 5))
+    
+    # Starting figure
+    figsize = 10
+    naxis = 1
+    maxis = 1
+    cbar_pad = -65
+    axcolor = 'k'
+    wcs_plot = cubo.wcs
+    fig = plt.figure(figsize=(naxis*figsize*0.7, figsize))
+    gs1 = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+    gs1.update(wspace = 0.0, hspace=0.28, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+    
+    RA_start, Dec_start = utiles_cubes.RADec_position(47, 70, wcs_plot, origin = 1)
+    RA_end, Dec_end = utiles_cubes.RADec_position(91, 118, wcs_plot, origin = 1)    
+    # Adding wcs frame
+    wcs_plot.wcs.ctype = ['RA---SIN', 'DEC--SIN']
+    axes = []
+    for i in range(naxis*maxis):
+        axes.append(fig.add_subplot(gs1[i], aspect='equal', projection=wcs_plot))
+        axes[i].tick_params(labelsize=ticklabelsize)
+        axes[i].tick_params(direction='in')
+        axes[i].coords.frame.set_color(axcolor)
+        axes[i].coords[0].set_major_formatter('hh:mm:ss.sss')
+        axes[i].coords[1].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
+        axes[i].coords[0].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
+        axes[i].coords[0].frame.set_linewidth(2)
+        axes[i].coords[1].frame.set_linewidth(2)
+        axes[i].coords[0].set_separator((r'$^{\rm{h}}$', r'$^{\rm{m}}$', r'$^{\rm{s}}$'))
+        axes[i].coords[0].display_minor_ticks(True)
+        axes[i].coords[1].display_minor_ticks(True)
+    
+    axes[0].imshow(cubo.fitsdata[0,0,:,:], transform=axes[0].get_transform(cubo.wcs), vmin=vel_min, vmax=vel_max, cmap =plt.cm.RdBu, aspect='equal')
+    plot_utiles.add_cbar(fig, axes[0], cubo.fitsdata[0,0,:,:], r'VLSR (km s$^{-1}$)', color_palette='RdBu', colors_len = 0,
+                 orientation='h_short', sep=0.075, width=0.02, height=False,ticks=vel_ticks,
+                 Mappable=False, cbar_limits=[vel_min, vel_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
+                 discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
+                 )
+    
+    levels219 = [5*rms_219, 10*rms_219, 50*rms_219, 100*rms_219]
+    axes[0].contour(cubo_219_aboverms, colors='r', linewidths=1.4, zorder=2, levels= levels219,
+        transform=axes[0].get_transform(cubocont.wcs))
+    
+    xcenter = 48
+    ycenter = 20
+    axes[0].plot(xcenter,ycenter, marker='x', color='k')
+    axes[0].tick_params(axis="both", which='minor', length=8)
+    axes[0].xaxis.set_tick_params(top =True, labeltop=False)
+    axes[0].yaxis.set_tick_params(right=True, labelright=False, labelleft=False)
+    axes[0].set_xlabel('RA (J2000)', fontsize = labelsize)
+    axes[0].tick_params(direction='in')
+    axes[0].tick_params(axis="both", which='minor', length=8)
+    axes[0].set_ylabel('Dec (J2000)', fontsize = labelsize, labelpad=-1)
+    
+    
+    ymin = 10
+    ymax = 30
+    xmin = 41
+    xmax = 56
+    if source == 'SHC_13':
+        axes[0].set_xlim([xmin, xmax])
+        axes[0].set_ylim([ymin, ymax])
+        
+    pixsize_arcsec =  cubo.pylen*3600
+    pixsize_pc = pixsize_arcsec*D_Mpc*1e6/206265.0
+    ymin = 8
+    ymax = 32
+    xmin = 39
+    xmax = 58
+    m02625v0 = f'NGC253_{source}_HC3N_v0_26_25_M0_aboveM0.fits'
+    cubo_m02625v0 = utiles_cubes.Cube_Handler('219', moments_path+m02625v0)
+    cubo_m02625v0_aboverms_mask = utiles_cubes.sigma_mask(cubo_m02625v0.fitsdata[0,0,:,:], cubo_m02625v0.header['INTSIGMA'], 3)
+    cubo_m02625v0_aboverms = np.copy(cubo_m02625v0.fitsdata[0,0,:,:])
+    cubo_m02625v0_aboverms[cubo_m02625v0_aboverms_mask.mask] = np.nan
+    cubo_m02625v0_aboverms = cubo_m02625v0_aboverms[ymin:ymax,xmin:xmax]
+    m02625v7 = f'NGC253_{source}_HC3N_v7=1_26_25_+1_-1_M0_aboveM0.fits'
+    cubo_m02625v7 = utiles_cubes.Cube_Handler('219', moments_path+m02625v7)
+    cubo_m02625v7_aboverms_mask = utiles_cubes.sigma_mask(cubo_m02625v7.fitsdata[0,0,:,:], cubo_m02625v7.header['INTSIGMA'], 3)
+    cubo_m02625v7_aboverms = np.copy(cubo_m02625v7.fitsdata[0,0,:,:])
+    cubo_m02625v7_aboverms[cubo_m02625v7_aboverms_mask.mask] = np.nan
+    cubo_m02625v7_aboverms = cubo_m02625v7_aboverms[ymin:ymax,xmin:xmax]
+    path_v6 = f'{slimpath}/{source}_velprofiles/MAD_CUB_II_NGC253_v6_1_2625_250_270kms.fits'
+    cubo_v6 = utiles_cubes.Cube_Handler('v6', path_v6)
+    int_vel_range = (265-235)
+    rms = 2e-4
+    sigma = utiles.integratedsigma(1, int_vel_range, rms, 1.23)
+    cubo_v6_aboverms_mask = utiles_cubes.sigma_mask(cubo_v6.fitsdata[0,0,:,:], sigma, 3)
+    cubo_v6_aboverms = np.copy(cubo_v6.fitsdata[0,0,:,:])
+    cubo_v6_aboverms[cubo_v6_aboverms_mask.mask] = np.nan
+    path_v6v7 = f'{slimpath}{source}_velprofiles/MAD_CUB_II_v6v7_1_2625_230_265_kms.fits'
+    cubo_v6v7 = utiles_cubes.Cube_Handler('v6', path_v6v7)
+    int_vel_range = (265-230)
+    rms = 200e-3
+    sigma = utiles.integratedsigma(1, int_vel_range, rms, 1.23)
+    cubo_v6v7_aboverms_mask = utiles_cubes.sigma_mask(cubo_v6v7.fitsdata[0,0,:,:], sigma, 3)
+    cubo_v6v7_aboverms = np.copy(cubo_v6v7.fitsdata[0,0,:,:])
+    cubo_v6v7_aboverms[cubo_v6v7_aboverms_mask.mask] = np.nan
+    
+    
+    col_path = f'{slimpath}ColumnDensity_HC3Nvib_J24J26_{source}.fits'
+    col_cube = utiles_cubes.Cube_Handler('col', col_path)
+    tex_path = f'{slimpath}Tex_HC3Nvib_J24J26_{source}.fits'
+    tex_cube = utiles_cubes.Cube_Handler('tex', tex_path)
+    fwhm_path = f'{slimpath}FWHM_HC3Nvib_J24J26_{source}.fits'
+    fwhm_cube = utiles_cubes.Cube_Handler('fwhm', fwhm_path)
+
+    cubo_rest = cubo.fitsdata[0,0,:,:]
+    cubo_rest = cubo_rest[ymin:ymax,xmin:xmax]
+    col_cubo = col_cube.fitsdata[0,0,:,:]
+    col_cubo = col_cubo[ymin:ymax,xmin:xmax]
+    tex_cubo = tex_cube.fitsdata[0,0,:,:]
+    tex_cubo = tex_cubo[ymin:ymax,xmin:xmax]
+    fwhm_cubo = fwhm_cube.fitsdata[0,0,:,:]
+    fwhm_cubo = fwhm_cubo[ymin:ymax,xmin:xmax]
+    v6_cubo = cubo_v6_aboverms
+    v6_cubo = v6_cubo[ymin:ymax,xmin:xmax]
+    v6v7_cubo = cubo_v6v7_aboverms
+    v6v7_cubo = v6v7_cubo[ymin:ymax,xmin:xmax]
+    rotate = False
+    if rotate:
+        col_cubo = ndimage.rotate(col_cubo, 130+90, reshape=False, cval=np.nan)
+        cubo_rest = ndimage.rotate(cubo_rest, 130+90, reshape=False, cval=np.nan)
+        tex_cubo = ndimage.rotate(tex_cubo, 130+90, reshape=False, cval=np.nan)
+        v6_cubo = ndimage.rotate(v6_cubo, 130+90, reshape=False, cval=np.nan)
+        v6v7_cubo = ndimage.rotate(v6_cubo, 130+90, reshape=False, cval=np.nan)
+    
+    pv_diag = np.zeros(shape=(cubo_rest.shape[0],cubo_rest.shape[1]))
+    distances = []
+    velocities = []
+    hc3n_intes = []
+    v6_intens = []
+    v6v7_intens = []
+    columns = []
+    texs = []
+    fwhms = []
+    new_ycenter = 10+2 #ycenter - ymin
+    new_xcenter = 7+2  #xcenter - xmin
+    
+    plt.imshow(cubo_rest, origin='lower')
+    plt.plot(new_xcenter, new_ycenter, marker='x',color='k')
+    fig.savefig(f'{fig_path}pvtest_unknwn.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    plt.close()
+
+    for j in range(0, cubo_rest.shape[0]):
+        col_dist = j-new_ycenter
+        col_dist_pc = col_dist*pixsize_pc
+        sorted_array = cubo_rest[j,:]#[j,:]
+        distances = distances+[col_dist_pc]*cubo_rest.shape[1]
+        velo = cubo_rest[j,:].tolist()
+        velo_sorted = np.sort(velo)
+        velocities = velocities + velo_sorted.tolist()
+        hintes = cubo_m02625v7_aboverms[j,:].tolist()
+        hintes_sorted = [x for _,x in sorted(zip(velo,hintes))]
+        hc3n_intes = hc3n_intes + hintes_sorted
+        v6_int = v6_cubo[j,:].tolist()
+        v6_sort = [x for _,x in sorted(zip(velo,v6_int))]
+        v6_intens = v6_intens + v6_sort
+        v6v7_int = v6v7_cubo[j,:].tolist()
+        v6v7_sort = [x for _,x in sorted(zip(velo,v6v7_int))]
+        v6v7_intens = v6v7_intens + v6v7_sort
+        cols = col_cubo[j,:].tolist()
+        cols_sort = [x for _,x in sorted(zip(velo,cols))]
+        columns = columns + cols_sort
+        txs = tex_cubo[j,:].tolist()
+        txs_sort = [x for _,x in sorted(zip(velo,txs))]
+        texs = texs + txs_sort
+        fwhm = fwhm_cubo[j,:].tolist()
+        fwhms_sort = [x for _,x in sorted(zip(velo,fwhm))]
+        fwhms = fwhms + fwhms_sort
+        
+    x_data = np.array(distances)
+    y_data = np.array(velocities)
+    z_data = np.array(hc3n_intes)
+    z_coldata = np.array(columns)
+    z_texdata = np.array(texs)
+    z_fwhmdata = np.array(fwhms)
+    z_v6data = np.array(v6_intens)
+    z_v6v7data = np.array(v6v7_intens)
+    Ztex = z_texdata.reshape(tex_cubo.shape)
+    Zintens = z_data.reshape(tex_cubo.shape)
+    Zcols = z_coldata.reshape(tex_cubo.shape)
+    Zv6 = z_v6data.reshape(tex_cubo.shape)
+    Zv6v7 = z_v6v7data.reshape(tex_cubo.shape)
+    Zfwhm = z_fwhmdata.reshape(tex_cubo.shape)
+
+    figsize = 8
+    if style=='twocol':
+        naxis = 2
+        maxis = 1
+        fig = plt.figure(figsize=(naxis*figsize*1.25, figsize))
+    elif style=='onecol':
+        naxis = 1
+        maxis = 2
+        fig = plt.figure(figsize=(figsize, figsize*1.55))
+    
+    cbar_pad = -65
+    axcolor = 'k'
+    wcs_plot = cubo.wcs
+    gs1 = gridspec.GridSpec(maxis, naxis)    
+    if style=='twocol':
+        gs1.update(wspace = 0.08, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+    else:
+        gs1.update(wspace = 0.125, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
+    
+    # Adding wcs frame
+    wcs_plot.wcs.ctype = ['RA---SIN', 'DEC--SIN']
+    axes = []
+    for i in range(naxis*maxis):
+        axes.append(fig.add_subplot(gs1[i]))
+    fig_cbar = []
+    logn_min = 14.8#utiles.round_to_multiple(np.nanmin(Zcols), 0.5) #np.round(utiles.truncate(np.nanmin(columndens_cube.fitsdata[0,0,:,:]), 1),1)
+    logn_max = 16.5#utiles.round_to_multiple(np.nanmax(Zcols), 0.5)
+    fcbar1 = axes[0].imshow(Zcols, extent=(241.7,263.4, np.amin(x_data), np.amax(x_data)), aspect = 'auto', norm=LogNorm(vmin=logn_min, vmax=logn_max), cmap =plt.cm.rainbow)
+    tex_min = 150 # np.nanmin(Zv6v7)# 150
+    tex_max = 900 # np.nanmax(Zv6v7)# 900
+    tex_ticks = list(np.linspace(tex_min, tex_max, 5)) #np.arange(tex_min, tex_max, 10, 5)
+    fcbar2 = axes[1].imshow(Ztex, extent=(241.7,263.4, np.amin(x_data), np.amax(x_data)), aspect = 'auto', cmap =plt.cm.rainbow, vmin=tex_min, vmax=tex_max)
+    fig_cbar.append(fcbar1)
+    fig_cbar.append(fcbar2)
+    label_cbar = [r'log N(HC$_3$N) (cm$^{-2}$)', r'T$_{\text{vib}}$ (K)']
+    cbar_pad = -55
+    for l, ax in enumerate(axes):
+        minor_locator = AutoMinorLocator(5)
+        minor_locatory = AutoMinorLocator(5)
+        axes[l].tick_params(direction='in')
+        axes[l].tick_params(axis="both", which='major', length=10)
+        axes[l].tick_params(axis="both", which='minor', length=5)
+        axes[l].xaxis.set_tick_params(which='both', top ='on')
+        axes[l].yaxis.set_tick_params(which='both', right='on', labelright='off')
+        axes[l].tick_params(axis='both', which='major', labelsize=ticklabelsize)
+        axes[l].xaxis.set_minor_locator(minor_locator)
+        axes[l].yaxis.set_minor_locator(minor_locatory)
+        axes[l].tick_params(labelleft=True,
+                       labelright=False)
+        for axis in ['top', 'bottom', 'left', 'right']:
+            axes[l].spines[axis].set_linewidth(1.5)  # change width
+        if l ==1:
+            if style == 'twocol':
+                axes[l].tick_params(
+                       labelleft=False)
+            axes[l].text(0.05, 0.95, r'T$_{\text{vib}}$',
+                                color = 'white',
+                                horizontalalignment='left',
+                                verticalalignment='top',
+                                weight='bold',
+                                fontsize=fontsize,
+                                transform=axes[l].transAxes)
+            if style == 'twocol':
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+                                     orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
+                                     Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
+                                     discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
+                                     )
+            else:
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+                                     orientation='v', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
+                                     Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
+                                     discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
+                                     )
+        else:
+            axes[l].text(0.05, 0.95, r'log N(HC$_3$N)',
+                                color = 'white',
+                                weight='bold',
+                                horizontalalignment='left',
+                                verticalalignment='top',
+                                fontsize=fontsize,
+                                transform=axes[l].transAxes)
+            if style == 'twocol':
+                plot_utiles.add_cbar(fig, axes[l], Zcols, r'logN(HC$_3$N) (cm$^{-2}$)', color_palette='rainbow', colors_len = 0,
+                                     orientation='h_short', sep=0.03, width=0.02, height=False,
+                                     ticks=[15, 15.5, 16, 16.5], Mappable=False, cbar_limits=[logn_min, logn_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
+                                     discrete_colorbar=False, formatter = '%1.1f', norm='log', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
+                                     )
+            else:
+                plot_utiles.add_cbar(fig, axes[l], Zcols, r'logN(HC$_3$N) (cm$^{-2}$)', color_palette='rainbow', colors_len = 0,
+                                     orientation='v', sep=0.03, width=0.02, height=False,
+                                     ticks=[15, 15.5, 16, 16.5], Mappable=False, cbar_limits=[logn_min, logn_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
+                                     discrete_colorbar=False, formatter = '%1.1f', norm='log', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
+                                     )
+    if style == 'onecol':
+        axes[0].tick_params(labelbottom=False)
+        axes[0].set_ylabel(r'Dec offset (pc)', fontsize = labelsize)
+        axes[1].set_ylabel(r'Dec offset (pc)', fontsize = labelsize)
+        axes[1].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
+    else:
+        axes[0].set_ylabel(r'Dec offset (pc)', fontsize = labelsize)
+        axes[0].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
+        axes[1].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
+    fig.savefig(f'{fig_path}{fig_name}pvtest_texandcol_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+

@@ -1,9 +1,6 @@
 
 import os
 
-
-
-
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import utiles_cubes
 from astrothesispy.utiles import utiles_nLTEmodel
@@ -437,12 +434,6 @@ def models_calculations(results_path, source, D_Mpc):
         
     return modsum_df, hc_df, rolffs_df, bgn_df, pfalzner_df, lada_df, portout_df, portin_df
 
-        # SHC_compfig_helper.plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, results_path
-        #                                     , pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True)
-        
-        # SHC_compfig_helper.plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, results_path
-        #                                     , pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True)
-        
 def fit_abund_profile(mname, my_model_path, figinp_path):
     fit_XHC3N, x_profile, shell_dists, model_dists = utiles_nLTEmodel.plot_model_input([mname], my_model_path, figinp_path)
     poly = np.polyfit(model_dists, x_profile, deg=16)

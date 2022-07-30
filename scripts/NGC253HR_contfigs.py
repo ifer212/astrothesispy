@@ -25,7 +25,7 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # =============================================================================
 # Continuum figures
 # =============================================================================
-def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = 3.5):
+def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = 3.5, fig_name = ''):
     """
         Figure 1 for NGC253 HR paper
     """
@@ -142,11 +142,11 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
                         va='center', color = 'k', zorder=4)     
     axes[0].set_ylim([0, cubo_219.shape[2]])
     axes[0].set_xlim([0, cubo_219.shape[3]])
-    fig.savefig(fig_path+'219GHz_0.02x0.02_jet_3rms_newnames_ulvestad.pdf', bbox_inches='tight', transparent=True, dpi=800)
+    fig.savefig(f'{fig_path}{fig_name}219GHz_0.02x0.02_jet_3rms_newnames_ulvestad.pdf', bbox_inches='tight', transparent=True, dpi=800)
     plt.close()
         
     
-def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path, ind_fig = False, D_Mpc = 3.5):
+def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path, ind_fig = False, D_Mpc = 3.5, fig_name = ''):
     """
         Figure 2 for NGC253 HR paper
         ind_fig = True plots every SHC as an individual figure
@@ -257,11 +257,11 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
                 axes[p].annotate(row['Source_altern_sub_final'], xy=(px219, py219), xytext=(int(px219+pxm), int(py219+pym)), fontsize=sscfontsize,
                             arrowprops={'headwidth': 0.1, 'headlength': 0.1, 'width':0.5, 'color': 'k'},
                             va='center', color = 'k', zorder=4) 
-        fig.savefig(fig_path+'ALL_subcont_219GHz_0.02x0.02_jet5rms_newnames.pdf', pad_inches=0, bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{fig_path}{fig_name}ALL_subcont_219GHz_0.02x0.02_jet5rms_newnames.pdf', pad_inches=0, bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
         
         
-def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = 3.5, source = 'SHC_13'):
+def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = 3.5, source = 'SHC_13', fig_name = ''):
     """
         Figure 3 for NGC253 HR paper
     """
@@ -454,5 +454,5 @@ def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, 
                                 pixsize=cubo_350.pylen*3600, pa=cubo_350.bpa, axis=axes[0], wcs=cubo_m02423v0.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
     
-    fig.savefig(f'{fig_path}{source}_HC3N_0moments_bar_cont_v3.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{fig_name}{source}_HC3N_0moments_bar_cont_v3.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
