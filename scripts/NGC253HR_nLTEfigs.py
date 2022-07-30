@@ -1,5 +1,6 @@
 from astrothesispy.radiative_transfer import NGC253HR_nLTE_modelresults
 from astrothesispy.utiles import utiles_nLTEmodel
+from astrothesispy.utiles import utiles_plot as plot_utiles
 import matplotlib.gridspec as gridspec
 
 import matplotlib.pyplot as plt
@@ -7,91 +8,110 @@ import numpy as np
 import pandas as pd
 from glob import glob
 
-presen_figs = False
-paper_figs = True
 get_chi2_and_ind_plot = False
 redo_lum_and_sum = False
 plot_models_absorption = False
 comp_LTEvsNLTE = False
 model_difs = False
 
-# For presen images
-if presen_figs:
-    line_column = {'plot_conts': [],
-                'v=0_26_25_SM': [15, r'$v=0$  26 - 25', [-10, 111], 1], 
-                'v7=1_24_1_23_-1_SM': [15, r'$v_{7}=1$  24,1 - 23,-1', [-10, 111], 6],
-                'v7=1_26_1_25_-1_SM': [15, r'$v_{7}=1$  26,1 - 25,-1', [-10, 111], 2],
-                'v6=1_24_-1_23_1_SM': [15, r'$v_{6}=1$  24,-1 - 23,1', [-4, 54], 10],
-                'v6=1_26_-1_25_1_SM': [15, r'$v_{6}=1$  26,-1 - 25,1', [-4, 54], 3],
-                'v7=2_24_0_23_0_SM':  [15, r'$v_{7}=2$  24,0 - 23,0', [-4, 54], 11],
-                'v7=2_26_0_25_0_SM':  [15, r'$v_{7}=2$  26,0 - 25,0', [-4, 54], 4],
-                'v5=1_v7=3_26_1_0_25_-1_0_SM':  [10, r'$v_{5}=1/v_7=3$  26,1,0 - 25,-1,0', [-4, 34], 7],
-                'v6=v7=1_26_2_25_-2_SM': [10, r'$v_{6}=v_{7}=1$  26,2,2 - 25,-2,2', [-4, 34],  8],
-                'v4=1_26_25_SM': [10, r'$v_{4}=1$  26 - 25', [-3, 23], 5],
-                'v6=2_24_0_23_0_SM':  [10, r'$v_{6}=2$  24,0 - 23,0', [-3, 23], 9],
-                }
+ 
+def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = 3.5, Rcrit = 0.85, plot_type = 'SBmods', paper_figs = True, presen_figs = False, fortcomp=False):
+    """
+        Plotting model results
+        plot_type = "SBmods" plots the SB models (distributed star formation)
+        plot_type = "AGNmods" plots the AGN models (centered star formation)
+        presen_figs = True plots the figures for presentations (simpler figs)
+        paper_figs = True plots the figures for publication
+        fortcomp = False avoids fortran compilation to convolve by beam the modelled data (need the compiled .31 files)
+    """
+    # Radiative transfer models paths
+    my_model_path = f'{rad_transf_path}/models/mymods/'
+    fort_paths = f'{rad_transf_path}/{source}/'
+    # Loads obs fluxes
+    obs_df, new_hb_df, cont_df = NGC253HR_nLTE_modelresults.load_observed_LTE(NGC253_path, source, results_path, fig_path, fort_paths, plot_LTE_lum = False) 
+    # Lines for presen images
+    if presen_figs:
+        line_column = {'plot_conts': [],
+                    'v=0_26_25_SM': [15, r'$v=0$  26 - 25', [-10, 111], 1], 
+                    'v7=1_24_1_23_-1_SM': [15, r'$v_{7}=1$  24,1 - 23,-1', [-10, 111], 6],
+                    'v7=1_26_1_25_-1_SM': [15, r'$v_{7}=1$  26,1 - 25,-1', [-10, 111], 2],
+                    'v6=1_24_-1_23_1_SM': [15, r'$v_{6}=1$  24,-1 - 23,1', [-4, 54], 10],
+                    'v6=1_26_-1_25_1_SM': [15, r'$v_{6}=1$  26,-1 - 25,1', [-4, 54], 3],
+                    'v7=2_24_0_23_0_SM':  [15, r'$v_{7}=2$  24,0 - 23,0', [-4, 54], 11],
+                    'v7=2_26_0_25_0_SM':  [15, r'$v_{7}=2$  26,0 - 25,0', [-4, 54], 4],
+                    'v5=1_v7=3_26_1_0_25_-1_0_SM':  [10, r'$v_{5}=1/v_7=3$  26,1,0 - 25,-1,0', [-4, 34], 7],
+                    'v6=v7=1_26_2_25_-2_SM': [10, r'$v_{6}=v_{7}=1$  26,2,2 - 25,-2,2', [-4, 34],  8],
+                    'v4=1_26_25_SM': [10, r'$v_{4}=1$  26 - 25', [-3, 23], 5],
+                    'v6=2_24_0_23_0_SM':  [10, r'$v_{6}=2$  24,0 - 23,0', [-3, 23], 9],
+                    }
+    # Lines for paper
+    if paper_figs:
+        line_column = {'plot_conts': [],
+                    'v=0_26_25_SM': [15, r'$v=0$  26 - 25', [-10, 150], 1], 
+                    'v7=1_24_1_23_-1_SM': [15, r'$v_{7}=1$  24,1 - 23,-1', [-10, 150], 6],
+                    'v7=1_26_1_25_-1_SM': [15, r'$v_{7}=1$  26,1 - 25,-1', [-10, 150], 2],
+                    'v6=1_24_-1_23_1_SM': [15, r'$v_{6}=1$  24,-1 - 23,1', [-10, 74], 10],
+                    'v6=1_26_-1_25_1_SM': [15, r'$v_{6}=1$  26,-1 - 25,1', [-10, 74], 3],
+                    'v7=2_24_0_23_0_SM':  [15, r'$v_{7}=2$  24,0 - 23,0', [-5, 74], 11],
+                    'v7=2_26_0_25_0_SM':  [15, r'$v_{7}=2$  26,0 - 25,0', [-5, 74], 4],
+                    'v5=1_v7=3_26_1_0_25_-1_0_SM':  [10, r'$v_{5}=1/v_7=3$  26,1,0 - 25,-1,0', [-3, 39], 7],
+                    'v6=v7=1_26_2_25_-2_SM': [10, r'$v_{6}=v_{7}=1$  26,2,2 - 25,-2,2', [-3, 39],  8],
+                    'v4=1_26_25_SM': [10, r'$v_{4}=1$  26 - 25', [-3, 29], 5],
+                    'v6=2_24_0_23_0_SM':  [10, r'$v_{6}=2$  24,0 - 23,0', [-3, 29], 9],
+                    }
+    # Naming flux errors properly
+    for l,line in enumerate(line_column):
+        if line != 'plot_conts':
+            # Cont error already included in line error!  
+            new_hb_df[line+'_mJy_kms_beam_orig_errcont'] = new_hb_df[line+'_mJy_kms_beam_orig_err']#np.sqrt(new_hb_df[line+'_mJy_kms_beam_orig_err']**2 + new_hb_df['cont_'+line+'_beam_orig_err']**2)
+            new_hb_df[line+'_mJy_kms_beam_345_errcont'] = new_hb_df[line+'_mJy_kms_beam_345_err']#np.sqrt(new_hb_df[line+'_mJy_kms_beam_345_err']**2 + new_hb_df['cont_'+line+'_beam_345_err']**2)
+            
+    # Best SB nLTE models
+    if plot_type == 'SBmods':
+        cont_modelplot = 'model2'
+        modelos = {
+                    'model1': ['m13_LTHC3Nsbsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_b3','dustsblum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
+                                    1.5, plot_utiles.azure, [1, 1, 2.0]],
+                    'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
+                                    1.5, plot_utiles.redpink , [1, 2.3, 1.9]],
+                    'model3': ['m23_LTHC3Nsbsig5.5E+07cd1.0E+25q1.0nsh30rad1.5vt5_b7','dustsblum5.0E+10cd1.0E+25exp1.0nsh1002rad17',
+                                    1.5, plot_utiles.green, [1, 1, 1]],
+                    'model4': ['m24_LTHC3Nsbsig5.5E+07cd1.0E+25q1.5nsh30rad1.5vt5_a7','dustsblum5.0E+10cd1.0E+25exp1.5nsh1003rad17',
+                                    1.5, plot_utiles.violet, [1, 1, 1]] 
+                    }
 
-# Lines for paper
-if paper_figs:
-    line_column = {'plot_conts': [],
-                'v=0_26_25_SM': [15, r'$v=0$  26 - 25', [-10, 150], 1], 
-                'v7=1_24_1_23_-1_SM': [15, r'$v_{7}=1$  24,1 - 23,-1', [-10, 150], 6],
-                'v7=1_26_1_25_-1_SM': [15, r'$v_{7}=1$  26,1 - 25,-1', [-10, 150], 2],
-                'v6=1_24_-1_23_1_SM': [15, r'$v_{6}=1$  24,-1 - 23,1', [-10, 74], 10],
-                'v6=1_26_-1_25_1_SM': [15, r'$v_{6}=1$  26,-1 - 25,1', [-10, 74], 3],
-                'v7=2_24_0_23_0_SM':  [15, r'$v_{7}=2$  24,0 - 23,0', [-5, 74], 11],
-                'v7=2_26_0_25_0_SM':  [15, r'$v_{7}=2$  26,0 - 25,0', [-5, 74], 4],
-                'v5=1_v7=3_26_1_0_25_-1_0_SM':  [10, r'$v_{5}=1/v_7=3$  26,1,0 - 25,-1,0', [-3, 39], 7],
-                'v6=v7=1_26_2_25_-2_SM': [10, r'$v_{6}=v_{7}=1$  26,2,2 - 25,-2,2', [-3, 39],  8],
-                'v4=1_26_25_SM': [10, r'$v_{4}=1$  26 - 25', [-3, 29], 5],
-                'v6=2_24_0_23_0_SM':  [10, r'$v_{6}=2$  24,0 - 23,0', [-3, 29], 9],
-                }
-
-for l,line in enumerate(line_column):
-    if line != 'plot_conts':
-        # Cont error already included in line error!  
-        new_hb_df[line+'_mJy_kms_beam_orig_errcont'] = new_hb_df[line+'_mJy_kms_beam_orig_err']#np.sqrt(new_hb_df[line+'_mJy_kms_beam_orig_err']**2 + new_hb_df['cont_'+line+'_beam_orig_err']**2)
-        new_hb_df[line+'_mJy_kms_beam_345_errcont'] = new_hb_df[line+'_mJy_kms_beam_345_err']#np.sqrt(new_hb_df[line+'_mJy_kms_beam_345_err']**2 + new_hb_df['cont_'+line+'_beam_345_err']**2)
+    # Best AGN nLTE models (including SB model 2)
+    if plot_type == 'AGNmods':
+        cont_modelplot = 'model7'
+        # Model 2 is SB model (the bestfit model)
+        modelos= { 
+                        'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
+                                    1.5, plot_utiles.redpink , [1, 1.0, 1.9]],
+                        'model5': ['agn4_LTHC3Nagnsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_a6','dustagnlum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
+                                    1.5, plot_utiles.dviolet, [1, 1, 1.0]],
+                        'model6': ['agn5_LTHC3Nagnsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_a2','dustagnlum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
+                                    1.5, plot_utiles.dazure, [1, 1, 1.0]],
+                        'model7': ['agn9_LTHC3Nagnsig1.3E+07cd5.6E+24q1.0nsh30rad1.5vt5_x4','dustagnlum1.2E+10cd5.6E+24exp1.0nsh564rad17',
+                                    1.5, plot_utiles.dgreen, [1, 1, 1.0]],
+                    }
         
+    
+    # Final figures for present
+    if presen_figs:
+        utiles_nLTEmodel.plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, fig_path, fig_path,
+                                                           fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp)
+
+    # Final paper figures for publication
+    if paper_figs:
+        convolve = True # Using or not convolved fluxes (for adjacent rings)
         
-Rcrit = 0.85
-# Best SB nLTE models
-sbbestmods = {
-             'model1': ['m13_LTHC3Nsbsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_b3','dustsblum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
-                            1.5, azure, [1, 1, 2.0]],
-             'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
-                            1.5, redpink , [1, 2.3, 1.9]],
-             'model3': ['m23_LTHC3Nsbsig5.5E+07cd1.0E+25q1.0nsh30rad1.5vt5_b7','dustsblum5.0E+10cd1.0E+25exp1.0nsh1002rad17',
-                            1.5, green, [1, 1, 1]],
-             'model4': ['m24_LTHC3Nsbsig5.5E+07cd1.0E+25q1.5nsh30rad1.5vt5_a7','dustsblum5.0E+10cd1.0E+25exp1.5nsh1003rad17',
-                            1.5, violet, [1, 1, 1]] 
-             }
-
-# Best AGN nLTE models (including SB model 2)
-agnbestmods= { 'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
-                            1.5, redpink , [1, 1.0, 1.9]],
-                      'model5': ['agn4_LTHC3Nagnsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_a6','dustagnlum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
-                            1.5, dviolet, [1, 1, 1.0]],
-                      'model6': ['agn5_LTHC3Nagnsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_a2','dustagnlum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
-                            1.5, dazure, [1, 1, 1.0]],
-                      'model7': ['agn9_LTHC3Nagnsig1.3E+07cd5.6E+24q1.0nsh30rad1.5vt5_x4','dustagnlum1.2E+10cd5.6E+24exp1.0nsh564rad17',
-                            1.5, dgreen, [1, 1, 1.0]],
-               }
-
-modelos = sbbestmods
-    # Final figures present
-if presen_figs:
-    utiles_nLTEmodel.plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, finalfigmod_path, finalfigmod_path, fort_paths)
-
-# Final paper figures
-if paper_figs:
-    convolve = True # Using or not convolved fluxes (for adjacent rings)
-    utiles_nLTEmodel.plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, finalfigmod_path, finalfigmod_path, fort_paths)
+        utiles_nLTEmodel.plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, fig_path, fig_path,
+                                                           fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp)
 
 if get_chi2_and_ind_plot:
     for i,modelo in enumerate(modelos):
         modsing = {modelo: modelos[modelo]}
-        utiles_nLTEmodel.line_profiles_chi2(new_hb_df, line_column, modsing, fort_paths, my_model_path, Rcrit)
+        utiles_nLTEmodel.line_profiles_chi2(new_hb_df, line_column, modsing, fort_paths, my_model_path, Rcrit, results_path)
 
 if redo_lum_and_sum:
     slines = ['ring', 'dist',

@@ -7,7 +7,6 @@ import os
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import utiles_cubes
 from astrothesispy.utiles import utiles_nLTEmodel
-from astrothesispy.utiles import SHC_compfig_helper
 from astrothesispy.utiles import utiles_plot as plot_utiles
 from astrothesispy.utiles import u_conversion
 from astrothesispy.utiles import utiles_physical
@@ -72,7 +71,7 @@ if not os.path.exists(finalfigmod_path):
     os.makedirs(finalfigmod_path)
     
 # SLIM observed Results
-def load_observed_LTE(NGC253_path, source, results_path, fig_path, plot_LTE_lum = False):
+def load_observed_LTE(NGC253_path, source, results_path, fig_path, fort_paths, plot_LTE_lum = False):
     """ 
         Loads the observed data from LTE
     """
@@ -92,7 +91,7 @@ def load_observed_LTE(NGC253_path, source, results_path, fig_path, plot_LTE_lum 
         fig.savefig(fig_path+'LTE_Lum_profile.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
     # Observed fluxes 
-    new_hb_path = f'{NGC253_path}/{source}/EdFlux/{source}_flujos_hc3n_python.xlsx'
+    new_hb_path = f'{NGC253_path}/SHC/{source}/EdFlux/{source}_flujos_hc3n_python.xlsx'
     new_hb_df = pd.read_excel(new_hb_path, header=0)
     # Observed conts
     cont_path = fort_paths+'SHC13_flujos_continuo_def.dat'

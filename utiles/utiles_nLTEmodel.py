@@ -327,7 +327,7 @@ def mass_from_nh2_number_dens(nh2_cm3, rad_pc):
     mass_msun = (dens_mass_cm3*volume_cm3)*(1.*u.g).to(u.Msun).value
     return mass_msun    
 
-def read_model_input(modelo, my_model_path, Rcrit, obs_df_path):
+def read_model_input(modelo, my_model_path, results_path, Rcrit):
     """
      Reads model parameters from .inp and also de observed values
     """
@@ -401,14 +401,14 @@ def read_model_input(modelo, my_model_path, Rcrit, obs_df_path):
     logNHC3N_profile_corr = np.log10(NHC3N_profile_corr)
     logNH2_profile_corr = np.log10(NH2_profile_corr)
     
-    obs_df = pd.read_csv(f'{obs_df_path}/SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
+    obs_df = pd.read_csv(f'{results_path}SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
     obs_df['Dist_mean_cm'] = obs_df['Dist_mean_pc']*(1*u.pc).to(u.cm).value
     poly = np.polyfit(obs_df['Dist_mean_pc'], obs_df['Col_det'], deg=6)
     fit_logNHC3N = np.polyval(poly, rpc_profile)
     fit_XHC3N = (10**fit_logNHC3N)/np.array(NH2_profile)
     return obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof
 
-def plot_model_input(modelo, my_model_path, figinp_path, obs_df_path):
+def plot_model_input(modelo, my_model_path, figinp_path, results_path):
     """
      Plots model input properties
     """
@@ -440,7 +440,7 @@ def plot_model_input(modelo, my_model_path, figinp_path, obs_df_path):
     logNH2_profile = np.log10(NH2_profile)
     NHC3N_profile = np.array(NH2_profile)*np.array(x_profile)
     logNHC3N_profile = np.log10(NHC3N_profile)
-    obs_df = pd.read_csv(f'{obs_df_path}SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
+    obs_df = pd.read_csv(f'{results_path}SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
     obs_df['dist_ring_cm'] = obs_df['dist_ring_pc']*(1*u.pc).to(u.cm).value
     poly = np.polyfit(obs_df['dist_ring_pc'], obs_df['Col_det'], deg=6)
     fit_logNHC3N = np.polyval(poly, rpc_profile)
@@ -495,10 +495,11 @@ def plot_model_input(modelo, my_model_path, figinp_path, obs_df_path):
     plt.close()
     return fit_XHC3N, x_profile, obs_df['dist_ring_pc'].tolist(), rpc_profile
 
-def line_profiles_chi2(hb_df, line_column, modelos, fort_paths, my_model_path, Rcrit, distance_pc=3.5e6):
+def line_profiles_chi2(hb_df, line_column, modelos, fort_paths, my_model_path, Rcrit, results_path, D_Mpc = 3.5):
     """
         Estimates de chi2 from the modelled line profiles
     """
+    distance_pc = D_Mpc*1e6
     for l,line in enumerate(line_column):
         if line not in ['plot_conts', 'plot_T', 'plot_col', 'plot_dens', 'plot_x', 'ratio_v6_v6v7']:
             for i,row in hb_df.iterrows():
@@ -519,7 +520,7 @@ def line_profiles_chi2(hb_df, line_column, modelos, fort_paths, my_model_path, R
         # Modelled emission
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
         # Model parameters
-        bs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof =  read_model_input(modelo, my_model_path, Rcrit)
+        bs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof =  read_model_input(modelo, my_model_path, results_path, Rcrit)
         # Model luminosity
         model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
         lines_chi = 0
@@ -530,7 +531,7 @@ def line_profiles_chi2(hb_df, line_column, modelos, fort_paths, my_model_path, R
                 lines_chi += chi2
         print(f'Total Chi2 : Sum {lines_chi:1.2f} Mean {lines_chi/11:1.2f}')
         
-def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model_path, results_path, savefig_path, distance_pc=3.5e6):
+def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model_path, results_path, savefig_path, D_Mpc = 3.5):
     """
      Difference between continuum from dust model and from HC3N model (i.e. free-free)
          Leroy36df_new['219GHz_SM_deconvFWHM_pc_fit'] # Size at 219GHz at the 345GHz resolution
@@ -539,6 +540,7 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
          Leroy36df_new['Size_limit']                  # Size of the 111GHz (free-free) emission
          Leroy36df_new['Size_limit_opt_thin']         # Size of the 111GHz (free-free) emission assuming opt thin
     """
+    distance_pc = D_Mpc*1e6
     results_path = '/Users/frico/Documents/data/NGC253_HR/Results_v2/'
     modelos = { 'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
                             1.5, utiles_plot.redpink , [1, 1.0, 1.9]]}
@@ -686,7 +688,7 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
         else:
             LTE = modelo[6]
         # Model parameters
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit_pc)
+        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
         # Modelled emission
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE=True, read_only=True)
         # Model luminosity
@@ -771,11 +773,12 @@ def line_chi2(obs, mod, line, beam='_beam_orig'):
             chi2 += ((row[line+'_mJy_kms'+beam]-mod_cl[line+beam][0])**2)/(7*nch*(0.3*row[line+'_mJy_kms'+beam]**2))
     return chi2                
     
-def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, results_path,
+                                 writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, D_Mpc = 3.5):
     """
        Plots model parameters and observations
     """
-     
+    distance_pc = D_Mpc*1e6
     mykeys = list(line_column.keys())
     plot_only_cont = ['model7']#['model2']
     plot_corr_cols = False
@@ -935,7 +938,7 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
         else:
             LTE = modelo[6]
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
         model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
         mtau100 = get_tau100(my_model_path, modelo[0])
         total_NH2 = np.nansum(10**logNH2_profile)
@@ -1168,7 +1171,7 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
         else:
             LTE = modelo[6]
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
         model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
         for l,line in enumerate(mykeys_flux):
             if l==0:
@@ -1710,10 +1713,12 @@ def plot_models_and_inp_finalfig(Rcrit, line_column, modelos, hb_df, cont_df, my
         fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios2_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()   
 
-def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, results_path,
+                             writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, D_Mpc = 3.5):
     """
         Plots model comparisson parameters
     """
+    distance_pc = D_Mpc*1e6
     # Figures
     plot_conts_and_tex = False
     plot_corr_dens = False
@@ -1885,7 +1890,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
             else:
                 LTE = modelo[6]
             mdust, m_molec, m_molec345, rout_model_hc3n_pc, tau_molec, tau_dust = model_reader_comp(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
             model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
             mtau100 = get_tau100(my_model_path, modelo[0])
             total_NH2 = np.nansum(10**logNH2_profile)
@@ -2120,7 +2125,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
             else:
                 LTE = modelo[6]
             mdust, m_molec, m_molec345, rout_model_hc3n_pc, tau_molec, tau_dust = model_reader_comp(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
             model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
             for l,line in enumerate(mykeys_flux):
                 if l==0:
@@ -2793,10 +2798,12 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
             fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
 
-def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, results_path,
+                                      writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, D_Mpc = 3.5):
     """
         Plots models profiles and values in a more clear figure
     """
+    distance_pc = D_Mpc*1e6
     mykeys = list(line_column.keys())
     plot_only_cont = []
     plot_corr_cols = False
@@ -2951,7 +2958,7 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
         else:
             LTE = modelo[6]
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
         model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
         mtau100 = get_tau100(my_model_path, modelo[0])
         total_NH2 = np.nansum(10**logNH2_profile)
@@ -3548,14 +3555,16 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
     plt.close()
     
 def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_df, cont_df,
-                                      my_model_path, figmod_path, figrt_path, fort_paths,
+                                      my_model_path, figmod_path, figrt_path, fort_paths, results_path,
                                       writename = True, plot_CH3CN = False, plot_col = True,
                                       cont_modelplot = 'model2',
-                                      plot_opacity = False, distance_pc = 3.5e6, source_rad=0):
+                                      plot_opacity = False, D_Mpc = 3.5, source_rad=0, fortcomp=False):
     """ 
         Plots nLTE models for the final version of the paper
         convolve = False gets the model data without convolving by the beam
+        fortcomp = False avoids fortran compilation to convolve by beam the modelled data (need the compiled .31 files)
     """
+    distance_pc = D_Mpc*1e6
     cont_Tex_N_X_fig = True
     cont_Tex_N_X_fig_BIG = True
     line_profiles = True
@@ -3737,10 +3746,10 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
             else:
                 LTE = modelo[6]
             if convolve:
-                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad, read_only=fortcomp)
             else:
                 mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
             model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
             mtau100 = get_tau100(my_model_path, modelo[0])
             total_NH2 = np.nansum(10**logNH2_profile)
@@ -4059,7 +4068,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
                 mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
             else:
                 mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
             model_lum = lum_from_dustmod(modelo[1], my_model_path, distance_pc, rout_model_hc3n_pc)
             mtau100 = get_tau100(my_model_path, modelo[0])
             total_NH2 = np.nansum(10**logNH2_profile)
@@ -4445,7 +4454,6 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
                         labelbottom=False)
             else:
                 axes[l].set_xlabel(r'r (pc)', fontsize = labelsize)
-        D_Mpc = 3.5
         beam_size = 0.020/2 #arcsec
         xstart = 0.2
         ypos = 0.0
@@ -4471,7 +4479,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
             else:
                 LTE = modelo[6]
             if convolve:
-                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad, read_only=fortcomp)
             else:
                 mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
             for l,line in enumerate(mykeys_flux):
@@ -4659,7 +4667,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
             else:
                 LTE = modelo[6]
             if convolve:
-                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad)
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad=source_rad, read_only=fortcomp)
             else:
                 mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
             for l,line in enumerate(mykeys_flux):
@@ -4801,7 +4809,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
             else:
                 LTE = modelo[6]
             if convolve:
-                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, read_only=fortcomp)
             else:
                 mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
 
@@ -4850,6 +4858,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
         labelsize = 35
         tickfontsize = 28
         fontsize = 25
+        modelname_fontsize = 30
         contms = 10
         linems = 10
         axcolor = 'k'
@@ -4955,7 +4964,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
             else:
                 LTE = modelo[6]
             if convolve:
-                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE)
+                mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, read_only=fortcomp)
             else:
                 mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader_noconv(modelo, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
 
@@ -4969,22 +4978,22 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
                                                 color = mod_color,  
                                                 horizontalalignment='right',
                                                 verticalalignment='top',
-                                                fontsize=fontsize,
+                                                fontsize=modelname_fontsize,
                                                 transform=axes[l].transAxes)
                 mol_ratio = m_molec[ratio_lines[ratio][0]+'_beam_orig']/m_molec[ratio_lines[ratio][1]+'_beam_orig']
                 axes[l].plot(m_molec[0], mol_ratio, color=mod_color, linestyle= '-', zorder=mzord)
                 if plot_ratio345:
                     mol_ratio345 = m_molec345[ratio_lines[ratio][0]+'_beam_345']/m_molec345[ratio_lines[ratio][1]+'_beam_345']
                     axes[l].plot(m_molec345[0], mol_ratio345, color=mod_color, linestyle= '--', zorder=2)
-            ytextpos = ytextpos -0.045
+            ytextpos = ytextpos -0.048
         D_Mpc = 3.5
         beam_size = 0.020/2 #arcsec
         xstart = 1.15
         ypos = 0.85
         beam_size_pc = u_conversion.lin_size(D_Mpc, beam_size).to(u.pc).value
         axes[0].hlines(ypos, xmin=xstart, xmax=xstart+beam_size_pc, color='k', linestyle='-', lw=1.2)
-        axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2+0.57,ypos), xytext=((xstart+beam_size_pc)/2+0.57,ypos+0.1), weight='bold',
-                            fontsize=fontsize-4, color='k',
+        axes[0].annotate('FWHM/2', xy=((xstart+beam_size_pc)/2+0.57,ypos), xytext=((xstart+beam_size_pc)/2+0.57,ypos+0.11), weight='bold',
+                            fontsize=fontsize, color='k',
                             horizontalalignment='center',
                             verticalalignment='center',)
         if len(modelos) == 1:
@@ -4995,7 +5004,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
             fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios2_big_SM_papfin'+convstr+'.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
 
-def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
+def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, results_path, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
     source_rad = 1.5
     mykeys = list(line_column.keys())
     plot_only_cont = []#['model2']
@@ -5243,7 +5252,7 @@ def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, 
             else:
                 LTE = modelo[6]
             mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+            obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
             rhc3n = [i for i in range(len(x_profile)) if x_profile[i] < 1e-11]
             for l,line in enumerate(mykeys_flux):
                 if l == 0:
@@ -5400,7 +5409,7 @@ def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, 
         else:
             LTE = modelo[6]
         mdust, m_molec, m_molec345, rout_model_hc3n_pc = model_reader(modelo, fort_paths, factor_model_hc3n, factor_model_ff, factor_model_dust, line_column, my_model_path, LTE, source_rad)
-        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, Rcrit)
+        obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = read_model_input(modelo, my_model_path, results_path, Rcrit)
         rhc3n_ind = [i for i in range(len(x_profile)) if x_profile[i] < 1e-11]
         if len(rhc3n_ind)==0:
             rhc3n = 1.5
