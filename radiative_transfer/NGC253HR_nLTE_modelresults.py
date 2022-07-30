@@ -14,7 +14,7 @@ from astrothesispy.utiles import u_conversion
 import pandas as pd
 import numpy as np
 import astropy.units as u
-from glob import glob
+
 import astropy.constants.si as _si
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -38,6 +38,7 @@ plot_cont = False
 
 # Cubes
 D_Mpc = 3.5 
+Rcrit = 0.85 # pc
 source = 'SHC_13'
 SHC = source
 molecule = 'HC3Nvib_J24J26'
@@ -100,6 +101,7 @@ if load_observed_results:
     ax.set_ylabel(r'L ($10^8$ L$_\odot$)')
     fig.savefig(fig_path+'LTE_Lum_profile.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
+    
 # Models
 if check_model:
     model_name = 'LTHC3Nsbsig1.1E+08cd1.0E+25q1.5nsh30rad1.5col1.0E+16vt5_c2'
