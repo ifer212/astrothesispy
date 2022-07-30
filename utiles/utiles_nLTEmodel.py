@@ -4870,7 +4870,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
         gs1.update(wspace = 0.125, hspace=0.0, top=0.95, bottom = 0.05)#, left=0.05, right=0.80)
         xlabel_ind = -1
         mykeys_flux = ['v71_v61_2423', 'v6_v6v7']
-        xtextpos = 0.15
+        xtextpos = 0.18
         ytextpos = 0.95
         axes=[]
         ytext = 0.95
@@ -4985,7 +4985,7 @@ def plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, hb_
                 if plot_ratio345:
                     mol_ratio345 = m_molec345[ratio_lines[ratio][0]+'_beam_345']/m_molec345[ratio_lines[ratio][1]+'_beam_345']
                     axes[l].plot(m_molec345[0], mol_ratio345, color=mod_color, linestyle= '--', zorder=2)
-            ytextpos = ytextpos -0.048
+            ytextpos = ytextpos -0.049
         D_Mpc = 3.5
         beam_size = 0.020/2 #arcsec
         xstart = 1.15

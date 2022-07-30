@@ -11,8 +11,8 @@ moments_plot = False
 ringspectra_plot = False
 LTE2D_plot = False
 LTEprofiles_plot = False
-SB_models_plot = True
-AGN_models_plot = False
+SB_models_plot = False
+AGN_models_plot = True
 
 
 # =============================================================================
