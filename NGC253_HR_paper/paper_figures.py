@@ -60,3 +60,15 @@ if LTEprofiles_plot:
 # =============================================================================
 # Radiative transfer modelling figures
 # =============================================================================
+
+
+
+# =============================================================================
+# Comparisson figures btw HCs, SHCs and AGNs
+# =============================================================================
+
+SHC_compfig_helper.plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, results_path
+                                    , pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True)
+
+SHC_compfig_helper.plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, results_path
+                                    , pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True)
