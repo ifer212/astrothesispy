@@ -5,16 +5,16 @@ from astrothesispy.scripts import NGC253HR_SLIMfigs
 from astrothesispy.scripts import NGC253HR_nLTEfigs
 from astrothesispy.scripts import NGC253HR_compfigs
 
-cont219_plot = False
-zoom_cont219_plot = False
-moments_plot = False
-ringspectra_plot = False
-LTE2D_plot = False
-LTEprofiles_plot = False
-SB_models_plot = False
-AGN_models_plot = False
-LTEvelprofile_plot = False
-cloudcloud_plot = False
+cont219_plot = True
+zoom_cont219_plot = True
+moments_plot = True
+ringspectra_plot = True
+LTE2D_plot = True
+LTEprofiles_plot = True
+SB_models_plot = True
+AGN_models_plot = True
+LTEvelprofile_plot = True
+cloudcloud_plot = True
 comp_models_plot = True
 
 # =============================================================================
