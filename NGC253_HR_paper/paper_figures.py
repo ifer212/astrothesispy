@@ -100,9 +100,3 @@ if comp_models_plot:
     # Figure 14
     fig_name = 'Figure_14_'
     NGC253HR_compfigs.plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=D_Mpc, fig_name = fig_name)
-
-# SHC_compfig_helper.plot_LIR_comp_ALL(modsum_df, hc_df, rolffs_df, bgn_df, results_path
-#                                     , pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True)
-
-# SHC_compfig_helper.plot_LIR_comp_ALL_big(modsum_df, hc_df, rolffs_df, bgn_df, results_path
-#                                     , pfalzner_df, lada_df, portout_df,portin_df, Lmod_err=0.5, only_HC = True)
