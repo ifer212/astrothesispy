@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 21 23:10:13 2022
-
-@author: Fer
-"""
 
 from astropy.modeling.models import BlackBody as blackbody_nu
 
-from utiles import utiles_alma
-from utiles import u_conversion
+from astrothesispy.utiles import utiles_alma
+from astrothesispy.utiles import u_conversion
 
 import numpy as np
 import pandas as pd

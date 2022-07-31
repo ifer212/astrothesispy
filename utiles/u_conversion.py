@@ -1,11 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar 22 14:20:10 2017
-
-@author: frico
-"""
-
 #==============================================================================
 #                    
 #                   Conversion btw units

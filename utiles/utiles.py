@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 23 12:41:35 2017
-
-@author: frico
-"""
 #==============================================================================
 #                    
 #                   Utils: Recurrent formulas and functions
@@ -62,8 +56,19 @@ def checkEqual(iterator):
     '''
     return len(set(iterator)) <= 1
 
-# Find string between characters
+def find_nearest(array, value):
+    """
+        Find nearest to value in array
+    """
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx, array[idx]
+
+# 
 def find_between( s, first, last ):
+    """
+        Find string between characters
+    """
     try:
         start = s.index( first ) + len( first )
         end = s.index( last, start )
@@ -532,7 +537,6 @@ def weighted_avg_and_stdv2(values, values_err):
     values, weights -- Numpy ndarrays with the same shape.
     
     """
-    
     masked_data = np.ma.masked_array(values, np.isnan(values))
     masked_errs = np.ma.masked_array(values_err, np.isnan(values_err))
     weights = 1/(values_err)
@@ -541,3 +545,14 @@ def weighted_avg_and_stdv2(values, values_err):
     # Fast and numerically precise:
     variance = np.average((values-average)**2, weights=weights)
     return average, np.sqrt(variance)
+
+def latex_float(f):
+    """
+        Returns string with latex exponent format
+    """
+    float_str = "{0:.2g}".format(f)
+    if "e" in float_str:
+        base, exponent = float_str.split("e")
+        return rf'{np.float(base):1.1f}\times10^{{{int(exponent):1.0f}}}'
+    else:
+        return float_str

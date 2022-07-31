@@ -1,6 +1,6 @@
 from .utiles import *
 from .scripts import *
-from .helpers import *
+from .radiative_transfer import *
 from .hc3n import *
 
 
