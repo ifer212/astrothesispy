@@ -580,7 +580,7 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         style = 'twocol' plots both directions
     """
     labelsize = 34
-    ticksize = 28
+    ticksize = 32
     fontsize = 30
     # Paths
     slim_cube_path = f'{NGC253_path}SHC/{source}/SLIM/'
