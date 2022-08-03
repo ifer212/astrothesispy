@@ -25,7 +25,7 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # =============================================================================
 # Continuum figures
 # =============================================================================
-def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = 3.5, fig_name = ''):
+def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = 3.5, fig_name = '', fig_format = '.pdf'):
     """
         Figure 1 for NGC253 HR paper
     """
@@ -34,7 +34,7 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
     # Leroy2018 36GHz data
     #Leroy36df = pd.read_excel(results_path+'Leroy_36GHz.xlsx', header=0, na_values='-')
     #Leroy36df = pd.read_excel('/Users/frico/Documents/data/NGC253_HR/Results_v2/Cont219GHz.xlsx', header=0, na_values='-')
-    Leroy36df = pd.read_excel(results_path+'Leroy_36GHz_python_219_nospind_v2.xlsx', header=0, na_values='-')
+    Leroy36df = pd.read_excel(results_path+'Tables/Leroy_36GHz_python_219_nospind.xlsx', header=0, na_values='-')
     Leroy36df['Source'] = Leroy36df['Source'].astype(str)
     # 36GHz data is from VLA with 0.096"x0.45" convolved to their 350GHz data 0.11"x0.11" (they made it circular from 0.105"x0.065")
     # Values measured in apertures centered on the peaks. 
@@ -42,7 +42,7 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
     # (i.e., to recover this add 1.9 pc in quadrature to the value in the table). See the text for more details.
     Leroy36df['FWHM_pc_conv'] = np.sqrt(Leroy36df['FWHM_pc']**2 + 1.9**2)  
     Leroy36df['FWHM_arcsec'] = np.sqrt(Leroy36df['FWHM_pc']**2 + 1.9**2)  
-    levy_posdf = pd.read_excel(results_path+'/Levy2021_posistions.xlsx', header=0, na_values='-')
+    levy_posdf = pd.read_excel(results_path+'Tables/Levy2021_posistions.xlsx', header=0, na_values='-')
 
     cubo_219_path = NGC253_path+cont_path+location_path+'/MAD_CUB_219GHz_continuum.I.image.pbcor.fits'
     cubo_219 = utiles_cubes.Cube_Handler('219', cubo_219_path)
@@ -142,7 +142,7 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
                         va='center', color = 'k', zorder=4)     
     axes[0].set_ylim([0, cubo_219.shape[2]])
     axes[0].set_xlim([0, cubo_219.shape[3]])
-    fig.savefig(f'{fig_path}{fig_name}219GHz_0.02x0.02_jet_3rms_newnames_ulvestad.pdf', bbox_inches='tight', transparent=True, dpi=800)
+    fig.savefig(f'{fig_path}{fig_name}219GHz_0.02x0.02_jet_3rms_newnames_ulvestad{fig_format}', bbox_inches='tight', transparent=True, dpi=800)
     plt.close()
         
     

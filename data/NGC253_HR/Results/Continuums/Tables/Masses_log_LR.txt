@@ -1,0 +1,25 @@
+\begin{table*}
+\begin{center}
+\caption[]{Masses table  at $0.11\times0.11$ resolution (i.e. $1.87\times1.87$ pc, the 36\,GHz cube resolution)}
+\begin{tabular}{lccccccc}
+\hline \noalign {\smallskip}
+ Position & ZAMS 36GHz & peak ZAMS 111GHz & Int ZAMS 111GHz  & peak ZAMS 219GHz & Int ZAMS 219GHz & Mgas Peak & Mgas Int. \\
+\hline \noalign {\smallskip}
+SHC 1a & $4.30$ & $4.42$& $4.10$ & $4.49$ & $4.30$ & $4.25$ & $4.15$  \\
+SHC 2 & $4.33$ & $4.67$& $4.49$ & $4.87$ & $4.76$ & $4.00$ & $4.82$  \\
+SHC 3a & $4.09$ & $4.56$& $4.53$ & $4.84$ & $4.82$ & $4.36$ & $nan$  \\
+SHC 4a & $5.00$ & $4.72$& $4.76$ & $4.55$ & $4.58$ & $4.89$ & $nan$  \\
+SHC 5a & $5.42$ & $5.34$& $5.73$ & $5.29$ & $5.52$ & $4.79$ & $nan$  \\
+SHC 6 & $5.28$ & $4.94$& $5.10$ & $4.74$ & $4.83$ & $4.00$ & $nan$  \\
+SHC 7a & $4.53$ & $4.48$& $4.67$ & $4.45$ & $4.56$ & $3.87$ & $nan$  \\
+SHC 8a & $4.81$ & $4.96$& $5.08$ & $5.05$ & $5.12$ & $4.37$ & $nan$  \\
+SHC 9 & $5.49$ & $5.27$& $5.59$ & $5.14$ & $5.33$ & $4.87$ & $nan$  \\
+SHC 10b & $5.27$ & $4.91$& $5.34$ & $4.70$ & $4.95$ & $4.96$ & $nan$  \\
+SHC 11a & $5.58$ & $5.25$& $5.62$ & $5.05$ & $5.27$ & $3.86$ & $nan$  \\
+SHC 12 & $6.02$ & $5.47$& $7.74$ & $5.15$ & $6.50$ & $4.76$ & $nan$  \\
+SHC 13a & $4.81$ & $5.01$& $5.12$ & $5.12$ & $5.19$ & $4.79$ & $nan$  \\
+SHC 14 & $5.46$ & $5.52$& $6.03$ & $5.55$ & $5.86$ & $5.38$ & $nan$  \\
+\hline \noalign {\smallskip}
+\end{tabular}
+\end{center}
+\end{table*}

@@ -5,7 +5,7 @@ from astrothesispy.scripts import NGC253HR_SLIMfigs
 from astrothesispy.scripts import NGC253HR_nLTEfigs
 from astrothesispy.scripts import NGC253HR_compfigs
 
-cont219_plot = False
+cont219_plot = True
 zoom_cont219_plot = False
 moments_plot = False
 ringspectra_plot = False
@@ -13,7 +13,7 @@ LTE2D_plot = False
 LTEprofiles_plot = False
 SB_models_plot = False
 AGN_models_plot = False
-LTEvelprofile_plot = True
+LTEvelprofile_plot = False
 cloudcloud_plot = False
 comp_models_plot = False
 
@@ -25,22 +25,24 @@ Rcrit = 0.85
 source = 'SHC_13'
 molecule = 'HC3Nvib_J24J26'
 NGC253_path = '/mnt/c/Users/Usuario/Documents/CAB/NGC253_HR/'
-NGC253_path = '/mnt/c/Users/Usuario/Documents/CAB/NGC253_HR/'
-results_path = f'{NGC253_path}Results_v2/'
+NGC253_path = 'data/NGC253_HR/'
+results_path = f'{NGC253_path}Results/'
 cont_path = 'Continuums/'
 moments_path = f'{NGC253_path}/SHC/{source}/moments/'
 location_path = ''
-fig_path = f'{NGC253_path}new_figs/'
+fig_path = f'{results_path}Figures/{source}'
 if not os.path.exists(fig_path):
     os.makedirs(fig_path)
 rad_transf_path = '/mnt/c/Users/Usuario/Documents/CAB/radtransf/program/'
+rad_transf_path = f'{results_path}/radtransf/program/'
+figure_format = '.pdf'
 # =============================================================================
 # Continuum & Moments figures
 # =============================================================================
 if cont219_plot:
     # Figure 1
     fig_name = 'Figure_1_'
-    NGC253HR_contfigs.plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc, fig_name = fig_name)
+    NGC253HR_contfigs.plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc, fig_name = fig_name, fig_format = figure_format)
     
 if zoom_cont219_plot:
     # Figure 2
