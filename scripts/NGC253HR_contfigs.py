@@ -444,6 +444,8 @@ def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, 
     plot_utiles.Beam_plotter(px=px+9, py=py, bmin=cubo_350.bmin*3600, bmaj=cubo_350.bmaj*3600,
                                 pixsize=cubo_350.pylen*3600, pa=cubo_350.bpa, axis=axes[0], wcs=cubo_m02423v0.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
-    
-    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_HC3N_0moments.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig_spath = f'{fig_path}{source}'
+    if not os.path.exists(fig_spath):
+        os.makedirs(fig_spath)
+    fig.savefig(f'{fig_spath}/{fig_name}{source}_HC3N_0moments.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()

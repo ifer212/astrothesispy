@@ -1,4 +1,4 @@
-
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -16,6 +16,9 @@ def plot_LIR_comp(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.5, only_
     """
         Comparison btw HC, SHC and AGNs
     """
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
     modsum_df, hc_df, rolffs_df, bgn_df, pfalzner_df, lada_df, portout_df, portin_df = NGC253HR_nLTE_modelresults.models_calculations(results_path, source, D_Mpc)
     ms = 12
     figsize = 8
@@ -480,5 +483,5 @@ def plot_LIR_comp(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.5, only_
         axis[v].tick_params(axis='both', which='major', labelsize=ticksize)
         axis[v].tick_params(labelleft=True,
                        labelright=False)
-    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_LIR_comp{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_LIR_comp{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()

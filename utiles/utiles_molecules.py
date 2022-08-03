@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 21 22:52:33 2022
-
-@author: Fer
-"""
-
 from scipy.optimize import curve_fit
-
-from utiles import utiles
-from utiles import u_conversion
 
 import numpy as np
 import astropy.units as u
 import astropy.constants.si as _si
+
+from astrothesispy.utiles import utiles
+from astrothesispy.utiles import u_conversion
 
 #==============================================================================
 #                    

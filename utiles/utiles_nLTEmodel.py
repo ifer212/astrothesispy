@@ -2668,7 +2668,9 @@ def plot_models_and_inp_finalfig(source, convolve, Rcrit, line_column, modelos, 
     line_profiles = True
     line_ratios_BIG = False         # Two cols one row
     line_ratios_BIG_onecol = True   # One col two rows
-    
+    if not os.path.exists(f'{figmod_path}{source}'):
+        os.makedirs(f'{figmod_path}{source}')
+        
     figsize = 20
     if convolve:
         convstr = ''

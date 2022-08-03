@@ -4,6 +4,7 @@ from astrothesispy.utiles import utiles_plot as plot_utiles
 from astrothesispy.utiles import u_conversion
 from astrothesispy.utiles import utiles_nLTEmodel
 
+import os
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import LogNorm
@@ -30,6 +31,9 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     """
     rms_219 = 1.307E-5
     slim_cube_path = f'{results_path}SLIM/{source}/'
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
     use_madcuba_moments = False
     if molecule == 'HC3Nvib_J24J26':
         crop_pre = 'Crop_VF_'
@@ -239,7 +243,7 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     plot_utiles.Beam_plotter(px=28, py=py, bmin=columndens_cube.bmin*3600, bmaj=columndens_cube.bmaj*3600,
                                 pixsize=columndens_cube.pylen*3600, pa=columndens_cube.bpa, axis=axes[0], wcs=columndens_cube.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
-    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_SLIM_cubes_{molecule}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_cubes_{molecule}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
 def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13',
@@ -254,6 +258,9 @@ def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J
     ticksize = 28
     # Cubes
     slim_cube_path = f'{results_path}SLIM/{source}/'
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
     # Beams
     beam_orig = np.pi*0.022*0.020/(4*np.log(2))
     beam_345  = np.pi*0.028*0.034/(4*np.log(2))
@@ -551,7 +558,7 @@ def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J
         axis[0].tick_params(labelbottom=False)   
     else:
         axis[0].set_xlabel('r (pc)', fontsize = labelsize)
-    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_SLIM_Tex_and_logN_profiles{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_Tex_and_logN_profiles{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
 def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path,
@@ -570,6 +577,9 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     vel_path = slim_cube_path+'Vel_'+molecule+'_'+source+'.fits'            
     my_model_path = f'{rad_transf_path}/models/'
     mass_distr_figure = False
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
     modelos = {
                     'model1': ['m13_LTHC3Nsbsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_b3','dustsblum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
                                     1.5, plot_utiles.azure, [1, 1, 2.0]],
@@ -685,7 +695,7 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     if mass_distr_figure:
         fig = plt.figure()
         plt.imshow(masses_cube, origin='lower')
-        fig.savefig(f'{fig_path}{source}/{source}_model_masses_cube{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{savefigpath}/{source}_model_masses_cube{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
 
     # Total mass from models inside region with vels <250km/s
@@ -801,7 +811,7 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         axis[1].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
     if style != 'onepanel':
         axis[1].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
-    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_vel_radprofile_{style}{fig_format}', dpi=300)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_vel_radprofile_{style}{fig_format}', dpi=300)
     plt.close()
     
 def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26',
@@ -816,11 +826,14 @@ def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, mo
     ticklabelsize = 16
     fontsize = 20
     cbar_tickfont = 14
-
+    # Paths
     slimpath = f'{results_path}SLIM/{source}/'
     cube = f'{slimpath}Vel_{molecule}_{source}.fits'
     cont_cube = f'{NGC253_path}Continuums/{source}/MAD_CUB_219GHz_continuum.I.image.pbcor_{source}_pycut_coord.fits'
-
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
+        
     cubo = utiles_cubes.Cube_Handler('cubo', cube)
     cubocont = utiles_cubes.Cube_Handler('cubocont', cont_cube)
     rms_219 = 1.307E-5
@@ -1117,5 +1130,4 @@ def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, mo
         axes[0].set_ylabel(r'Dec offset (pc)', fontsize = labelsize)
         axes[0].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
         axes[1].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
-    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_pvdiagram_{style}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
-
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_pvdiagram_{style}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
