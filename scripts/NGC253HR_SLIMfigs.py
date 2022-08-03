@@ -554,7 +554,9 @@ def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J
     fig.savefig(f'{fig_path}{source}/{fig_name}{source}_SLIM_Tex_and_logN_profiles{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
-def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = ''):
+def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path,
+                     molecule = 'HC3Nvib_J24J26', modelname = 'model2',
+                     Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = '', fig_format = '.pdf'):
     """
         Plots SLIM velocity profiles and Calculations for the cloud-cloud collision origin of SHC13 and its poss. outflow. mass
         style = 'onepanel' plots only one panel (one direction)
@@ -564,11 +566,10 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     ticksize = 32
     fontsize = 30
     # Paths
-    slim_cube_path = f'{NGC253_path}SHC/{source}/SLIM/'
+    slim_cube_path = f'{results_path}SLIM/{source}/'
     vel_path = slim_cube_path+'Vel_'+molecule+'_'+source+'.fits'            
-    profiles_path = slim_cube_path+source+'_velprofiles/'
-    my_model_path = f'{rad_transf_path}/models/mymods/'
-    
+    my_model_path = f'{rad_transf_path}/models/'
+    mass_distr_figure = False
     modelos = {
                     'model1': ['m13_LTHC3Nsbsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_b3','dustsblum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
                                     1.5, plot_utiles.azure, [1, 1, 2.0]],
@@ -590,24 +591,20 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = utiles_nLTEmodel.read_model_input(modelo, my_model_path, results_path, Rcrit)
     total_mass = np.nansum(Mgas_fromnH2_Msun_profile_corr)
     
-    
     #Rings definition
     start_pc = 0
     end_pc = 1.5
     step = 0.1
     distances_pc = np.arange(start_pc, end_pc+step, step)
-
+    
     xcenter = 48
     ycenter = 20
     vel_cube =  utiles_cubes.Cube_Handler('vels', vel_path)
     vel_cube_pixlen_pc = u_conversion.lin_size(D_Mpc, vel_cube.pylen*3600).to(u.pc).value
-    plt.imshow(vel_cube.fitsdata[0,0,:,:], origin='lower')
-    plt.plot(xcenter,ycenter,  marker='x')
     vel_cube_vel_mask =  np.ma.masked_where(vel_cube.fitsdata[0,0,:,:] >= 250, vel_cube.fitsdata[0,0,:,:], copy=True)
     vel_cube_below250 = np.copy(vel_cube.fitsdata[0,0,:,:])
     vel_cube_below250[vel_cube_vel_mask.mask] = np.nan
     vel_cube_below250_crop = vel_cube_below250[17:29,45:57]
-    plt.imshow(vel_cube_below250_crop, origin='lower')
     # Number of pixels with v<250
     npix = np.count_nonzero(~np.isnan(vel_cube_below250_crop))
     sup_below250 = npix*vel_cube_pixlen_pc**2
@@ -628,7 +625,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
             ring_dif = distances_pc[i+1]-distances_pc[i]
             subdf = dist_df[(dist_df['dist_pc']>=distances_pc[i]) & (dist_df['dist_pc']<distances_pc[i+1])]
             if len(subdf)>0:
-                print(f'{ring_dist:1.2f} \t {len(subdf)}')
                 px_count_dict.append({'dist_pc': ring_dist, 'px_count': len(subdf), 'ring_vol':ring_vol, 'ring_sup':ring_sup, 'ring_dif':ring_dif})
     px_count_df = pd.DataFrame(px_count_dict)
     
@@ -667,7 +663,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
                 ring_sup = px_count_df.loc[jdx,'ring_sup']
                 dens_sup = nh2_profile_corr[idx]*ring_sup
                 mass = Mgas_fromnH2_Msun_profile_corr[idx]
-                #dens = nh2_profile_corr[idx]
             else:
                 mass = np.nan
                 dens = np.nan
@@ -678,8 +673,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
             dens_sup_cube[jy,ix] = dens_sup/px_count
             dist_dicts2.append({'px': ix, 'py':jy, 'dist_pc':pxcenter_dist_pc, 'px_count': px_count, 'mass':mass, 'dens':dens})
     
-    
-    
     dist_df2 = pd.DataFrame(dist_dicts2)
     dist_df2 = dist_df2.dropna()
     masses_cube_crop = masses_cube[3:40,22:68]
@@ -689,26 +682,24 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     masses_cube_below250_crop = masses_cube_masked[17:29,45:57]
     npix_total = np.count_nonzero(~np.isnan(masses_cube))
     npix_outfl = np.count_nonzero(~np.isnan(masses_cube_below250_crop))
-    fig = plt.figure()
-    plt.imshow(masses_cube, origin='lower')
-    fig.savefig(f'{fig_path}{source}_masses_cube.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
+    if mass_distr_figure:
+        fig = plt.figure()
+        plt.imshow(masses_cube, origin='lower')
+        fig.savefig(f'{fig_path}{source}/{source}_model_masses_cube{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
 
     # Total mass from models inside region with vels <250km/s
     # with dens q=1.5
     # lolim
     Mass_below250_MSun = np.nansum(masses_cube_below250_crop)
-    
     # Outflow mass assuming Mass eq. distr along cube
     # uplim
     outflow_pc_percen = npix_outfl/npix_total
     Mass_below250_MSun_uplim = outflow_pc_percen *total_mass
-    
     # Assuming average surface density 
     ave_dens_sup = total_mass/(np.pi*1.5**2) # Msun/pc2
     average_vol_dens = total_mass/(4/3*np.pi*1.5**3) # Msun/pc3
     mass_2 = ave_dens_sup*npix_outfl*(vel_cube_pixlen_pc**2)
-    
     routflow = np.sqrt((npix_outfl*vel_cube_pixlen_pc**2)/np.pi)
     vel_diff = 21 # km/s
     age1 = 1e4
@@ -730,19 +721,18 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     time_compression = (routflow*(1*u.pc).to(u.km)/(vel_diff*(u.km/u.s))).to(u.yr).value
     
     # Perpendicular profile to gal rotation
-    profile_NW_SE = pd.read_csv(profiles_path+'vel_NW_SE.csv')
+    profile_NW_SE = pd.read_csv(slim_cube_path+'vel_NW_SE.csv')
     profile_NW_SE.columns = ['px', 'V']
     rmid = len(profile_NW_SE)/2
     profile_NW_SE['px_res'] = profile_NW_SE['px']-rmid
     profile_NW_SE['dist_pc'] = profile_NW_SE['px_res']*vel_cube_pixlen_pc
 
     # Parallel profile to gal rotation
-    profile_NE_SW = pd.read_csv(profiles_path+'vel_NE_SW.csv')
+    profile_NE_SW = pd.read_csv(slim_cube_path+'vel_NE_SW.csv')
     profile_NE_SW.columns = ['px', 'V']
     rmid = len(profile_NE_SW)/2
     profile_NE_SW['px_res'] = profile_NE_SW['px']-rmid
     profile_NE_SW['dist_pc'] = profile_NE_SW['px_res']*vel_cube_pixlen_pc
-
 
     figsize = 14
     if style=='twocol':
@@ -762,12 +752,10 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         gs.update(wspace = 0.0, hspace=0.0, top=0.975, bottom = 0.07)
     else:
         gs.update(wspace = 0.125, hspace=0.0, top=0.95, bottom = 0.05)
-    
     axis = []
     axis.append(fig.add_subplot(gs[0]))
     if style != 'onepanel':
         axis.append(fig.add_subplot(gs[1]))
-    
     axis[0].plot(profile_NW_SE['dist_pc'],profile_NW_SE['V'],color= 'k', linestyle='-',label='data', marker='',lw=1.4)
     if style != 'onepanel':
         axis[1].plot(profile_NE_SW['dist_pc']*-1,profile_NE_SW['V'],color= 'k', linestyle='-',label='data', marker='', lw=1.4)
@@ -776,7 +764,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     if style != 'onepanel':
         axis[1].set_ylim([242, 263])
         axis[1].set_xlim([-1.58, 1.58])
-    
     axis[0].text(0.15, 0.95, 'SE-NW',
                             horizontalalignment='right',
                             verticalalignment='top',
@@ -788,7 +775,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
                             verticalalignment='top',
                             fontsize=fontsize,
                             transform=axis[1].transAxes)
-    
     for v,ax in enumerate(axis):
         axis[v].tick_params(direction='in')
         axis[v].tick_params(axis="both", which='major', length=8)
@@ -797,7 +783,7 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         axis[v].yaxis.set_tick_params(which='both', right='on', labelright='off')
         axis[v].tick_params(axis='both', which='major', labelsize=ticksize, width=1.75)
         for axs in ['top', 'bottom', 'left', 'right']:
-            axis[v].spines[axs].set_linewidth(1.5)  # change width
+            axis[v].spines[axs].set_linewidth(1.5) 
         axis[v].tick_params(labelright=False)
     if style=='twocol':
         axis[0].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
@@ -815,7 +801,7 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         axis[1].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
     if style != 'onepanel':
         axis[1].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
-    fig.savefig(f'{fig_path}{fig_name}Vel_radprofile_1x2_'+style+'.pdf', dpi=300)
+    fig.savefig(f'{fig_path}{source}/{fig_name}{source}Vel_radprofile_{style}{fig_format}', dpi=300)
     plt.close()
     
 def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26', D_Mpc = 3.5, style = 'onecol', fig_name = ''):
