@@ -242,21 +242,18 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     fig.savefig(f'{fig_path}{source}/{fig_name}{source}_SLIM_cubes_{molecule}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
-def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, style = 'onecol', fig_name = ''):
+def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13',
+                      D_Mpc = 3.5, style = 'onecol', fig_name = '', fig_format = '.pdf'):
     """
         Figure 6 for NGC253 HR paper
         style = "onecol" plots one column with two rows
         style = "twocol" plots two colunms with one row
     """
-
     only_SM = True
     labelsize = 32
     ticksize = 28
     # Cubes
-    path = f'{NGC253_path}SHC/'
-    final_results_path = f'{NGC253_path}Results_v2/'
-    slim_cube_path = f'{path}{source}/SLIM/'
-    madcub_path = f'{slim_cube_path}Figures_v8/'
+    slim_cube_path = f'{results_path}SLIM/{source}/'
     # Beams
     beam_orig = np.pi*0.022*0.020/(4*np.log(2))
     beam_345  = np.pi*0.028*0.034/(4*np.log(2))
@@ -265,15 +262,15 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
     pixsize_arcsec = 0.007
     
     # MADCUBA Temp profile
-    ringave_file = 'SLIM_rings_average_v2.xlsx' # Spectra Average
-    rings_df = pd.read_excel(final_results_path+ringave_file, header=0)
+    ringave_file = 'SLIM_rings_average.xlsx' # Spectra Average
+    rings_df = pd.read_excel(results_path+'Tables/'+ringave_file, header=0)
     
     tex_file = f'tex_{molecule}.csv' # Pixel average
     col_file = f'coldens_{molecule}.csv' # Pixel average
-    madcol_df = pd.read_csv(madcub_path+col_file, header=0, sep=';')
+    madcol_df = pd.read_csv(slim_cube_path+col_file, header=0, sep=';')
     madcol_df_nouplim = madcol_df[madcol_df['value_err'] > 0]
     madcol_df_nouplim.reset_index(inplace=True)
-    madtex_df = pd.read_csv(madcub_path+tex_file, header=0, sep=';')
+    madtex_df = pd.read_csv(slim_cube_path+tex_file, header=0, sep=';')
     madtex_df_nouplim = madtex_df[madtex_df['value_err'] > 0]
     madtex_df_nouplim.reset_index(inplace=True)
     start_pc = 0
@@ -320,7 +317,7 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
     mean_madcuba_df = pd.DataFrame(dict_ring).transpose()
     mean_madcuba_df['dist_ring_pc'] = mean_madcuba_df.index.tolist()
     mean_madcuba_df.reset_index(inplace=True)
-    mean_madcuba_df.to_csv(final_results_path+'SHC_13_SLIM_Tex_and_logN_profiles.csv', header=True, sep=';', index=False, na_rep='-')   
+    mean_madcuba_df.to_csv(results_path+'SHC_13_SLIM_Tex_and_logN_profiles.csv', header=True, sep=';', index=False, na_rep='-')   
     
     mean_madcuba_df['Col_ave_ring_rel_err'] = (10**mean_madcuba_df['Col_ave_ring_err'])*(1/np.log(10))/(10**mean_madcuba_df['Col_ave_ring'])
     if style == 'twocol':
@@ -554,7 +551,7 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
         axis[0].tick_params(labelbottom=False)   
     else:
         axis[0].set_xlabel('r (pc)', fontsize = labelsize)
-    fig.savefig(f'{fig_path}{fig_name}{source}_SLIM_Tex_and_logN_profiles_dfcolors_newcols_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_SLIM_Tex_and_logN_profiles{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
 def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = ''):

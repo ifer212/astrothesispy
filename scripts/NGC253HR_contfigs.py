@@ -51,13 +51,10 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
 
     fig, axes = plot_utiles.map_figure_starter(wcs=cubo_219.wcs, maxis=1, naxis=1, fsize=figsize, labelsize=labelsize, fontsize=fontsize,
                                                     xlim_ra=gal_RA_lims, ylim_dec=gal_Dec_lims,ticksize = 12)
-
-    axes[0].coords[1].set_ticks(size=14, width=2, color='k', exclude_overlapping=True, number = 5)
-    axes[0].coords[0].set_ticks(size=14, width=2, color='k', exclude_overlapping=True, number = 5)
+    plot_utiles.load_map_axes(axes[0], ticksize=14, ticklabelsize=labelsize-4, labelsize=labelsize,
+                                  labelpad = -1, axcolor='k', ticknumber = 5,
+                                  tickwidth = 2, axiswidth = 5, add_labels = True)
     axes[0].tick_params(axis="both", which='minor', length=8)
-    axes[0].coords[0].frame.set_linewidth(5)
-    axes[0].coords[1].frame.set_linewidth(5)
-    my_cmap = plt.cm.get_cmap("jet")
     axes[0].imshow(cubo_219_aboverms, origin='lower', cmap =plt.cm.jet, interpolation=None,
                         norm=LogNorm(vmin=3*rms_219, vmax=cubo_219.max/1.2), zorder=1)
     
@@ -71,7 +68,6 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
     for i, row in Leroy36df.iterrows():
         pos_frv = utiles.HMS2deg(ra=row['RA_219GHz'].replace('_', ' '), dec=row['Dec_219GHz'].replace('_', ' '))
         pxfrv, pyfrv = utiles_cubes.px_position(pos_frv[0], pos_frv[1], cubo_219.wcs)
-
         if isinstance(row['RA_leroy_deg'], str):
             pos_ler = utiles.HMS2deg(ra=row['RA_219GHz'].replace('_', ' '), dec=row['Dec_219GHz'].replace('_', ' '))
             px, py = utiles_cubes.px_position(pos_ler[0], pos_ler[1], cubo_219.wcs)
@@ -138,7 +134,7 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
     fig_spath = f'{fig_path}NGC253/'
     if not os.path.exists(fig_spath):
         os.makedirs(fig_spath)
-    fig.savefig(f'{fig_spath}{fig_name}219GHz_0.02x0.02_jet_3rms_newnames_ulvestad{fig_format}', bbox_inches='tight', transparent=True, dpi=800)
+    fig.savefig(f'{fig_spath}{fig_name}219GHz{fig_format}', bbox_inches='tight', transparent=True, dpi=800)
     plt.close()
         
     
@@ -182,13 +178,10 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
                                                         xlim_ra=gal_RA_lims, ylim_dec=gal_Dec_lims,ticksize = 12)
                 axes[0].set_xlim(row['px_low_new'], row['px_low_new']+row['px_width'])
                 axes[0].set_ylim(row['py_low_new'], row['py_low_new']+row['py_height'])
-                axes[0].coords[0].set_ticks(size=14, width=2, color='k', number = 5)
-                axes[0].coords[1].set_ticks(size=14, width=2, color='k', number = 5)
-                axes[0].coords[0].set_ticklabel(exclude_overlapping=True)
-                axes[0].coords[1].set_ticklabel(exclude_overlapping=True)
+                plot_utiles.load_map_axes(axes[p], ticksize=14, ticklabelsize=labelsize-4, labelsize=labelsize,
+                                  labelpad = -1, axcolor='k', ticknumber = 5,
+                                  tickwidth = 2, axiswidth = 5, add_labels = True)
                 axes[0].tick_params(axis="both", which='minor', length=8)
-                axes[0].coords[0].frame.set_linewidth(5)
-                axes[0].coords[1].frame.set_linewidth(5)
                 axes[0].imshow(cubo_219_aboverms, origin='lower', cmap =plt.cm.jet, interpolation=None,
                                     norm=LogNorm(vmin=5*rms_219, vmax=cubo_219.max/1.2), zorder=1)
                 

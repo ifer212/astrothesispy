@@ -6,16 +6,16 @@ from astrothesispy.scripts import NGC253HR_nLTEfigs
 from astrothesispy.scripts import NGC253HR_compfigs
 
 cont219_plot = False
-zoom_cont219_plot = True
+zoom_cont219_plot = False
 moments_plot = False
-ringspectra_plot = False # Not implemented
 LTE2D_plot = False
 LTEprofiles_plot = False
-SB_models_plot = False
+SB_models_plot = True
 AGN_models_plot = False
 LTEvelprofile_plot = False
 cloudcloud_plot = False
 comp_models_plot = False
+ringspectra_plot = False # Not implemented
 
 # =============================================================================
 # Global vars & paths
@@ -60,34 +60,28 @@ if moments_plot:
     NGC253HR_contfigs.plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path,
                                    D_Mpc = D_Mpc, source = source, fig_name = fig_name, fig_format = figure_format)
     
-if ringspectra_plot:
-    # Figure 4
-    fig_name = 'Figure_4_'
-    # spectra from averaged ring, this figure is done inside Madcuba spectra
-    skip_part = True
-    
 # =============================================================================
 # SLIM LTE figures
 # =============================================================================
 if LTE2D_plot:
     # Figure 5
-    fig_name = 'Figure_5_'
+    fig_name = 'Figure_4_'
     NGC253HR_SLIMfigs.plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_path, fig_path,
                                   molecule = molecule, source = source, D_Mpc = D_Mpc, fig_name = fig_name, fig_format = figure_format)
 
 if LTEprofiles_plot:
     # Figure 6
-    fig_name = 'Figure_6_'
-    NGC253HR_SLIMfigs.plot_SLIMprofiles(NGC253_path, fig_path, fig_name = fig_name)
+    fig_name = 'Figure_5_'
+    NGC253HR_SLIMfigs.plot_SLIMprofiles(NGC253_path, results_path, fig_path, fig_name = fig_name, fig_format = figure_format)
     
 if LTEvelprofile_plot:
     # Figure 12
-    fig_name = 'Figure_12_'
+    fig_name = 'Figure_11_'
     NGC253HR_SLIMfigs.plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = fig_name)
 
 if cloudcloud_plot:
     # Figure 13
-    fig_name = 'Figure_13_'
+    fig_name = 'Figure_12_'
     NGC253HR_SLIMfigs.plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26', D_Mpc = 3.5, style = 'onecol', fig_name = fig_name)
 
 # =============================================================================
@@ -95,12 +89,12 @@ if cloudcloud_plot:
 # =============================================================================
 if SB_models_plot:
     # Figures 7, 8 and 9
-    fig_name = ['Figure_7_', 'Figure_8_', 'Figure_9_']
+    fig_name = ['Figure_6_', 'Figure_7_', 'Figure_8_']
     NGC253HR_nLTEfigs.nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = D_Mpc, Rcrit = Rcrit, plot_type = 'SBmods', paper_figs = True, presen_figs = False, fig_name = fig_name)
 
 if AGN_models_plot:
     # Figure 10 and 11
-    fig_name = ['Figure_10_', '', 'Figure_11_']
+    fig_name = ['Figure_9_', '', 'Figure_10_']
     NGC253HR_nLTEfigs.nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = D_Mpc, Rcrit = Rcrit, plot_type = 'AGNmods', paper_figs = True, presen_figs = False, fig_name = fig_name)
 
 # =============================================================================
@@ -108,5 +102,14 @@ if AGN_models_plot:
 # =============================================================================
 if comp_models_plot:
     # Figure 14
-    fig_name = 'Figure_14_'
+    fig_name = 'Figure_13_'
     NGC253HR_compfigs.plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=D_Mpc, fig_name = fig_name)
+
+# =============================================================================
+# Ring spectra figures
+# =============================================================================
+if ringspectra_plot:
+    # Appendix Figures
+    fig_name = 'Appendix_'
+    # spectra from averaged ring, this figure is done inside Madcuba spectra
+    skip_part = True
