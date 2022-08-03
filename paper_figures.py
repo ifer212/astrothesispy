@@ -17,7 +17,6 @@ cloudcloud_plot = True
 comp_models_plot = True
 ringspectra_plot = False # Not implemented
 
-
 # =============================================================================
 # Global vars & paths
 # =============================================================================
