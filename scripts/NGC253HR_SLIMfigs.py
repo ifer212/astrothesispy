@@ -24,7 +24,7 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # =============================================================================
 
 def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_path, fig_path,
-                molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, fig_name = ''):
+                molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, fig_name = '', fig_format = '.pdf'):
     """
         Figure 5 for NGC253 HR paper
     """
@@ -71,9 +71,9 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     FWHM_cube = utiles_cubes.Cube_Handler('FWHM', slim_cube_path+FWHM)
     FWHM_err = crop_pre+'FWHM_err_'+molecule+'_'+source+'.fits'
     FWHM_err_cube = utiles_cubes.Cube_Handler('FWHM_err', slim_cube_path+FWHM_err)
-    vel = crop_pre+'vel_'+molecule+'_'+source+'.fits'
+    vel = crop_pre+'Vel_'+molecule+'_'+source+'.fits'
     vel_cube = utiles_cubes.Cube_Handler('vel', slim_cube_path+vel)
-    vel_err = crop_pre+'vel_err_'+molecule+'_'+source+'.fits'
+    vel_err = crop_pre+'Vel_err_'+molecule+'_'+source+'.fits'
     vel_err_cube = utiles_cubes.Cube_Handler('vel_err', slim_cube_path+vel_err)
     
     # Cont cube
@@ -109,8 +109,8 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     FWHM = crop_pre+'FWHM_'+molecule+'_'+source+'.fits'
     FWHM_cube = utiles_cubes.Cube_Handler('FWHM', slim_cube_path+FWHM)
     FWHM_err = crop_pre+'FWHM_err_'+molecule+'_'+source+'.fits'
-    vel = crop_pre+'vel_'+molecule+'_'+source+'.fits'
-    vel_cube = utiles_cubes.Cube_Handler('vel', slim_cube_path+vel)
+    vel = crop_pre+'Vel_'+molecule+'_'+source+'.fits'
+    vel_cube = utiles_cubes.Cube_Handler('Vel', slim_cube_path+vel)
     vel_err = crop_pre+'vel_err_'+molecule+'_'+source+'.fits'
 
     if molecule == 'HC3Nvib_J24J26':
@@ -128,7 +128,6 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     cbar_labelfont = 30
     labelsize = 14
     fontsize = 14
-    
     # Starting figure
     figsize = 10
     naxis = 2
@@ -140,7 +139,6 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     fig = plt.figure(figsize=(naxis*figsize*0.7, figsize))
     gs1 = gridspec.GridSpec(maxis, naxis)  
     gs1.update(wspace = 0.0, hspace=0.28, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    
     RA_start, Dec_start = utiles_cubes.RADec_position(47, 70, wcs_plot, origin = 1)
     RA_end, Dec_end = utiles_cubes.RADec_position(91, 118, wcs_plot, origin = 1)
     # Adding wcs frame
@@ -148,17 +146,8 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     axes = []
     for i in range(naxis*maxis):
         axes.append(fig.add_subplot(gs1[i], aspect='equal', projection=wcs_plot))
-        axes[i].tick_params(labelsize=labelsize)
-        axes[i].tick_params(direction='in')
-        axes[i].coords.frame.set_color(axcolor)
-        axes[i].coords[0].set_major_formatter('hh:mm:ss.sss')
-        axes[i].coords[1].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
-        axes[i].coords[0].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
-        axes[i].coords[0].frame.set_linewidth(2)
-        axes[i].coords[1].frame.set_linewidth(2)
-        axes[i].coords[0].set_separator((r'$^{\rm{h}}$', r'$^{\rm{m}}$', r'$^{\rm{s}}$'))
-        axes[i].coords[0].display_minor_ticks(True)
-        axes[i].coords[1].display_minor_ticks(True)
+        plot_utiles.load_map_axes(axes[i], ticksize=14, ticklabelsize = labelsize, labelsize = labelsize,
+                      labelpad = -1, axcolor='k', ticknumber = 5, tickwidth = 2, axiswidth = 2, add_labels = False)
         if i in [1,3]:
             axes[i].set_yticklabels([])
             axes[i].tick_params(axis="both", which='minor', length=8)
@@ -200,16 +189,15 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
         
     # Tex
     tex_min = utiles.round_to_multiple(np.nanmin(tex_cube.fitsdata[0,0,:,:]), 10)
-    tex_min = 150 # 50
-    tex_max = 900# utiles.round_to_multiple(np.nanmax(tex_cube.fitsdata[0,0,:,:]), 10)
-    tex_ticks = list(np.linspace(tex_min, tex_max, 5)) #np.arange(tex_min, tex_max, 10, 5)
+    tex_min = 150
+    tex_max = 900
+    tex_ticks = list(np.linspace(tex_min, tex_max, 5))
     axes[1].imshow(tex_cube.fitsdata[0,0,:,:], transform=axes[1].get_transform(tex_cube.wcs), cmap =plt.cm.rainbow, vmin=tex_min, vmax=tex_max)
     plot_utiles.add_cbar(fig, axes[1], tex_cube.fitsdata[0,0,:,:], r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                  Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
-    
     # Vel
     if source == 'SHC_13':
         vel_min = 235
@@ -224,7 +212,6 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
                  Mappable=False, cbar_limits=[vel_min, vel_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
-   
     # FWHM
     fwhm_min = 8
     fwhm_max = 60
@@ -235,7 +222,6 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
                  Mappable=False, cbar_limits=[fwhm_min, fwhm_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
-    
     levels_tex = [500]
     axes[0].contour(tex_cube.fitsdata[0,0,:,:], transform=axes[0].get_transform(tex_cube.wcs), colors='k', linewidths=2.0, zorder=1,
                      levels= levels_tex)
@@ -245,7 +231,6 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
                     levels= levels_tex)
     axes[3].contour(tex_cube.fitsdata[0,0,:,:], transform=axes[3].get_transform(tex_cube.wcs), colors='k', linewidths=2.0, zorder=1,
                      levels= levels_tex)
-    
     pixsize = np.round(columndens_cube.header['CDELT2']*3600,4)
     pcs = 1
     px = px_mid 
@@ -254,7 +239,7 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     plot_utiles.Beam_plotter(px=28, py=py, bmin=columndens_cube.bmin*3600, bmaj=columndens_cube.bmaj*3600,
                                 pixsize=columndens_cube.pylen*3600, pa=columndens_cube.bpa, axis=axes[0], wcs=columndens_cube.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
-    fig.savefig(f'{fig_path}{fig_name}{source}_SLIM_cubes_{molecule}_no_profile_noM0_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_SLIM_cubes_{molecule}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
 def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, style = 'onecol', fig_name = ''):

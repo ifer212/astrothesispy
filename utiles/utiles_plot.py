@@ -114,7 +114,6 @@ def add_cbar(fig, ax, data, label, color_palette='Spectral', colors_len = 0,
         # Horizontal colorbar
         axis = 'x'
         orien = 'horizontal'
-        #sep = 0.05
         if height is False:
             cb_axl = [pos.x0, pos.y0 + pos.height + sep,  pos.width, width] 
         else:
@@ -124,7 +123,6 @@ def add_cbar(fig, ax, data, label, color_palette='Spectral', colors_len = 0,
         # Horizontal colorbar
         axis = 'x'
         orien = 'horizontal'
-        #sep = 0.05
         if height is False:
             cb_axl = [pos.x0 + 0.01, pos.y0 + pos.height + sep,  np.round(pos.width,2)-2*0.01, width] 
         else:
@@ -147,27 +145,21 @@ def add_cbar(fig, ax, data, label, color_palette='Spectral', colors_len = 0,
             cmax = np.max(data)
             
         if colors_len == 0:
-            lencolors = 0#len(data)
+            lencolors = 0
         else:
             lencolors = colors_len
-        
         if discrete_colorbar == True:
             cmap =  matplotlib.colors.ListedColormap(sns.color_palette(color_palette, lencolors))
         elif custom_cmap:
             cmap = color_palette
         else:
-            #cmap = cm.
             cmap = plt.cm.get_cmap(color_palette)
-            #cmap =  matplotlib.colors.LinearSegmentedColormap.from_list('mycmap', sns.color_palette(color_palette, lencolors))
         if norm == 'log':
-            normalize = matplotlib.colors.LogNorm(vmin=cmin, vmax=cmax) #ok antes era .Normalize()
+            normalize = matplotlib.colors.LogNorm(vmin=cmin, vmax=cmax) 
         else:
             normalize = matplotlib.colors.Normalize(vmin=cmin, vmax=cmax)
         cbar_colors = [cmap(normalize(value)) for value in data]
-        #cmap_labels = [normalize(value) for value in data]
-        #from matplotlib.ticker import LogFormatter 
         from matplotlib.ticker import FormatStrFormatter
-        #formatter = LogFormatter(10, labelOnlyBase=False) 
         if formatter == '':
             sformatter = FormatStrFormatter('%1.3f')
         else:
@@ -200,7 +192,6 @@ def map_figure_starter(wcs, maxis, naxis, fsize, labelsize, fontsize=12, axcolor
         axes[i].tick_params(labelsize=labelsize)
         axes[i].tick_params(direction='in')
         axes[i].coords.frame.set_color(axcolor)
-        #axes[i].set_yticklabels([])
         axes[i].xaxis.set_tick_params(top =True, labeltop=False)
         axes[i].yaxis.set_tick_params(right=True, labelright=False, labelleft=False)
         axes[i].coords[0].set_major_formatter('hh:mm:ss.ss')
@@ -215,8 +206,35 @@ def map_figure_starter(wcs, maxis, naxis, fsize, labelsize, fontsize=12, axcolor
         axes[i].set_xlabel('RA (J2000)', fontsize = fontsize)
         axes[i].set_ylabel('Dec (J2000)', fontsize = fontsize, labelpad=-1)
         axes[i].tick_params(direction='in')
-        
     return fig, axes
+
+def load_map_axes(axis, ticksize, ticklabelsize, labelsize, labelpad = -1, axcolor='k', ticknumber = 5,
+                  tickwidth = 1, axiswidth = 1, add_labels = True):
+    """
+        Load WCS coordinates proper axis format
+    """
+    axis.tick_params(labelsize=ticklabelsize)
+    axis.tick_params(direction='in')
+    axis.coords.frame.set_color(axcolor)
+    axis.xaxis.set_tick_params(top =True, labeltop=False)
+    axis.yaxis.set_tick_params(right=True, labelright=False, labelleft=False)
+    axis.coords[0].set_major_formatter('hh:mm:ss.ss')
+    axis.coords[0].set_ticks(size=ticksize, width=tickwidth, color=axcolor, number = ticknumber)
+    axis.coords[1].set_ticks(size=ticksize, width=tickwidth, color=axcolor, number = ticknumber)
+    axis.coords[0].set_ticklabel(exclude_overlapping=True)
+    axis.coords[1].set_ticklabel(exclude_overlapping=True)
+    axis.coords[0].frame.set_linewidth(axiswidth)
+    axis.coords[1].frame.set_linewidth(axiswidth)
+    axis.coords[0].set_separator((r'$^{\rm{h}}$', r'$^{\rm{m}}$', r'$^{\rm{s}}$'))
+    axis.coords[1].set_separator((r'$^{\circ}$', r'$^{\prime}$', r'$^{\prime \prime}$'))
+    axis.coords[0].display_minor_ticks(True)
+    axis.coords[1].display_minor_ticks(True)
+    axis.tick_params(direction='in')
+    if add_labels:
+        axis.set_xlabel('RA (J2000)', fontsize = labelsize)
+        axis.set_ylabel('Dec (J2000)', fontsize = labelsize, labelpad=labelpad)
+    
+
 
 def map_figure_starter_velcomp(wcs, maxis, naxis, fsize, labelsize, fontsize=12, axcolor='k', xlim_ra=False, ylim_dec=False, ticksize=6, hspace=0.08, wspace = -0.08,
                                xrat=1, yrat=1):
@@ -369,8 +387,6 @@ def plot_cube_moments(cube, save_path, outname, cbar0=False, cbar1=False, sigma_
     plt.savefig(save_path+'/'+outname+'.png', bbox_inches='tight', transparent=True, dpi=300)
     plt.close(fig)
     #return mask_inside
-
-
 
 def plot_continuum(cube, save_path, outname, rms, RA_lim=[0], Dec_lim=[0], cbar0=False, cbar1=False, sigma_mask=False, plot_beam=False):
     

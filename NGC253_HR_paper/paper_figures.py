@@ -6,10 +6,10 @@ from astrothesispy.scripts import NGC253HR_nLTEfigs
 from astrothesispy.scripts import NGC253HR_compfigs
 
 cont219_plot = False
-zoom_cont219_plot = False
+zoom_cont219_plot = True
 moments_plot = False
 ringspectra_plot = False # Not implemented
-LTE2D_plot = True
+LTE2D_plot = False
 LTEprofiles_plot = False
 SB_models_plot = False
 AGN_models_plot = False
@@ -51,7 +51,7 @@ if zoom_cont219_plot:
     fig_name = 'Figure_2_'
     ind_fig = False # Make individual plots
     NGC253HR_contfigs.plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path,
-                                        ind_fig = True,
+                                        ind_fig = ind_fig,
                                         D_Mpc = D_Mpc, fig_name = fig_name, fig_format = figure_format)
     
 if moments_plot:
@@ -73,7 +73,7 @@ if LTE2D_plot:
     # Figure 5
     fig_name = 'Figure_5_'
     NGC253HR_SLIMfigs.plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_path, fig_path,
-                                  molecule = molecule, source = source, D_Mpc = D_Mpc, fig_name = fig_name)
+                                  molecule = molecule, source = source, D_Mpc = D_Mpc, fig_name = fig_name, fig_format = figure_format)
 
 if LTEprofiles_plot:
     # Figure 6
