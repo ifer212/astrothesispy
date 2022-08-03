@@ -24,8 +24,9 @@ mpl.rc('text', usetex=True)
 mpl.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
 mpl.rc('xtick', color='k', direction='in', labelsize=6)
 mpl.rc('ytick', color='k', direction='in', labelsize=6)
-cluz = _si.c.to(u.km/u.s).value
+pd.options.mode.chained_assignment = None
 
+cluz = _si.c.to(u.km/u.s).value
 check_model = False
 plot_cont = False
 
@@ -261,7 +262,11 @@ def calculate_spindex(NGC253_path, results_path):
             print(f'${row["dist"]}'+line_string)     
 
 def models_calculations(results_path, source, D_Mpc):
-    distance_pc = D_Mpc*1e6
+    """
+        Some calculations for the models results
+    """
+    results_path = f'{results_path}Tables/'
+    print_models_summary_table = False
     # Reading saved model summary
     TcenAGN = 1300 # Temperatural central del AGN
     k100 = 44.5             # Opacidad a 100 um cm^2 /g 
@@ -289,8 +294,9 @@ def models_calculations(results_path, source, D_Mpc):
                 submass = ''
             modsum_df['LIR'+sublum+'/Mgas'+submass] = modsum_df[lum]/modsum_df[mass]
         modsum_df['SigmaIR'+sublum+'_Lsun_pc2'] = modsum_df[lum]/(np.pi*modsum_df['R_pc']**2)
-    for i,row in modsum_df.iterrows():
-        print(f'{i}  & $ {row["q"]:1.1f} $ & $  {row["Ltot_Lsun"]:1.1e} $ & $  {row["SigmaIR_Lsun_pc2"]:1.1e} $ & $ {row["Mgas_Msun_corr"]:1.1e} $ & $ {row["LIR/Mgas_corr"]:1.0f} $ & $ {row["half_rad_pcv2"]:1.1f} $ & $ {row["NH2_corr"]:1.1e} $ & $ {row["NHC3N"]:1.1e} $')
+    if print_models_summary_table:
+        for i,row in modsum_df.iterrows():
+            print(f'{i}  & $ {row["q"]:1.1f} $ & $  {row["Ltot_Lsun"]:1.1e} $ & $  {row["SigmaIR_Lsun_pc2"]:1.1e} $ & $ {row["Mgas_Msun_corr"]:1.1e} $ & $ {row["LIR/Mgas_corr"]:1.0f} $ & $ {row["half_rad_pcv2"]:1.1f} $ & $ {row["NH2_corr"]:1.1e} $ & $ {row["NHC3N"]:1.1e} $')
     # AGN luminosity size
     modsum_df['RAGN_m'] = np.sqrt(modsum_df['Ltot_Lsun']*((1*u.Lsun).to(u.W)/(4*np.pi*_si.sigma_sb*(TcenAGN*u.K)**4)).value)
     modsum_df['RAGN_pc'] = modsum_df['RAGN_m']*(1*u.m).to(u.pc).value
@@ -430,9 +436,6 @@ def models_calculations(results_path, source, D_Mpc):
     deVicente_df['LIR/Mgas'] = deVicente_df['LIR_cor_Lsun']/deVicente_df['Mass_Msun']
     ### Etxaluze2013, nice lums and mass
     hc_df = hc_df[hc_df['References']=='Etxaluze2013']
-    for i, row in bgn_df.iterrows():
-        print(f'{np.log10(row["LIR/Mgas"]):1.1f}\t {np.log10(row["LIR2/Mgas"]):1.1f}')
-        
     return modsum_df, hc_df, rolffs_df, bgn_df, pfalzner_df, lada_df, portout_df, portin_df
 
 def fit_abund_profile(mname, my_model_path, figinp_path):

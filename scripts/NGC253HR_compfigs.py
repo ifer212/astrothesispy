@@ -12,7 +12,7 @@ mpl.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
 mpl.rc('xtick', color='k', direction='in', labelsize=6)
 mpl.rc('ytick', color='k', direction='in', labelsize=6)
 
-def plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.5, only_HC = True, fig_name = ''):
+def plot_LIR_comp(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.5, only_HC = True, fig_name = '', fig_format = '.pdf'):
     """
         Comparison btw HC, SHC and AGNs
     """
@@ -28,9 +28,7 @@ def plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.
     fig = plt.figure(figsize=(figsize*2.15, figsize*1.85))
     gs = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
     gs.update(wspace = 0.20, hspace=0.14, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    
     panel_2_MH2_R2 = False
-    
     axis = []
     axis.append(fig.add_subplot(gs[0]))
     axis.append(fig.add_subplot(gs[1]))
@@ -52,7 +50,7 @@ def plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.
     modsum_df['log_SigmaIR_err'] = (10**np.log10(modsum_df['SigmaIR_err']))*(1/np.log(10))/(10**np.log10(modsum_df['SigmaIR_Lsun_pc2']))
     modyvar_err = modsum_df['log_SigmaIR_err'] 
     axis[0].plot(modxvar, modyvar, marker='o', color=plot_utiles.redpink, linestyle ='', markeredgecolor='k', ms = ms)
-    modsum_df['log_Ltot_err'] = 0.5#np.log10(modsum_df['Ltot_name_Lsun'])-np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']) #(10**np.log10(Lmod_err*modsum_df['Ltot_name_Lsun']))*(1/np.log(10))/(10**np.log10(modsum_df['Ltot_name_Lsun']))
+    modsum_df['log_Ltot_err'] = 0.5
     axis[0].errorbar(modxvar, modyvar, 
                      yerr=modyvar_err,
                      marker='o', markersize=ms,
@@ -480,9 +478,7 @@ def plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.
         axis[v].xaxis.set_tick_params(which='both', top ='on')
         axis[v].yaxis.set_tick_params(which='both', right='on', labelright='off')
         axis[v].tick_params(axis='both', which='major', labelsize=ticksize)
-        #axis[v].xaxis.set_minor_locator(minor_locator)
         axis[v].tick_params(labelleft=True,
                        labelright=False)
-        
-    fig.savefig(f'{fig_path}{fig_name}LIR_comp_ALL_big_v3.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_LIR_comp{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()

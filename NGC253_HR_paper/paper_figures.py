@@ -13,8 +13,8 @@ LTEprofiles_plot = False
 SB_models_plot = False
 AGN_models_plot = False
 LTEvelprofile_plot = False
-cloudcloud_plot = True
-comp_models_plot = False
+cloudcloud_plot = False
+comp_models_plot = True
 ringspectra_plot = False # Not implemented
 
 # =============================================================================
@@ -112,7 +112,7 @@ if AGN_models_plot:
 if comp_models_plot:
     # Figure 13
     fig_name = 'Figure_13_'
-    NGC253HR_compfigs.plot_LIR_comp_ALL_big(fig_path, results_path, source, D_Mpc=D_Mpc, fig_name = fig_name)
+    NGC253HR_compfigs.plot_LIR_comp(fig_path, results_path, source, D_Mpc=D_Mpc, fig_name = fig_name, fig_format = figure_format)
 
 # =============================================================================
 # Ring spectra figures
