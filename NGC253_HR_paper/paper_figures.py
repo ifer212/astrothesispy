@@ -25,6 +25,7 @@ Rcrit = 0.85
 source = 'SHC_13'
 molecule = 'HC3Nvib_J24J26'
 NGC253_path = '/mnt/c/Users/Usuario/Documents/CAB/NGC253_HR/'
+NGC253_path = '/mnt/c/Users/Usuario/Documents/CAB/NGC253_HR/'
 results_path = f'{NGC253_path}Results_v2/'
 cont_path = 'Continuums/'
 moments_path = f'{NGC253_path}/SHC/{source}/moments/'
