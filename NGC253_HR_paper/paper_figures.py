@@ -5,11 +5,11 @@ from astrothesispy.scripts import NGC253HR_SLIMfigs
 from astrothesispy.scripts import NGC253HR_nLTEfigs
 from astrothesispy.scripts import NGC253HR_compfigs
 
-cont219_plot = True
+cont219_plot = False
 zoom_cont219_plot = False
 moments_plot = False
-ringspectra_plot = False
-LTE2D_plot = False
+ringspectra_plot = False # Not implemented
+LTE2D_plot = True
 LTEprofiles_plot = False
 SB_models_plot = False
 AGN_models_plot = False
@@ -20,6 +20,7 @@ comp_models_plot = False
 # =============================================================================
 # Global vars & paths
 # =============================================================================
+figure_format = '.pdf'
 D_Mpc = 3.5
 Rcrit = 0.85
 source = 'SHC_13'
@@ -28,31 +29,36 @@ NGC253_path = '/mnt/c/Users/Usuario/Documents/CAB/NGC253_HR/'
 NGC253_path = 'data/NGC253_HR/'
 results_path = f'{NGC253_path}Results/'
 cont_path = 'Continuums/'
-moments_path = f'{NGC253_path}/SHC/{source}/moments/'
+moments_path = f'{NGC253_path}/Spectra/{source}/moments/'
 location_path = ''
-fig_path = f'{results_path}Figures/{source}'
+fig_path = f'{results_path}Figures/'
 if not os.path.exists(fig_path):
     os.makedirs(fig_path)
 rad_transf_path = '/mnt/c/Users/Usuario/Documents/CAB/radtransf/program/'
 rad_transf_path = f'{results_path}/radtransf/program/'
-figure_format = '.pdf'
+
 # =============================================================================
 # Continuum & Moments figures
 # =============================================================================
 if cont219_plot:
-    # Figure 1
+    # Figure 1, saved in data/NHC253_HR/Results/Figures/NGC253/
     fig_name = 'Figure_1_'
-    NGC253HR_contfigs.plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc, fig_name = fig_name, fig_format = figure_format)
+    NGC253HR_contfigs.plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path,
+                                   D_Mpc = D_Mpc, fig_name = fig_name, fig_format = figure_format)
     
 if zoom_cont219_plot:
-    # Figure 2
+    # Figure 2, saved in data/NHC253_HR/Results/Figures/NGC253/
     fig_name = 'Figure_2_'
-    NGC253HR_contfigs.plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path, D_Mpc = D_Mpc, fig_name = fig_name)
+    ind_fig = False # Make individual plots
+    NGC253HR_contfigs.plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path,
+                                        ind_fig = True,
+                                        D_Mpc = D_Mpc, fig_name = fig_name, fig_format = figure_format)
     
 if moments_plot:
-    # Figure 3
+    # Figure 3, saved in data/NHC253_HR/Results/Figures/SHC_13/
     fig_name = 'Figure_3_'
-    NGC253HR_contfigs.plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = D_Mpc, source = source, fig_name = fig_name)
+    NGC253HR_contfigs.plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path,
+                                   D_Mpc = D_Mpc, source = source, fig_name = fig_name, fig_format = figure_format)
     
 if ringspectra_plot:
     # Figure 4
@@ -66,7 +72,8 @@ if ringspectra_plot:
 if LTE2D_plot:
     # Figure 5
     fig_name = 'Figure_5_'
-    NGC253HR_SLIMfigs.plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = molecule, source = source, D_Mpc = D_Mpc, fig_name = fig_name)
+    NGC253HR_SLIMfigs.plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_path, fig_path,
+                                  molecule = molecule, source = source, D_Mpc = D_Mpc, fig_name = fig_name)
 
 if LTEprofiles_plot:
     # Figure 6

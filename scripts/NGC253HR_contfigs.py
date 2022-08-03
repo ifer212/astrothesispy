@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul 27 11:57:36 2022
 
-@author: Fer
-"""
-
+import os
 
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import utiles_cubes
@@ -32,8 +27,6 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
     gal_RA_lims = ['00:47:33.32187', '00:47:32.77219']
     gal_Dec_lims = ['-25:17:21.62597', '-25:17:15.15799']
     # Leroy2018 36GHz data
-    #Leroy36df = pd.read_excel(results_path+'Leroy_36GHz.xlsx', header=0, na_values='-')
-    #Leroy36df = pd.read_excel('/Users/frico/Documents/data/NGC253_HR/Results_v2/Cont219GHz.xlsx', header=0, na_values='-')
     Leroy36df = pd.read_excel(results_path+'Tables/Leroy_36GHz_python_219_nospind.xlsx', header=0, na_values='-')
     Leroy36df['Source'] = Leroy36df['Source'].astype(str)
     # 36GHz data is from VLA with 0.096"x0.45" convolved to their 350GHz data 0.11"x0.11" (they made it circular from 0.105"x0.065")
@@ -142,11 +135,14 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
                         va='center', color = 'k', zorder=4)     
     axes[0].set_ylim([0, cubo_219.shape[2]])
     axes[0].set_xlim([0, cubo_219.shape[3]])
-    fig.savefig(f'{fig_path}{fig_name}219GHz_0.02x0.02_jet_3rms_newnames_ulvestad{fig_format}', bbox_inches='tight', transparent=True, dpi=800)
+    fig_spath = f'{fig_path}NGC253/'
+    if not os.path.exists(fig_spath):
+        os.makedirs(fig_spath)
+    fig.savefig(f'{fig_spath}{fig_name}219GHz_0.02x0.02_jet_3rms_newnames_ulvestad{fig_format}', bbox_inches='tight', transparent=True, dpi=800)
     plt.close()
         
     
-def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path, ind_fig = False, D_Mpc = 3.5, fig_name = ''):
+def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_path, ind_fig = False, D_Mpc = 3.5, fig_name = '', fig_format = '.pdf'):
     """
         Figure 2 for NGC253 HR paper
         ind_fig = True plots every SHC as an individual figure
@@ -160,11 +156,9 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
     
     gal_RA_lims = ['00:47:33.32187', '00:47:32.77219']
     gal_Dec_lims = ['-25:17:21.62597', '-25:17:15.15799']
-    positions_crop = pd.read_excel(NGC253_path+'/Positions/Positions_crop.xlsx', header=0, na_values='-')
-
-    subpositions_df = pd.read_excel(results_path+'Leroy_36GHz_python_219_nospind_v2.xlsx', header=0, na_values='-')
+    positions_crop = pd.read_excel(results_path+'Tables/Positions_crop.xlsx', header=0, na_values='-')
+    subpositions_df = pd.read_excel(results_path+'Tables/Leroy_36GHz_python_219_nospind.xlsx', header=0, na_values='-')
     subpositions_df['Source'] = subpositions_df['Source'].astype(str)
-    
     cubo_219_path = NGC253_path+cont_path+location_path+'/MAD_CUB_219GHz_continuum.I.image.pbcor.fits'#MAD_CUB_NGC253_spw_25_briggs_continuum.image.pbcor.fits'
     cubo_219 = utiles_cubes.Cube_Handler('219', cubo_219_path)
     rms_219 = 1.307E-5
@@ -172,22 +166,20 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
     cubo_219_aboverms = np.copy(cubo_219.fitsdata[0,0,:,:])
     cubo_219_aboverms[cubo_219_aboverms_mask.mask] = np.nan
     if ind_fig:
+        # Plotting each figure
         for i, row in positions_crop.iterrows():
             if not pd.isna(row['px_low_new']):
-                
-                fig, axes, lims = plot_utiles.map_figure_starter(wcs=cubo_219.wcs, naxis=1, fsize=figsize, labelsize=labelsize, fontsize=fontsize,
-                                                                xlim_ra=gal_RA_lims, ylim_dec=gal_Dec_lims,ticksize = 12)
-                #if not pd.isna(row['px_low_new']):
+                fig, axes = plot_utiles.map_figure_starter(wcs=cubo_219.wcs, maxis=1, naxis=1, fsize=figsize, labelsize=labelsize, fontsize=fontsize,
+                                                        xlim_ra=gal_RA_lims, ylim_dec=gal_Dec_lims,ticksize = 12)
                 axes[0].set_xlim(row['px_low_new'], row['px_low_new']+row['px_width'])
                 axes[0].set_ylim(row['py_low_new'], row['py_low_new']+row['py_height'])
-    
-                axes[0].coords[1].set_ticks(size=14, width=2, color='k', exclude_overlapping=True, number = 5)
-                axes[0].coords[0].set_ticks(size=14, width=2, color='k', exclude_overlapping=True, number = 5)
+                axes[0].coords[0].set_ticks(size=14, width=2, color='k', number = 5)
+                axes[0].coords[1].set_ticks(size=14, width=2, color='k', number = 5)
+                axes[0].coords[0].set_ticklabel(exclude_overlapping=True)
+                axes[0].coords[1].set_ticklabel(exclude_overlapping=True)
                 axes[0].tick_params(axis="both", which='minor', length=8)
                 axes[0].coords[0].frame.set_linewidth(5)
                 axes[0].coords[1].frame.set_linewidth(5)
-                #axes[0].imshow(cubo_219.fitsdata[0,0,:,:], origin='lower', cmap =plt.cm.rainbow, interpolation=None,
-                #                       norm=LogNorm(vmin=rms_219, vmax=cubo_219.max/1.2), zorder=1)
                 axes[0].imshow(cubo_219_aboverms, origin='lower', cmap =plt.cm.jet, interpolation=None,
                                     norm=LogNorm(vmin=5*rms_219, vmax=cubo_219.max/1.2), zorder=1)
                 
@@ -203,10 +195,13 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
                 plot_utiles.Beam_plotter(px=px, py=py, bmin=cubo_219.bmin*3600, bmaj=cubo_219.bmaj*3600,
                                     pixsize=cubo_219.pylen*3600, pa=cubo_219.bpa, axis=axes[0], wcs=cubo_219.wcs,
                                     color='k', linewidth=1.6, rectangle=True)
-                
-                fig.savefig(fig_path+'subcont_'+row['Location']+'_219GHz_0.02x0.02_jet5rms.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig_spath = f'{fig_path}NGC253/Individual/'
+                if not os.path.exists(fig_spath):
+                    os.makedirs(fig_spath)
+                fig.savefig(f'{fig_spath}subcont_{row["Location"]}_219GHz_0.02x0.02_jet5rms{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
                 plt.close()
     else:
+        # Plotting inside same figure
         maxis=2
         naxis=3
         fig, axes = plot_utiles.map_figure_starter(wcs=cubo_219.wcs, maxis=maxis, naxis=naxis, fsize=figsize, labelsize=labelsize, fontsize=fontsize,
@@ -215,17 +210,18 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
         for i, row in positions_crop.iterrows():
             if not pd.isna(row['px_low_new']) and row['Location'] not in ['SHC13', 'SHC8', 'SHC9']:
                 p = int(row['subpanel'] )   
-                print(row['Location'])
+                print(f'\tPlotting {row["Location"]}')
                 axes[p].set_xlim(row['px_low_new'], row['px_low_new']+row['px_width'])
                 axes[p].set_ylim(row['py_low_new'], row['py_low_new']+row['py_height'])
-                axes[p].coords[1].set_ticks(size=14, width=2, color='k', exclude_overlapping=True, number = 5)
-                axes[p].coords[0].set_ticks(size=14, width=2, color='k', exclude_overlapping=True, number = 5)
+                axes[p].coords[0].set_ticks(size=14, width=2, color='k', number = 5)
+                axes[p].coords[1].set_ticks(size=14, width=2, color='k', number = 5)
+                axes[p].coords[0].set_ticklabel(exclude_overlapping=True)
+                axes[p].coords[1].set_ticklabel(exclude_overlapping=True)
                 axes[p].tick_params(axis="both", which='minor', length=8)
                 axes[p].coords[0].frame.set_linewidth(5)
                 axes[p].coords[1].frame.set_linewidth(5)
                 axes[p].imshow(cubo_219_aboverms, origin='lower', cmap =plt.cm.jet, interpolation=None,
                                     norm=LogNorm(vmin=5*rms_219, vmax=cubo_219.max/1.2), zorder=1)
-                
                 axis_to_data = axes[p].transAxes + axes[p].transData.inverted()
                 points_data = axis_to_data.transform([0.1,0.1])
                 py = points_data[1]
@@ -243,7 +239,6 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
                 plot_utiles.Beam_plotter(px=px, py=py, bmin=cubo_219.bmin*3600, bmaj=cubo_219.bmaj*3600,
                                     pixsize=cubo_219.pylen*3600, pa=cubo_219.bpa, axis=axes[p], wcs=cubo_219.wcs,
                                     color='k', linewidth=1.6, rectangle=True)
-                
         for i, row in subpositions_df.iterrows():
             if row['subpanel']>=0:
                 p = int(row['subpanel'])   
@@ -256,12 +251,15 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
                     pym += 3
                 axes[p].annotate(row['Source_altern_sub_final'], xy=(px219, py219), xytext=(int(px219+pxm), int(py219+pym)), fontsize=sscfontsize,
                             arrowprops={'headwidth': 0.1, 'headlength': 0.1, 'width':0.5, 'color': 'k'},
-                            va='center', color = 'k', zorder=4) 
-        fig.savefig(f'{fig_path}{fig_name}ALL_subcont_219GHz_0.02x0.02_jet5rms_newnames.pdf', pad_inches=0, bbox_inches='tight', transparent=True, dpi=400)
+                            va='center', color = 'k', zorder=4)
+        fig_spath = f'{fig_path}NGC253/'
+        if not os.path.exists(fig_spath):
+            os.makedirs(fig_spath)
+        fig.savefig(f'{fig_spath}{fig_name}ALL_subcont_219GHz.pdf', pad_inches=0, bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
         
         
-def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = 3.5, source = 'SHC_13', fig_name = ''):
+def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, D_Mpc = 3.5, source = 'SHC_13', fig_name = '', fig_format = '.pdf'):
     """
         Figure 3 for NGC253 HR paper
     """
@@ -344,7 +342,6 @@ def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, 
         cubemax = np.nanmax(cubeplot)
         rmslist.append(cubeintrms)
         maxlist.append(cubemax)
-        #print(f'{cmom} {cubeintrms:1.3e} {np.nanmax(cubeplot.fitsdata[0,0,:,:]):1.3e}')
 
     momdict['m02434v0']['rms'] = np.nanmin([momdict['m02434v0']['wcs'].header['INTSIGMA'], momdict['m02625v0']['wcs'].header['INTSIGMA']])
     momdict['m02625v0']['rms'] = np.nanmin([momdict['m02434v0']['wcs'].header['INTSIGMA'], momdict['m02625v0']['wcs'].header['INTSIGMA']])
@@ -393,8 +390,10 @@ def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, 
         cubeplot = momdict[cmom]['cubo']
         axesind = momdict[cmom]['panel']
         cubeintrms = momdict[cmom]['wcs'].header['INTSIGMA']
-        axes[axesind].coords[1].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
-        axes[axesind].coords[0].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
+        axes[axesind].coords[0].set_ticks(size=14, width=2, color=axcolor, number = 5)
+        axes[axesind].coords[1].set_ticks(size=14, width=2, color=axcolor, number = 5)
+        axes[axesind].coords[0].set_ticklabel(exclude_overlapping=True)
+        axes[axesind].coords[1].set_ticklabel(exclude_overlapping=True)
         axes[axesind].tick_params(axis="both", which='minor', length=8)
         axes[axesind].coords[0].frame.set_linewidth(5)
         axes[axesind].coords[1].frame.set_linewidth(5)
@@ -454,5 +453,5 @@ def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, 
                                 pixsize=cubo_350.pylen*3600, pa=cubo_350.bpa, axis=axes[0], wcs=cubo_m02423v0.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
     
-    fig.savefig(f'{fig_path}{fig_name}{source}_HC3N_0moments_bar_cont_v3.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_HC3N_0moments.pdf', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()

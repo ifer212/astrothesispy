@@ -23,13 +23,13 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # SLIM figures
 # =============================================================================
 
-def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, fig_name = ''):
+def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_path, fig_path,
+                molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, fig_name = ''):
     """
         Figure 5 for NGC253 HR paper
     """
     rms_219 = 1.307E-5
-    path = f'{NGC253_path}SHC/'
-    slim_cube_path = f'{path}{source}/SLIM/'
+    slim_cube_path = f'{results_path}SLIM/{source}/'
     use_madcuba_moments = False
     if molecule == 'HC3Nvib_J24J26':
         crop_pre = 'Crop_VF_'
@@ -47,17 +47,16 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
         crop_str = 'MAD_CUB_CROP_'
     else:
         crop_str = ''
-        
     if use_madcuba_moments:
         moments_suf = ''
         moments_pre = 'MAD_CUB_Moments_0_'
         sigmastr = 'SIGMA' # For madcuba moments cube the sigma is not the integrated sigma of the cube
-        moment_cube_path = f'{path}{source}/moments/Madcuba/'
+        moment_cube_path = f'{moments_path}Madcuba/'
     else:
         moments_suf = '_M0_aboveM0'
         moments_pre = ''
         sigmastr = 'INTSIGMA'
-        moment_cube_path = f'{path}{source}/moments/'
+        moment_cube_path = moments_path
         
     # SLIM Cubes
     columndens = crop_pre+'ColumnDensity_'+corr_str+molecule+'_'+source+'.fits'
