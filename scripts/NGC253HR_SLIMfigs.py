@@ -801,10 +801,11 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         axis[1].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
     if style != 'onepanel':
         axis[1].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
-    fig.savefig(f'{fig_path}{source}/{fig_name}{source}Vel_radprofile_{style}{fig_format}', dpi=300)
+    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_vel_radprofile_{style}{fig_format}', dpi=300)
     plt.close()
     
-def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26', D_Mpc = 3.5, style = 'onecol', fig_name = ''):
+def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26',
+                   D_Mpc = 3.5, style = 'onecol', fig_name = '', fig_format = '.pdf'):
     """
         Plots the Position-Velocity diagram for the cloud-cloud collision
         style = 'onecol' one column two rows
@@ -816,13 +817,13 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     fontsize = 20
     cbar_tickfont = 14
 
-    slimpath = f'{NGC253_path}SHC/{source}/SLIM/'
+    slimpath = f'{results_path}SLIM/{source}/'
     cube = f'{slimpath}Vel_{molecule}_{source}.fits'
     cont_cube = f'{NGC253_path}Continuums/{source}/MAD_CUB_219GHz_continuum.I.image.pbcor_{source}_pycut_coord.fits'
 
     cubo = utiles_cubes.Cube_Handler('cubo', cube)
     cubocont = utiles_cubes.Cube_Handler('cubocont', cont_cube)
-    rms_219 = 1.307E-5#8.629E-6
+    rms_219 = 1.307E-5
     cubo_219_aboverms_mask = utiles_cubes.sigma_mask(cubocont.fitsdata[0,0,:,:], rms_219, 2.0)
     cubo_219_aboverms = np.copy(cubocont.fitsdata[0,0,:,:])
     cubo_219_aboverms[cubo_219_aboverms_mask.mask] = np.nan
@@ -915,7 +916,7 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     cubo_m02625v7_aboverms = np.copy(cubo_m02625v7.fitsdata[0,0,:,:])
     cubo_m02625v7_aboverms[cubo_m02625v7_aboverms_mask.mask] = np.nan
     cubo_m02625v7_aboverms = cubo_m02625v7_aboverms[ymin:ymax,xmin:xmax]
-    path_v6 = f'{slimpath}/{source}_velprofiles/MAD_CUB_II_NGC253_v6_1_2625_250_270kms.fits'
+    path_v6 = f'{slimpath}MAD_CUB_II_NGC253_v6_1_2625_250_270kms.fits'
     cubo_v6 = utiles_cubes.Cube_Handler('v6', path_v6)
     int_vel_range = (265-235)
     rms = 2e-4
@@ -923,7 +924,7 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     cubo_v6_aboverms_mask = utiles_cubes.sigma_mask(cubo_v6.fitsdata[0,0,:,:], sigma, 3)
     cubo_v6_aboverms = np.copy(cubo_v6.fitsdata[0,0,:,:])
     cubo_v6_aboverms[cubo_v6_aboverms_mask.mask] = np.nan
-    path_v6v7 = f'{slimpath}{source}_velprofiles/MAD_CUB_II_v6v7_1_2625_230_265_kms.fits'
+    path_v6v7 = f'{slimpath}MAD_CUB_II_v6v7_1_2625_230_265_kms.fits'
     cubo_v6v7 = utiles_cubes.Cube_Handler('v6', path_v6v7)
     int_vel_range = (265-230)
     rms = 200e-3
@@ -931,7 +932,6 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     cubo_v6v7_aboverms_mask = utiles_cubes.sigma_mask(cubo_v6v7.fitsdata[0,0,:,:], sigma, 3)
     cubo_v6v7_aboverms = np.copy(cubo_v6v7.fitsdata[0,0,:,:])
     cubo_v6v7_aboverms[cubo_v6v7_aboverms_mask.mask] = np.nan
-    
     
     col_path = f'{slimpath}ColumnDensity_HC3Nvib_J24J26_{source}.fits'
     col_cube = utiles_cubes.Cube_Handler('col', col_path)
@@ -971,11 +971,6 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     fwhms = []
     new_ycenter = 10+2 #ycenter - ymin
     new_xcenter = 7+2  #xcenter - xmin
-    
-    plt.imshow(cubo_rest, origin='lower')
-    plt.plot(new_xcenter, new_ycenter, marker='x',color='k')
-    fig.savefig(f'{fig_path}pvtest_unknwn.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
 
     for j in range(0, cubo_rest.shape[0]):
         col_dist = j-new_ycenter
@@ -1044,12 +1039,12 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     for i in range(naxis*maxis):
         axes.append(fig.add_subplot(gs1[i]))
     fig_cbar = []
-    logn_min = 14.8#utiles.round_to_multiple(np.nanmin(Zcols), 0.5) #np.round(utiles.truncate(np.nanmin(columndens_cube.fitsdata[0,0,:,:]), 1),1)
-    logn_max = 16.5#utiles.round_to_multiple(np.nanmax(Zcols), 0.5)
+    logn_min = 14.8
+    logn_max = 16.5
     fcbar1 = axes[0].imshow(Zcols, extent=(241.7,263.4, np.amin(x_data), np.amax(x_data)), aspect = 'auto', norm=LogNorm(vmin=logn_min, vmax=logn_max), cmap =plt.cm.rainbow)
-    tex_min = 150 # np.nanmin(Zv6v7)# 150
-    tex_max = 900 # np.nanmax(Zv6v7)# 900
-    tex_ticks = list(np.linspace(tex_min, tex_max, 5)) #np.arange(tex_min, tex_max, 10, 5)
+    tex_min = 150 
+    tex_max = 900 
+    tex_ticks = list(np.linspace(tex_min, tex_max, 5)) 
     fcbar2 = axes[1].imshow(Ztex, extent=(241.7,263.4, np.amin(x_data), np.amax(x_data)), aspect = 'auto', cmap =plt.cm.rainbow, vmin=tex_min, vmax=tex_max)
     fig_cbar.append(fcbar1)
     fig_cbar.append(fcbar2)
@@ -1122,5 +1117,5 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
         axes[0].set_ylabel(r'Dec offset (pc)', fontsize = labelsize)
         axes[0].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
         axes[1].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
-    fig.savefig(f'{fig_path}{fig_name}pvtest_texandcol_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_path}{source}/{fig_name}{source}_pvdiagram_{style}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
 

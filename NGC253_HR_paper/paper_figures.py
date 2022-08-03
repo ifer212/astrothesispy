@@ -12,8 +12,8 @@ LTE2D_plot = False
 LTEprofiles_plot = False
 SB_models_plot = False
 AGN_models_plot = False
-LTEvelprofile_plot = True
-cloudcloud_plot = False
+LTEvelprofile_plot = False
+cloudcloud_plot = True
 comp_models_plot = False
 ringspectra_plot = False # Not implemented
 
@@ -84,7 +84,8 @@ if LTEvelprofile_plot:
 if cloudcloud_plot:
     # Figure 12
     fig_name = 'Figure_12_'
-    NGC253HR_SLIMfigs.plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26', D_Mpc = 3.5, style = 'onecol', fig_name = fig_name)
+    NGC253HR_SLIMfigs.plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26',
+                                     D_Mpc = 3.5, style = 'onecol', fig_name = fig_name, fig_format = figure_format)
 
 # =============================================================================
 # Radiative transfer modelling figures
