@@ -15,7 +15,9 @@ comp_LTEvsNLTE = False
 model_difs = False
 
  
-def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path, D_Mpc = 3.5, Rcrit = 0.85, plot_type = 'SBmods', paper_figs = True, presen_figs = False, fortcomp=False, fig_name = ['', '', '',]):
+def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path,
+                    D_Mpc = 3.5, Rcrit = 0.85, plot_type = 'SBmods', paper_figs = True,
+                    presen_figs = False, fortcomp=False, fig_name = ['', '', '',], fig_format = '.pdf'):
     """
         Plotting model results
         plot_type = "SBmods" plots the SB models (distributed star formation)
@@ -25,8 +27,8 @@ def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path
         fortcomp = False avoids fortran compilation to convolve by beam the modelled data (need the compiled .31 files)
     """
     # Radiative transfer models paths
-    my_model_path = f'{rad_transf_path}/models/mymods/'
-    fort_paths = f'{rad_transf_path}/{source}/'
+    models_path = f'{rad_transf_path}models/'
+    fort_paths = f'{rad_transf_path}{source}/'
     # Loads obs fluxes
     obs_df, new_hb_df, cont_df = NGC253HR_nLTE_modelresults.load_observed_LTE(NGC253_path, source, results_path, fig_path, fort_paths, plot_LTE_lum = False) 
     # Lines for presen images
@@ -63,9 +65,8 @@ def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path
     for l,line in enumerate(line_column):
         if line != 'plot_conts':
             # Cont error already included in line error!  
-            new_hb_df[line+'_mJy_kms_beam_orig_errcont'] = new_hb_df[line+'_mJy_kms_beam_orig_err']#np.sqrt(new_hb_df[line+'_mJy_kms_beam_orig_err']**2 + new_hb_df['cont_'+line+'_beam_orig_err']**2)
-            new_hb_df[line+'_mJy_kms_beam_345_errcont'] = new_hb_df[line+'_mJy_kms_beam_345_err']#np.sqrt(new_hb_df[line+'_mJy_kms_beam_345_err']**2 + new_hb_df['cont_'+line+'_beam_345_err']**2)
-            
+            new_hb_df[line+'_mJy_kms_beam_orig_errcont'] = new_hb_df[line+'_mJy_kms_beam_orig_err']
+            new_hb_df[line+'_mJy_kms_beam_345_errcont'] = new_hb_df[line+'_mJy_kms_beam_345_err']
     # Best SB nLTE models
     if plot_type == 'SBmods':
         cont_modelplot = 'model2'
@@ -79,7 +80,6 @@ def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path
                     'model4': ['m24_LTHC3Nsbsig5.5E+07cd1.0E+25q1.5nsh30rad1.5vt5_a7','dustsblum5.0E+10cd1.0E+25exp1.5nsh1003rad17',
                                     1.5, plot_utiles.violet, [1, 1, 1]] 
                     }
-
     # Best AGN nLTE models (including SB model 2)
     if plot_type == 'AGNmods':
         cont_modelplot = 'model7'
@@ -95,23 +95,23 @@ def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path
                                     1.5, plot_utiles.dgreen, [1, 1, 1.0]],
                     }
         
-    
     # Final figures for present
     if presen_figs:
-        utiles_nLTEmodel.plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, fig_path, fig_path,
+        utiles_nLTEmodel.plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, new_hb_df, cont_df, models_path, fig_path, fig_path,
                                                            fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp)
 
     # Final paper figures for publication
     if paper_figs:
         convolve = True # Using or not convolved fluxes (for adjacent rings)
         
-        utiles_nLTEmodel.plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, fig_path, fig_path,
-                                                           fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp, fig_name=fig_name)
+        utiles_nLTEmodel.plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, new_hb_df, cont_df, models_path, fig_path, fig_path,
+                                                           fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp,
+                                                           fig_name=fig_name, fig_format = fig_format)
 
 if get_chi2_and_ind_plot:
     for i,modelo in enumerate(modelos):
         modsing = {modelo: modelos[modelo]}
-        utiles_nLTEmodel.line_profiles_chi2(new_hb_df, line_column, modsing, fort_paths, my_model_path, Rcrit, results_path)
+        utiles_nLTEmodel.line_profiles_chi2(new_hb_df, line_column, modsing, fort_paths, models_path, Rcrit, results_path)
 
 if redo_lum_and_sum:
     slines = ['ring', 'dist',
@@ -131,7 +131,7 @@ if redo_lum_and_sum:
         for mod in modelos:
             modelo = modelos[mod][0]
             dustmod = modelos[mod][1]
-            mod_dict = utiles_nLTEmodel.model_summary(modelo, dustmod, my_model_path, distance_pc, Rcrit)
+            mod_dict = utiles_nLTEmodel.model_summary(modelo, dustmod, models_path, distance_pc, Rcrit)
             modsum_df = modsum_df.append(mod_dict, ignore_index=True)
         modsum_df.to_excel(finalfigmod_path+SHC+'_finalmod_modsummary_Rcrit'+str(Rcrit).replace('.','p')+'.xlsx')  
         
@@ -140,7 +140,7 @@ if plot_models_absorption:
     bestmod = {'model2': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
                             1.5, redpink , [1, 2.3, 1.9]]}
     modelo = 'm28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9'
-    model2_list = glob(my_model_path+'m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9_*.inp')
+    model2_list = glob(models_path+'m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b9_*.inp')
     dustmod = 'dustsblum1.2E+10cd1.0E+25exp1.0nsh1002rad17'
     rad = 1.5
     modabs_dict = {}
@@ -167,7 +167,7 @@ if plot_models_absorption:
         modelo = sort_dict[str(m)]
         modabs_dict[str(m)] = [modelo, dustmod, rad, colors_r[m], [1, 2.3, 1.9]]
     modelos = modabs_dict
-    utiles_nLTEmodel.plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, finalfigmod_path, finalfigmod_path, fort_paths)
+    utiles_nLTEmodel.plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, new_hb_df, cont_df, models_path, finalfigmod_path, finalfigmod_path, fort_paths)
     
 if comp_LTEvsNLTE:
     new_hb_df['v=0_24_23_SM_mJy_kms_beam_345_errcont'] = 1*new_hb_df['v=0_26_25_SM_mJy_kms_beam_345_errcont']
@@ -196,7 +196,7 @@ if comp_LTEvsNLTE:
                             1.5, green, [1, 1.0, 1.9], '--', False],
                }
     modelos = compmods
-    utiles_nLTEmodel.plot_models_and_inp_comp(Rcrit, line_column, modelos, new_hb_df, cont_df, my_model_path, finalfigmod_path, finalfigmod_path, fort_paths)
+    utiles_nLTEmodel.plot_models_and_inp_comp(Rcrit, line_column, modelos, new_hb_df, cont_df, models_path, finalfigmod_path, finalfigmod_path, fort_paths)
     
     slines = ['ring', 'dist',
               'v=0_24_23_SM_mJy_kms_beam_orig',
@@ -217,7 +217,7 @@ if comp_LTEvsNLTE:
         for mod in modelos:
             modelo = modelos[mod][0]
             dustmod = modelos[mod][1]
-            mod_dict = utiles_nLTEmodel.model_summary(modelo, dustmod, my_model_path, distance_pc, Rcrit)
+            mod_dict = utiles_nLTEmodel.model_summary(modelo, dustmod, models_path, distance_pc, Rcrit)
             modsum_df = modsum_df.append(mod_dict, ignore_index=True)
         modsum_df.to_excel(finalfigmod_path+SHC+'_finalmodscomp_modsummary_Rcrit'+str(Rcrit).replace('.','p')+'.xlsx')  
         
@@ -236,7 +236,7 @@ if model_difs:
         bestmod = {'mod28b1': ['m28_LTHC3Nsbsig1.3E+07cd1.0E+25q1.5nsh30rad1.5vt5_b1','dustsblum1.2E+10cd1.0E+25exp1.5nsh1003rad17',
                                     1.5, redpink , [1, 1, 1]]}
         modelo = bestmod[mod]
-        mdust, m_molec, m_molec345 = utiles_nLTEmodel.model_reader(modelo, fort_paths, 1, 1, 1, line_column, my_model_path, LTE=True, read_only=True)
+        mdust, m_molec, m_molec345 = utiles_nLTEmodel.model_reader(modelo, fort_paths, 1, 1, 1, line_column, models_path, LTE=True, read_only=True)
         lineas = {
                    'v7=1_24_1_23_-1_SM': [15, r'$v_{7}=1$  24,1 - 23,-1', [-10, 130], 6],
                    'v7=1_26_1_25_-1_SM': [15, r'$v_{7}=1$  26,1 - 25,-1', [-10, 130], 2],

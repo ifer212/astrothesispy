@@ -72,7 +72,7 @@ def load_observed_LTE(NGC253_path, source, results_path, fig_path, fort_paths, p
     """ 
         Loads the observed data from LTE
     """
-    obs_df = pd.read_csv(f'{results_path}SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
+    obs_df = pd.read_csv(f'{results_path}Tables/SHC_13_SLIM_Tex_and_logN_profiles.csv', sep=';')
     obs_df['Dist_mean_cm'] = obs_df['Dist_mean_pc']*(1*u.pc).to(u.cm).value
     tstring = 'Tex_SM_ave_ring'
     s_si = _si.sigma_sb.to(u.Lsun/(u.pc**2*u.K**4)) # Boltzmann constant in Lsun/(pc**2 K**4)
@@ -88,9 +88,10 @@ def load_observed_LTE(NGC253_path, source, results_path, fig_path, fort_paths, p
         fig.savefig(fig_path+'LTE_Lum_profile.pdf', bbox_inches='tight', transparent=True, dpi=400)
         plt.close()
     # Observed fluxes 
-    new_hb_path = f'{NGC253_path}/SHC/{source}/EdFlux/{source}_flujos_hc3n_python.xlsx'
+    new_hb_path = f'{results_path}Tables/{source}_flujos_hc3n_python.xlsx'
     new_hb_df = pd.read_excel(new_hb_path, header=0)
     # Observed conts
+    print(fort_paths)
     cont_path = fort_paths+'SHC13_flujos_continuo_def.dat'
     cont_df = pd.read_csv(cont_path, comment='!', header=None, delim_whitespace=True)
     cont_df.columns = ['dist', 'F235GHz_mjy_beam', 'F235GHz_mjy_beam_err', 'F235GHz_mjy_beam345', 'F235GHz_mjy_beam345_err',

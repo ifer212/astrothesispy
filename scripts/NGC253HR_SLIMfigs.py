@@ -317,7 +317,7 @@ def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J
     mean_madcuba_df = pd.DataFrame(dict_ring).transpose()
     mean_madcuba_df['dist_ring_pc'] = mean_madcuba_df.index.tolist()
     mean_madcuba_df.reset_index(inplace=True)
-    mean_madcuba_df.to_csv(results_path+'SHC_13_SLIM_Tex_and_logN_profiles.csv', header=True, sep=';', index=False, na_rep='-')   
+    mean_madcuba_df.to_csv(results_path+'Tables/SHC_13_SLIM_Tex_and_logN_profiles.csv', header=True, sep=';', index=False, na_rep='-')   
     
     mean_madcuba_df['Col_ave_ring_rel_err'] = (10**mean_madcuba_df['Col_ave_ring_err'])*(1/np.log(10))/(10**mean_madcuba_df['Col_ave_ring'])
     if style == 'twocol':
