@@ -104,7 +104,7 @@ def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path
     if paper_figs:
         convolve = True # Using or not convolved fluxes (for adjacent rings)
         
-        utiles_nLTEmodel.plot_models_and_inp_finalpaperfig(convolve, Rcrit, line_column, modelos, new_hb_df, cont_df, models_path, fig_path, fig_path,
+        utiles_nLTEmodel.plot_models_and_inp_finalfig(source, convolve, Rcrit, line_column, modelos, new_hb_df, cont_df, models_path, fig_path, fig_path,
                                                            fort_paths, results_path, D_Mpc = D_Mpc, cont_modelplot = cont_modelplot, fortcomp=fortcomp,
                                                            fig_name=fig_name, fig_format = fig_format)
 
