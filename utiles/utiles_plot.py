@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon May  6 11:18:04 2019
-
-@author: frico
-"""
-
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import u_conversion
 
@@ -19,13 +11,6 @@ from astropy.io import fits
 from astropy.wcs import WCS
 import astropy.units as u
 from scipy.ndimage import rotate
-from matplotlib.ticker import FormatStrFormatter
-import pandas as pd
-import matplotlib.patches as mpatches
-import matplotlib.path as mpath
-from matplotlib.colors import ListedColormap
-from matplotlib.cm import hsv
-import math
 
 # Nice seaborn colors
 redpink     = sns.xkcd_palette(['red pink'])[0]
@@ -234,15 +219,13 @@ def load_map_axes(axis, ticksize, ticklabelsize, labelsize, labelpad = -1, axcol
         axis.set_xlabel('RA (J2000)', fontsize = labelsize)
         axis.set_ylabel('Dec (J2000)', fontsize = labelsize, labelpad=labelpad)
     
-
-
 def map_figure_starter_velcomp(wcs, maxis, naxis, fsize, labelsize, fontsize=12, axcolor='k', xlim_ra=False, ylim_dec=False, ticksize=6, hspace=0.08, wspace = -0.08,
                                xrat=1, yrat=1):
     """
     Figure with RA and DEc starter
     """
-    fig = plt.figure(figsize=(xrat*fsize, yrat*fsize))#fsize*1.75))
-    gs1 = gridspec.GridSpec(nrows=maxis, ncols=naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+    fig = plt.figure(figsize=(xrat*fsize, yrat*fsize))
+    gs1 = gridspec.GridSpec(nrows=maxis, ncols=naxis)   
     gs1.update(wspace = wspace, hspace=hspace, top=0.95, bottom = 0.05, left=0.05, right=0.95)
     # Adding wcs frame
     wcs.wcs.ctype = ['RA---SIN', 'DEC--SIN']
@@ -294,7 +277,6 @@ def truncate_cmap (cmap,n_min=0,n_max=256):
     name = "truncated_{}".format(cmap.name)
     return plt.matplotlib.colors.ListedColormap(colors,name=name)
     
-
 def plot_cube_moments(cube, save_path, outname, cbar0=False, cbar1=False, sigma_mask=False, plot_beam=False):
     sigma_mask = np.array(sigma_mask)
     if sigma_mask.any():
@@ -386,8 +368,7 @@ def plot_cube_moments(cube, save_path, outname, cbar0=False, cbar1=False, sigma_
     
     plt.savefig(save_path+'/'+outname+'.png', bbox_inches='tight', transparent=True, dpi=300)
     plt.close(fig)
-    #return mask_inside
-
+    
 def plot_continuum(cube, save_path, outname, rms, RA_lim=[0], Dec_lim=[0], cbar0=False, cbar1=False, sigma_mask=False, plot_beam=False):
     
     cont = cube.fitsdata[0,0,:,:]
@@ -397,7 +378,7 @@ def plot_continuum(cube, save_path, outname, rms, RA_lim=[0], Dec_lim=[0], cbar0
     else:
         fig_len = 1
     fig = plt.figure(figsize=(fig_len*4, 4))
-    gs1 = gridspec.GridSpec(1, fig_len)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+    gs1 = gridspec.GridSpec(1, fig_len)
     gs1.update(wspace = 0.0, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
     # Adding wcs frame
     wcs_1 = WCS(cube.header, naxis=2)
@@ -497,8 +478,6 @@ def plot_pc_scale(D_Mpc, pcs, py, px, pixsize, axis, color, wcs, vertical=False,
                       verticalalignment='center',)
     else:
         axis.hlines(py, xmin=px-(pc_in_px/2.), xmax=px+(pc_in_px/2.), color=color, linestyle='-', lw=lw, transform=axis.get_transform(wcs))
-        #axis.vlines(px-(pc_in_px/2.), ymin=py*0.9950, ymax=py*1.0050, color=color, linestyle='-', lw=lw, transform=axis.get_transform(wcs))
-        #axis.vlines(px+(pc_in_px/2.), ymin=py*0.9950, ymax=py*1.0050, color=color, linestyle='-', lw=lw, transform=axis.get_transform(wcs))
         if annotate:
             if text_sep_percen:
                 axis.annotate(str(pcs)+' pc', xy=(px,py), xytext=(px,py*text_sep), weight='bold',
@@ -510,8 +489,7 @@ def plot_pc_scale(D_Mpc, pcs, py, px, pixsize, axis, color, wcs, vertical=False,
                           fontsize=fontsize, color=color,
                           horizontalalignment='center',
                           verticalalignment='center',)
-
-        
+   
 def draw_ellipse(px, py, bmin, bmaj, pixsize, pa, axis, wcs=False, facecolor='none', color='red', linewidth=0.4, alpha=1, plot=True, zorder=1, linestyle='-', gaussfit=False):
     """
     Plotting beam
@@ -590,8 +568,6 @@ def subfig_with_1cbar_initializer(layout, cbar_data, cbar_label, color_palette='
                                   hspace=0.0, wspace=0.0, cbar_orientation='v', fisize=[4,4], discrete_colorbar=True,
                                   height_ratios = [1], tick_font = 8, label_font = 10, formatter = '', norm='log', labelpad=-30):
     
-    #layout=[2,2]
-    # Generating figure size
     if height_ratios == [1]:
         fig_len = layout[0]/layout[1]
         if fig_len==1:
@@ -736,8 +712,7 @@ def plot_contours_rangevel2(cube_list, FWHMs, rms, chan_width,
                     axis.contour(cube_data.data[0,i,:,:], colors=color, levels=cube_levels,
                                 linewidths=lw, transform=axis.get_transform(cube_wcs))
     return cubes_dict
-
-    
+  
 def subfig_initializer(layout,
                        hspace=0.0, wspace=0.0, figsize=[4,4]):
     # Generating figure size
@@ -767,7 +742,6 @@ def subfig_initializer(layout,
             ax.tick_params(axis='both', which='both', direction='in')
             ax_num += 1
     return fig, gs1, axes
-
 
 def plotter_PV(dir_init, dir_fin, nombre, angle, centro, smooth=None, bins_pv=[10,10]):
     """
@@ -821,8 +795,7 @@ def rotateImage(img, angle, pivot):
     from scipy import ndimage
     padX = [img.shape[1] - pivot[1], pivot[1]]
     padY = [img.shape[0] - pivot[0], pivot[0]]
-    imgP = np.pad(img-img[pivot[0],pivot[1]], [padY, padX], 'constant',constant_values=np.nan) #poneoms a cero el centro
-    #imgR = RR(imgP, angle, resize=True,mode='constant',cval=np.nan,order=0)
+    imgP = np.pad(img-img[pivot[0],pivot[1]], [padY, padX], 'constant',constant_values=np.nan)
     imgR = ndimage.rotate(imgP, angle, reshape=False)
     return imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
 
@@ -994,6 +967,9 @@ def plot_profile(yvar, pix_range, px_mid, py_mid, cube_dict, cube_dict_err,
     df_final = pd.concat(df_list)
     figsavename = figures_path+source+'_'+molecname+'_SLIM_'+yvar+'_profile_'+plotstr+'_v1.pdf'
     return fig, ax, figsavename, df_final
+    
+    
+    
     
 
 def plot_mean_profile(yvar, pix_range, px_mid, py_mid, cube_dict, cube_dict_err,

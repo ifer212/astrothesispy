@@ -15,8 +15,6 @@ from copy import deepcopy
 import astropy.units as u
 from scipy import ndimage
 
-plt.rc('text', usetex=True)
-plt.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
 plt.rc('xtick', color='k', direction='in', labelsize=6)
 plt.rc('ytick', color='k', direction='in', labelsize=6)
 
@@ -197,7 +195,7 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     tex_max = 900
     tex_ticks = list(np.linspace(tex_min, tex_max, 5))
     axes[1].imshow(tex_cube.fitsdata[0,0,:,:], transform=axes[1].get_transform(tex_cube.wcs), cmap =plt.cm.rainbow, vmin=tex_min, vmax=tex_max)
-    plot_utiles.add_cbar(fig, axes[1], tex_cube.fitsdata[0,0,:,:], r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+    plot_utiles.add_cbar(fig, axes[1], tex_cube.fitsdata[0,0,:,:],r'T$_{\text{vib}}$ (K)', color_palette='rainbow', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                  Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
@@ -550,7 +548,7 @@ def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J
 
     axis[0].set_ylim([0, 950])
     axis[1].set_ylim([14.8, 16.5])
-    axis[0].set_ylabel(r'$T_\text{vib}$ (K)', fontsize = labelsize)
+    axis[0].set_ylabel(r'T$_{\text{vib}}$ (K)', fontsize = labelsize)
     axis[1].set_ylabel(r'log N(HC$_3$N) (cm$^{-2}$)', fontsize = labelsize)
     
     axis[1].set_xlabel('r (pc)', fontsize = labelsize)
@@ -1090,13 +1088,13 @@ def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, mo
                                 fontsize=fontsize,
                                 transform=axes[l].transAxes)
             if style == 'twocol':
-                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}} (K)', color_palette='rainbow', colors_len = 0,
                                      orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                                      Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                                      discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                                      )
             else:
-                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}} (K)', color_palette='rainbow', colors_len = 0,
                                      orientation='v', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                                      Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                                      discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1

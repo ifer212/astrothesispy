@@ -497,7 +497,7 @@ def plot_model_input(modelo, my_model_path, figinp_path, results_path):
     ticksize = 16
     fontsize = 14
     fg = plt.figure(figsize=(figsize*1.15, figsize*0.85))
-    gs = gridspec.GridSpec(maxis, naxis)#, width_ratios=[1,1,1,0.1], height_ratios=[1])    
+    gs = gridspec.GridSpec(maxis, naxis)
     gs.update(wspace = 0.15, hspace=0.0, top=0.95, bottom = 0.05, left=0.05, right=0.80)
     ydict = {'T': [td_profile, r'T$_{dust}$ (K)', 'Tex_det', '', []],
              'dens' : [nh2_profile, r'$n_{\text{H}_{2}}$ (cm$^{-3}$)', '', 'log', []],

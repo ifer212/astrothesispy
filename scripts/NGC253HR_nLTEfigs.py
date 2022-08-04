@@ -1,11 +1,7 @@
 from astrothesispy.radiative_transfer import NGC253HR_nLTE_modelresults
 from astrothesispy.utiles import utiles_nLTEmodel
 from astrothesispy.utiles import utiles_plot as plot_utiles
-import matplotlib.gridspec as gridspec
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 from glob import glob
 
 get_chi2_and_ind_plot = False
