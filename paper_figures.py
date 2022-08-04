@@ -118,19 +118,4 @@ if comp_models_plot:
 # =============================================================================
 if ringspectra_plot:
     # Appendix Ring Figures
-    # All share same x_axis
-    xlimits = {0: [[218.26,219.28], 0], # spec 0
-               1: [[219.34,220.20], 0], # spec 0
-               2: [[220.30,221.30], 1], # spec 1
-               3: [[236.12,237.18], 2], # spec 2
-               4: [[237.20,238.08], 2]  # spec 2
-               }
-    ylim_dic = {
-        
-
-    }
-    # spectra from averaged ring, this figure is done inside Madcuba spectra
-    print(NGC253HR_ringfigs.ring_1.data_path)
-    NGC253HR_ringfigs.ring_1.source = source
-    NGC253HR_ringfigs.ring_1.save_path = f'{fig_path}{source}/rings/'
-    NGC253HR_ringfigs.ring_1.ring_plot()
+    NGC253HR_ringfigs.ring_create_and_plot(source, NGC253_path, f'{fig_path}{source}/rings/', size = 1.5, step = 0.1)

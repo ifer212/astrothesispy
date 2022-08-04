@@ -35,7 +35,7 @@ def MADCUBA_plot(m, n, data_path, molec_info, save_path, fig_name='Figure', fig_
                  anotcolor='0.6', panelfont='Arial', panfontsize=8, tick_font = 12, txtypercen=0.04,
                  txtxpercen=0.04, x_axis_tickpos = [], erase_molecule = [], erase_line = {},
                  panel_naming='letters', panesanot_right = ['NA'], panesanot_left = ['NA'], new_labelling = {},
-                 all_species = True, move_lines = {}, plot_as_one = [True,4], frequencies=True
+                 all_species = True, move_lines = {}, plot_as_one = [True,4], frequencies=True, far_ring = False
                  ):
     """ Ring plot from Madcuba extracted spectra and LTE model
 
@@ -86,6 +86,7 @@ def MADCUBA_plot(m, n, data_path, molec_info, save_path, fig_name='Figure', fig_
         move_lines (dict, optional): Manually positioning some labels. Defaults to {}.
         plot_as_one (list, optional): Plotting only 1 line and label for transitions from the same molecule with the same freq up to X decimals in GHz. Defaults to [True,4].
         frequencies (bool, optional): Plot in frequencies instead of velocity. Defaults to True.
+        far_ring (bool, optional): Avoid plotting high energy lines for far rings. Defaults to True.
 
     Raises:
         IOError: _description_
@@ -223,7 +224,7 @@ def MADCUBA_plot(m, n, data_path, molec_info, save_path, fig_name='Figure', fig_
                                            axis, molfontize, moleculefont, 
                                            highlight_lines, erase_molecule, erase_line, vel_shift, label_color,
                                            panel_spec_df_list, xsep, new_labelling,
-                                           move_lines, plot_as_one, txtypercen, txtxpercen, frequencies, molec_info)
+                                           move_lines, plot_as_one, txtypercen, txtxpercen, frequencies, molec_info, far_ring)
     text_maxy = {}
     for r,row in enumerate(axis_ind):
         ysublims = [ytext[i] for i in row ]
@@ -453,10 +454,6 @@ def get_text_positions_vw(x_data, y_data, labels, txt_width, txt_height, x_limit
                 else:
                     ysp_sub = [np.nanmin(y_sub)*1.01]*len(y_sub)
             for i, (x,lsp,y,l,c) in enumerate(list(zip(x_sub, lsp_sub, ysp_sub, l_sub, c_sub))):
-                #if bool(highlight_lines):
-                #    line_col = [highlight_lines[key] if key in l else color_label for key in highlight_lines][0]
-                #else:
-                #    line_col = color_label
                 line_col = c
                 textpos_groups[s].append([lsp, y, l])
                 xtext.append(x)
@@ -481,7 +478,7 @@ def line_annotation(all_species, data_files, m, n, spec_all_files, spec_sel_file
                     axis, molfontize, moleculefont,
                     highlight_lines, erase_molecule, erase_line, vel_shift, label_color, 
                     panel_spec_df_list, xsep, new_labelling,
-                    move_lines, plot_as_one, txtypercen, txtxpercen, frequencies, molec_info):
+                    move_lines, plot_as_one, txtypercen, txtxpercen, frequencies, molec_info, far_ring):
 
     vert_line = 0.66
     line_max  = 0.95
@@ -508,7 +505,7 @@ def line_annotation(all_species, data_files, m, n, spec_all_files, spec_sel_file
         x_limits_spec = x_limits[j][0]
         xlen = x_limits_spec[1]-x_limits_spec[0]
         file_ind = x_limits[j][1]
-        print('Panel: ' +str(j+1))
+        print('\tPanel: ' +str(j+1))
         # Reading asciis from SLIM
         data = pd.read_csv(data_files[file_ind], delim_whitespace= True, header=None)
         data_ncolumns = data.shape[1]
@@ -547,7 +544,7 @@ def line_annotation(all_species, data_files, m, n, spec_all_files, spec_sel_file
         # Not plotting line nor label for molecule in erase_molecule
         spec = spec[~spec['label'].isin(erase_molecule)]
         spec = spec.reset_index(drop=True)
-        spec = molec_rename(spec, molec_info)
+        spec = molec_rename(spec, molec_info, far_ring)
         for l, line in spec.iterrows():
             if line['Frequency'] == 238053.9019 and line['label']=='HC3N':
                 spec.loc[l, 'label'] = r'$v_7$=2$\,(-2)$'
@@ -736,7 +733,7 @@ def mean_btw_listelemnt(spec,xtol):
 def to_raw(string):
     return fr"{string}"
 
-def molec_rename(spec, molec_info):
+def molec_rename(spec, molec_info, far_ring):
     hc3n_info = molec_info+'SLIM_HC3N_info'
     spec['Frequency'] = spec['freq']/1e6
     spec['Frequency_rnd'] = np.round(spec['Frequency'],4)
@@ -805,6 +802,11 @@ def molec_rename(spec, molec_info):
                         newlabel_mol = newlabel_mol + gr
             
             spec.loc[l, 'label'] = newlabel_mol
+    if far_ring:
+        ######## Only for high dist rings ###########
+        viblow = [r'HC$_3$N,v=0', r'HC$_3$N,v7=1', r'HC$_3$N,v7=2', r'HC$_3$N,v6=1'] 
+        spec = spec[(spec['old_label'].str.contains('HC3N')==False) | (spec['Formula'].isin(viblow))] 
+        spec.reset_index(inplace = True, drop = True)
     return spec
     
 class Grouper:
