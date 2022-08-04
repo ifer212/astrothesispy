@@ -4,18 +4,19 @@ from astrothesispy.scripts import NGC253HR_contfigs
 from astrothesispy.scripts import NGC253HR_SLIMfigs
 from astrothesispy.scripts import NGC253HR_nLTEfigs
 from astrothesispy.scripts import NGC253HR_compfigs
+from astrothesispy.scripts import NGC253HR_ringfigs
 
-cont219_plot = True
-zoom_cont219_plot = True
-moments_plot = True
-LTE2D_plot = True
-LTEprofiles_plot = True
-SB_models_plot = True
-AGN_models_plot = True
-LTEvelprofile_plot = True
-cloudcloud_plot = True
-comp_models_plot = True
-ringspectra_plot = False # Not implemented
+cont219_plot = False
+zoom_cont219_plot = False
+moments_plot = False
+LTE2D_plot = False
+LTEprofiles_plot = False
+SB_models_plot = False
+AGN_models_plot = False
+LTEvelprofile_plot = False
+cloudcloud_plot = False
+comp_models_plot = False
+ringspectra_plot = True # Not implemented
 
 # =============================================================================
 # Global vars & paths
@@ -116,7 +117,20 @@ if comp_models_plot:
 # Ring spectra figures
 # =============================================================================
 if ringspectra_plot:
-    # Appendix Figures
-    fig_name = 'Appendix_'
+    # Appendix Ring Figures
+    # All share same x_axis
+    xlimits = {0: [[218.26,219.28], 0], # spec 0
+               1: [[219.34,220.20], 0], # spec 0
+               2: [[220.30,221.30], 1], # spec 1
+               3: [[236.12,237.18], 2], # spec 2
+               4: [[237.20,238.08], 2]  # spec 2
+               }
+    ylim_dic = {
+        
+
+    }
     # spectra from averaged ring, this figure is done inside Madcuba spectra
-    skip_part = True
+    print(NGC253HR_ringfigs.ring_1.data_path)
+    NGC253HR_ringfigs.ring_1.source = source
+    NGC253HR_ringfigs.ring_1.save_path = f'{fig_path}{source}/rings/'
+    NGC253HR_ringfigs.ring_1.ring_plot()
