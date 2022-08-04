@@ -1,0 +1,52 @@
+\begin{table*}
+\begin{center}
+\caption[]{Fitted at low resolution in pc x pc}
+\begin{tabular}{lccccccccc}
+\hline \noalign {\smallskip}
+ Position & 36\,GHz & 111\,GHz & 219\,GHz LR & 350\,GHz LR & 219\,GHz HR & 350\,GHz HR \\
+\hline \noalign {\smallskip}
+SHC 1a & $2.7\times2.7$ & $2.06\times3.52$  & $1.71\times1.74$ & $1.16\times1.69$ & $0.60\times0.81$ & $0.81\times0.87$ \\
+SHC 1b & $nan\timesnan$ & $nan\timesnan$  & $0.61\times1.22$ & $3.67\times4.28$ & $0.55\times0.70$ & $0.75\times0.95$ \\
+SHC 1c & $nan\timesnan$ & $nan\timesnan$  & $1.38\times1.43$ & $1.21\times1.53$ & $0.82\times0.94$ & $0.88\times1.21$ \\
+SHC 2 & $1.2\times1.2$ & $2.12\times2.81$  & $1.47\times1.58$ & $1.55\times1.60$ & $0.66\times0.74$ & $0.78\times0.79$ \\
+SHC 3a & $2.6\times2.6$ & $3.70\times4.72$  & $1.49\times1.72$ & $1.68\times2.00$ & $0.67\times0.73$ & $0.75\times0.86$ \\
+SHC 3b & $nan\timesnan$ & $nan\timesnan$  & $1.60\times2.16$ & $1.88\times3.02$ & $0.98\times1.10$ & $1.35\times1.67$ \\
+SHC 3c & $nan\timesnan$ & $nan\timesnan$  & $1.75\times1.94$ & $1.62\times1.83$ & $0.80\times0.97$ & $0.74\times1.11$ \\
+SN1 & $nan\timesnan$ & $1.20\times1.86$  & $1.37\times1.79$ & $2.19\times4.28$ & $1.06\times1.44$ & $0.36\times0.39$ \\
+SHC 4c & $2.5\times2.5$ & $nan\timesnan$  & $1.37\times1.81$ & $1.13\times2.44$ & $1.17\times2.80$ & $1.35\times1.67$ \\
+SHC 4b & $nan\timesnan$ & $nan\timesnan$  & $0.61\times0.71$ & $1.27\times4.28$ & $0.23\times0.28$ & $0.50\times1.35$ \\
+SHC 4d & $nan\timesnan$ & $nan\timesnan$  & $1.16\times2.07$ & $1.37\times3.04$ & $0.80\times2.29$ & $0.87\times1.35$ \\
+SHC 4e & $2.5\times2.5$ & $2.49\times5.28$  & $1.42\times1.64$ & $1.14\times1.61$ & $0.57\times0.70$ & $0.56\times1.01$ \\
+SHC 4f & $nan\timesnan$ & $nan\timesnan$  & $1.42\times2.64$ & $1.11\times1.34$ & $0.66\times1.13$ & $0.51\times0.76$ \\
+SHC 4g & $nan\timesnan$ & $nan\timesnan$  & $1.40\times4.23$ & $0.80\times1.04$ & $0.59\times0.76$ & $0.41\times0.53$ \\
+SHC 4a & $2.5\times2.5$ & $1.23\times5.28$  & $1.66\times1.85$ & $1.93\times2.66$ & $0.68\times0.79$ & $0.91\times1.01$ \\
+SHC 5a & $2.1\times2.1$ & $1.41\times2.33$  & $1.57\times1.75$ & $1.83\times1.94$ & $0.71\times0.93$ & $0.90\times1.18$ \\
+SHC 5b & $nan\timesnan$ & $nan\timesnan$  & $1.95\times6.08$ & $1.64\times4.28$ & $1.45\times2.29$ & $0.91\times1.35$ \\
+SHC 5c & $nan\timesnan$ & $nan\timesnan$  & $1.80\times2.57$ & $1.54\times2.41$ & $1.67\times2.80$ & $1.12\times1.67$ \\
+SHC 5d & $nan\timesnan$ & $nan\timesnan$  & $0.92\times1.39$ & $1.34\times1.35$ & $0.62\times0.81$ & $0.57\times1.10$ \\
+SHC 6 & $2.1\times2.1$ & $1.77\times3.58$  & $1.98\times2.89$ & $1.47\times3.93$ & $1.56\times2.29$ & $0.95\times1.67$ \\
+SHC 7c & $nan\timesnan$ & $4.05\times4.92$  & $1.17\times1.65$ & $2.36\times5.53$ & $0.68\times0.84$ & $0.19\times0.31$ \\
+SHC 7a & $2.9\times2.9$ & $5.28\times5.28$  & $0.71\times6.11$ & $3.67\times4.28$ & $0.23\times2.80$ & $0.16\times0.21$ \\
+SHC 7b & $nan\timesnan$ & $nan\timesnan$  & $1.69\times6.11$ & $2.10\times3.67$ & $0.76\times1.27$ & $0.90\times1.21$ \\
+SHC 8c & $nan\timesnan$ & $2.89\times3.57$  & $2.38\times3.41$ & $3.67\times4.28$ & $0.74\times1.28$ & $1.07\times1.67$ \\
+SHC 8b & $nan\timesnan$ & $nan\timesnan$  & $1.51\times1.80$ & $2.17\times2.51$ & $0.73\times1.14$ & $1.35\times1.67$ \\
+SHC 8a & $1.9\times1.9$ & $5.28\times5.28$  & $1.50\times1.78$ & $1.49\times1.90$ & $0.72\times1.04$ & $0.81\times1.34$ \\
+SN2 & $nan\timesnan$ & $nan\timesnan$  & $nan\timesnan$ & $nan\timesnan$ & $nan\timesnan$ & $nan\timesnan$ \\
+SHC 9 & $2.6\times2.6$ & $1.55\times2.06$  & $1.75\times2.06$ & $2.71\times3.69$ & $0.88\times1.24$ & $1.36\times2.11$ \\
+SHC 10c & $nan\timesnan$ & $nan\times5.28$  & $0.61\times0.71$ & $0.24\times3.67$ & $0.28\times2.29$ & $0.08\times1.67$ \\
+SHC 10a & $nan\timesnan$ & $nan\times0.60$  & $0.99\times1.49$ & $0.20\times0.24$ & $0.58\times0.77$ & $0.69\times0.92$ \\
+SHC 10d & $nan\timesnan$ & $5.28\times5.28$  & $1.74\times6.26$ & $2.18\times3.67$ & $1.15\times1.23$ & $1.03\times1.41$ \\
+SHC 10b & $3.5\times3.5$ & $3.59\times4.85$  & $1.96\times3.04$ & $2.56\times3.67$ & $1.71\times2.80$ & $1.35\times1.67$ \\
+SHC 11b & $nan\timesnan$ & $5.28\times5.28$  & $1.30\times1.81$ & $3.67\times4.28$ & $0.63\times0.81$ & $1.21\times1.27$ \\
+SHC 11a & $2.9\times2.9$ & $1.64\times1.91$  & $1.67\times1.95$ & $1.43\times1.98$ & $1.05\times1.50$ & $1.35\times1.67$ \\
+SHC 12 & $4.3\times4.3$ & $0.75\times1.16$  & $1.49\times1.56$ & $3.67\times4.28$ & $0.84\times0.89$ & $1.35\times1.67$ \\
+SHC 13b & $nan\timesnan$ & $5.28\times5.28$  & $1.56\times3.39$ & $1.33\times1.62$ & $0.94\times2.80$ & $0.90\times1.67$ \\
+SHC 13c & $nan\timesnan$ & $nan\timesnan$  & $0.61\times3.38$ & $1.76\times4.28$ & $0.40\times0.45$ & $0.79\times1.67$ \\
+SN3b & $nan\timesnan$ & $nan\timesnan$  & $0.61\times1.22$ & $0.20\times0.24$ & $0.58\times0.79$ & $0.08\times0.09$ \\
+SN3a & $nan\timesnan$ & $1.51\times2.33$  & $0.86\times1.25$ & $0.20\times0.24$ & $0.62\times0.67$ & $0.08\times0.09$ \\
+SHC 13a & $1.6\times1.6$ & $1.96\times4.13$  & $1.52\times1.65$ & $1.76\times2.04$ & $0.69\times0.75$ & $0.85\times0.96$ \\
+SHC 14 & $1.9\times1.9$ & $1.12\times1.75$  & $1.71\times1.87$ & $2.05\times2.36$ & $0.77\times0.94$ & $1.01\times1.26$ \\
+\hline \noalign {\smallskip}
+\end{tabular}
+\end{center}
+\end{table*}

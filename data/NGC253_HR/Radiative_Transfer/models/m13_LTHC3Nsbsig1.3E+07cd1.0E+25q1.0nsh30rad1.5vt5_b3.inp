@@ -1,0 +1,95 @@
+   1			 ! NO DE MOLECULAS                                                                           
+   'HC3N*'    9 43 84 84 84 43 84 120 154 84	 ! MOLECULA, NO NIV VIBRAC, NO NIV ROTAC               
+   0.0		 ! VELOCIDAD CRITICA RECUBRIMIENTO                                                          
+   -1   	 	 ! NCON PARA CADA MOLECULA (1:OPER,0:NO OPER,-1:NO NUM)                                  
+   0   10		 ! MODIF NIVELES (1:SI); FACTOR DE MODIFICACION                                          
+   0                     ! MODIFICACION NO DE NIVELES FINITO                                        
+   1.28E-5    0.0   0.0  ! PERMASA (M/Y), X(HELIO), [HI]/[H2]                                       
+   2                     ! N_VEL:1=FORM ENV;2=Vexp UNIF;3=V_ter-0.37x10^16/r                        
+   2                     ! NSEL_TK ,  1:CALC ENV 2:MAN                                              
+   2                     ! NSEL_DEN,  1:CALC ENV 2:MAN                                              
+    3	     		 ! N_POB 1:LVG easy 2:MAN 3:TER                                                        
+   31     4.629E+18      ! NO DE CAPAS, RADIO NUBE
+   1000    0    1          ! NO. ITERAC, NO. ITER RECUBR(=0, NO HAY;=1,=ITER) NO
+   1000   		 ! ITERACIONES DE ESCRITURA                                         
+   0			 ! ESCRIT PANTALLA (1:SI,0:NO)                                           
+   11                  ! NO TRANS ESCRITURA                                     
+  26 117 340 576 616 111 972 814 1048 336 568
+  43 84	1 1 1 1 1 1 1		 ! NO. NIVELES COLISIONES                                
+   0 0 0 0 0 0 0 0 0			 ! COLISIONES ESTADOS VIBRACIONALES (1:SI, 0:NO)         
+   2 0                   ! SELEC COLIS,COMUNIC (1:NO,2:SI)(SI NLEVCOL>0)        
+   0    1.25      ! NO. PARAM HACIA ESTRELLA,RESOL EN VEL
+    1.25   1.25      ! ! RESOL EN VELOC RECUB-PATHS LINEAS REC
+   0.0    0.0            ! TEMP. BACKGROUND, TEMP. FUENTE CENTRAL               
+   0.0     10.0          ! VELOCIDAD TERMINAL, FOPDUST                          
+   1.0     1.E6  1              ! W (AMPLIFICACION POR EL POLVO)                
+   2.0E-4			 ! MAX VARIACION RELATIVA DE POBLAC (1E-4)                          
+   1                    ! INTENSIDADES EMERGENTES 1:SI;0:NO                     
+    3.5000E+06  15.0     ! DIST(PC),HPBW                                        
+      1 23 0 5.0e-3 2.0 0.1 2.5 !IF_DUST,NTYPE_GR,IF_LAM
+      1 2 5 1350  0.004  1    ! IF_FLUJOS,NFORM_CHAN,...
+   1 1 1 1   		 ! IF_ISO,IF_HIFI,IF_PACS,IF_SPIRE                               
+   1   0.0 1.0  0.0          ! GEOMETRIA FLUJOS: 1, REGION CIRCULAR; 2, COCOON; 
+'/Users/frico/Documents/Ed/transf/program/models/mymods/m13_LTHC3Nsbsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_b3_'
+  5  0   0.0000E+00   3.0000E+02  5.5E-07    5.0   315.83
+  5  1   2.7229E+17   1.0274E+07  5.0E-07    5.0   310.72
+  5  1   4.1752E+17   7.2301E+06  1.2E-07    5.0   290.93
+  5  1   5.6274E+17   5.5775E+06  9.2E-08    5.0   271.12
+  5  1   7.0796E+17   4.5398E+06  7.5E-08    5.0   253.59
+  5  1   8.5319E+17   3.8277E+06  6.0E-08    5.0   238.36
+  5  1   9.9841E+17   3.3087E+06  5.5E-08    5.0   224.73
+  5  1   1.1436E+18   2.9136E+06  5.4E-08    5.0   212.69
+  5  1   1.2889E+18   2.6028E+06  5.3E-08    7.0   202.10
+  5  1   1.4341E+18   2.3520E+06  5.2E-08    7.0   192.22
+  5  1   1.5793E+18   2.1452E+06  3.5E-08    5.0   183.10
+  5  1   1.7245E+18   1.9718E+06  2.7E-08    5.0   175.01
+  5  1   1.8698E+18   1.8244E+06  2.1E-08    5.0   167.15
+  5  1   2.0150E+18   1.6975E+06  5.0E-09    5.0   160.07
+  5  1   2.1602E+18   1.5871E+06  0.5E-09    5.0   153.21
+  5  1   2.3054E+18   1.4902E+06  0.5E-09    5.0   146.87
+  5  1   2.4506E+18   1.4044E+06  0.5E-09    5.0   140.74
+  5  1   2.5959E+18   1.3280E+06  0.5E-09    5.0   134.83
+  5  1   2.7411E+18   1.2594E+06  0.5E-09    5.0   129.13
+  5  1   2.8863E+18   1.1976E+06  0.5E-09    5.0   123.64
+  5  1   3.0315E+18   1.1416E+06  0.5E-09    5.0   118.35
+  5  1   3.1768E+18   1.0906E+06  0.5E-09    5.0   113.25
+  5  1   3.3220E+18   1.0439E+06  0.5E-09    5.0   108.35
+  5  1   3.4672E+18   1.0011E+06  0.5E-09    5.0   103.30
+  5  1   3.6124E+18   9.6164E+05  0.5E-09    5.0    98.40
+  5  1   3.7577E+18   9.2518E+05  0.5E-09    5.0    93.28
+  5  1   3.9029E+18   8.9138E+05  0.5E-09    5.0    88.25
+  5  1   4.0481E+18   8.5997E+05  0.5E-09    5.0    82.86
+  5  1   4.1933E+18   8.3069E+05  0.5E-09    5.0    77.39
+  5  1   4.3386E+18   8.0334E+05  0.5E-09    5.0    71.10
+  5  1   4.4838E+18   7.7774E+05  0.5E-09    5.0    63.71
+ 1  0.080   3.15830E+02
+ 2  0.080   3.10719E+02
+ 3  0.080   2.90925E+02
+ 4  0.030   2.71121E+02
+ 5  0.030   2.53589E+02
+ 6  0.030   2.38360E+02
+ 7  0.030   2.24731E+02
+ 8  0.030   2.12688E+02
+ 9  0.020   2.02101E+02
+10  0.020   1.92225E+02
+11  0.020   1.83098E+02
+12  0.020   1.75012E+02
+13  0.015   1.67145E+02
+14  0.015   1.60067E+02
+15  0.015   1.53213E+02
+16  0.010   1.46867E+02
+17  0.010   1.40742E+02
+18  0.010   1.34833E+02
+19  0.010   1.29135E+02
+20  0.010   1.23642E+02
+21  0.010   1.18350E+02
+22  0.010   1.13255E+02
+23  0.010   1.08352E+02
+24  0.010   1.03295E+02
+25  0.010   9.83966E+01
+26  0.010   9.32773E+01
+27  0.010   8.82525E+01
+28  0.010   8.28609E+01
+29  0.020   7.73878E+01
+30  0.020   7.10980E+01
+31  0.020   6.37138E+01

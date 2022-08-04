@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 21 22:52:33 2022
-
-@author: Fer
-"""
-
 from scipy.optimize import curve_fit
-
-from utiles import utiles
-from utiles import u_conversion
 
 import numpy as np
 import astropy.units as u
 import astropy.constants.si as _si
+
+from astrothesispy.utiles import utiles
+from astrothesispy.utiles import u_conversion
 
 #==============================================================================
 #                    
@@ -81,6 +74,39 @@ def tau_transition(N_up, B_ul, freq, FWHM, T):
     h_si = _si.h
     k_si = _si.k_B
     tau = (h_si/FWHM)* N_up * B_ul * (np.exp(h_si*freq/(k_si*T))-1.)
+    return tau
+
+def partition_function(T,B0):
+    """
+    Goldsmith & Lager 1999
+    Linear Molecules in LTE -> Z ~ a^-1
+    HC3N B0 = 4.55 GHz Werni et al. 2007 
+    """
+    h_si = _si.h
+    k_si = _si.k_B
+    Z = k_si*T/(h_si * (B0.to(u.Hz))) # Sale 1/(Hz * s) que se supone que es adim, pero astropy no lo coge
+     
+    return Z.value
+
+def tau_HC3N(T, FWHM, B0, logN, J):
+    """
+    Optical depth of a linear molecule J -> J-1 transition
+    Costagliola & Aalto 2010 (eq. A.2)
+    """
+    # For tau << 1 the N observed are the real col. densities but for tau > 1
+    # the observed line intensities lead to an underestimate of the derived column density
+    # if no correction is applied.
+    
+    h_si = _si.h
+    mu = 3.6 # dipole moment of HC3N Wood et al. 2009 185, 273-288
+    
+    # Partition function for linear molecs in LTE
+    Z = partition_function(T,B0)
+    alpha = 1./Z
+    
+    # Column density
+    N = 10.**logN
+    tau = 8 * (np.pi**2.) * mu**2 * N * J * np.exp(-alpha*J*(J+1.))*(np.exp(2.*alpha*J)-1.) / (3.*h_si*Z*FWHM)
     return tau
 
 def Tex_goldsmith(Tkin, Tcore, trans_freq, Crate, Arate, f):
@@ -253,6 +279,28 @@ def HC3N_levelpopulation(Snu, Snu_err, freq_GHz, Bmin_arcsec, Bmaj_arcsec, Jup):
     Nugu_err = 1.669E17*TBdv_err/(Sij*freq_MHz*(mu**2))
     return Nugu, Nugu_err
 
+def Trotational(logNu, logNl, Eu, El, Ju, Jl):
+    """
+    Rotational temperature from the boltzmann equation, between two different
+    transitions
+    nu/nl = gu/gl * exp(-AE/kT) -> nu and nl we can change it for col dens
+    """
+    h_si = _si.h
+    c_si = _si.c
+    # Degeneracies of the rotational states
+    gu = 2.*Ju +1.
+    gl = 2.*Jl +1.
+    # Column densities
+    Nu = 10.**logNu
+    Nl = 10.**logNl
+    # Boltzmann constant
+    k_si = _si.k_B
+    cm = 1. * h_si *c_si.to(u.cm / u.s) # cm-1 to J
+    k_cm = k_si/(cm).value  # 0.69503476 # kB in cm-1 / K
+    # Rotational temperature
+    Trot = (Eu - El)/(k_cm * (np.log(gu/gl) - np.log(Nu/Nl)))
+    # 153./(np.log(10**0.3) + np.log(71/49.)) = 144.1173
+    return Trot
 
 def Rdiag_rot_temp(vib_states, slims_df, ax1, line_width=1, xmax=1000, bootstrap=False, niter=1000, plot = False, weights=True):
     # Separating by vibrational state (Trot)

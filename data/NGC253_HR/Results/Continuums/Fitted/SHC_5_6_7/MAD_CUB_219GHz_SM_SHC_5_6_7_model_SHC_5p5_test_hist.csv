@@ -1,0 +1,4 @@
+Index,FITS,Macro,Type,FROM_ROW,TO_ROW,Roi_Range,User,Date
+1,C,//ORIGIN=/Users/frico/Documents/data/NGC253_HR/Results_v2/Continuums/Fitted/SHC_5_6_7/219GHz_SM_SHC_5_6_7_model_SHC_5p5_test.fits,I,,,,,
+2,C,"run(""Import GENERIC CUBE"",""select='/Users/frico/Documents/data/NGC253_HR/Results_v2/Continuums/Fitted/SHC_5_6_7/219GHz_SM_SHC_5_6_7_model_SHC_5p5_test.fits' "");",P,,,,,
+3,C,//  = 'Imported ..'        /,H,,,,,

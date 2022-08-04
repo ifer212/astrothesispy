@@ -1,0 +1,53 @@
+\begin{table*}
+\begin{center}
+\caption[]{Peak Fluxes table  at $0.033\times0.027$ resolution (i.e. $0.56\times0.46$\,pc the 350\,GHz cube resolution). Spectral indexes are also from peak fluxes. Spectral index corrected from free-free emission, assuming same free-free contribution as in the low resolution cubes.}
+\begin{tabular}{lccccccc}
+\hline \noalign {\smallskip}
+ Position & 219\,GHz & 219\,GHz  corr. & 350\,GHz &  350\,GHz  corr. & $\alpha$ 219-350 & $\alpha$ 219-350 corr. \\
+          & $\left(\text{mJy}\right)$ & & $\left(\text{mJy}\right)$ & &  \\
+\hline \noalign {\smallskip}
+SHC 1a & $0.00$ & $-0.11$ & $0.00$ & $0.00$ & $5.25$ & $nan$ \\
+SHC 1b & $0.00$ & $nan$ & $0.00$ & $nan$ & $6.67$ & $nan$ \\
+SHC 1c & $0.00$ & $nan$ & $0.00$ & $nan$ & $6.45$ & $nan$ \\
+SHC 2 & $0.00$ & $-0.00$ & $0.01$ & $0.01$ & $4.65$ & $nan$ \\
+SHC 3a & $0.00$ & $-0.69$ & $0.01$ & $-0.66$ & $4.71$ & $-0.08$ \\
+SHC 3b & $0.00$ & $nan$ & $0.00$ & $nan$ & $6.36$ & $nan$ \\
+SHC 3c & $0.00$ & $nan$ & $0.00$ & $nan$ & $5.67$ & $nan$ \\
+SN1 & $0.00$ & $nan$ & $0.00$ & $nan$ & $3.58$ & $nan$ \\
+SHC 4c & $0.00$ & $0.00$ & $0.00$ & $-0.00$ & $4.17$ & $nan$ \\
+SHC 4b & $0.00$ & $nan$ & $0.00$ & $nan$ & $6.89$ & $nan$ \\
+SHC 4d & $0.00$ & $nan$ & $0.00$ & $nan$ & $5.34$ & $nan$ \\
+SHC 4e & $0.00$ & $-0.00$ & $0.00$ & $-0.00$ & $2.04$ & $-2.90$ \\
+SHC 4f & $0.00$ & $nan$ & $0.00$ & $nan$ & $5.03$ & $nan$ \\
+SHC 4g & $0.00$ & $nan$ & $0.00$ & $nan$ & $10.30$ & $nan$ \\
+SHC 4a & $0.00$ & $-0.31$ & $0.02$ & $-0.14$ & $4.96$ & $-1.68$ \\
+SHC 5a & $0.01$ & $-2.45$ & $0.05$ & $-2.63$ & $4.25$ & $0.15$ \\
+SHC 5b & $0.00$ & $nan$ & $0.00$ & $nan$ & $2.65$ & $nan$ \\
+SHC 5c & $0.00$ & $nan$ & $0.00$ & $nan$ & $4.49$ & $nan$ \\
+SHC 5d & $0.00$ & $nan$ & $0.00$ & $nan$ & $5.49$ & $nan$ \\
+SHC 6 & $0.00$ & $-0.26$ & $0.00$ & $-0.12$ & $2.60$ & $-1.68$ \\
+SHC 7c & $0.00$ & $nan$ & $0.00$ & $nan$ & $4.08$ & $nan$ \\
+SHC 7a & $0.00$ & $-0.65$ & $0.00$ & $-0.00$ & $-1.60$ & $-11.62$ \\
+SHC 7b & $0.00$ & $nan$ & $0.00$ & $nan$ & $7.80$ & $nan$ \\
+SHC 8c & $0.00$ & $nan$ & $0.00$ & $nan$ & $6.69$ & $nan$ \\
+SHC 8b & $0.00$ & $nan$ & $0.02$ & $nan$ & $7.38$ & $nan$ \\
+SHC 8a & $0.00$ & $-0.90$ & $0.02$ & $-0.87$ & $4.89$ & $-0.07$ \\
+SN2 & $nan$ & $nan$ & $nan$ & $nan$ & $nan$ & $nan$ \\
+SHC 9 & $0.00$ & $-1.44$ & $0.01$ & $-0.92$ & $2.85$ & $-0.97$ \\
+SHC 10c & $0.00$ & $nan$ & $0.00$ & $nan$ & $9.20$ & $nan$ \\
+SHC 10a & $0.00$ & $nan$ & $0.00$ & $nan$ & $1.04$ & $nan$ \\
+SHC 10d & $0.00$ & $nan$ & $0.00$ & $nan$ & $5.17$ & $nan$ \\
+SHC 10b & $0.00$ & $-0.45$ & $0.01$ & $-0.28$ & $5.20$ & $-1.09$ \\
+SHC 11b & $0.00$ & $nan$ & $0.00$ & $nan$ & $5.39$ & $nan$ \\
+SHC 11a & $0.00$ & $-1.06$ & $0.00$ & $-1.01$ & $3.92$ & $-0.12$ \\
+SHC 12 & $0.00$ & $-0.22$ & $0.00$ & $-27.44$ & $1.27$ & $10.60$ \\
+SHC 13b & $0.00$ & $nan$ & $0.00$ & $nan$ & $5.58$ & $nan$ \\
+SHC 13c & $0.00$ & $nan$ & $0.00$ & $nan$ & $2.10$ & $nan$ \\
+SN3b & $0.00$ & $nan$ & $0.00$ & $nan$ & $-inf$ & $nan$ \\
+SN3a & $0.00$ & $nan$ & $0.00$ & $nan$ & $-inf$ & $nan$ \\
+SHC 13a & $0.01$ & $-0.00$ & $0.05$ & $-1.49$ & $4.42$ & $12.81$ \\
+SHC 14 & $0.04$ & $-5.95$ & $0.23$ & $-7.01$ & $4.05$ & $0.36$ \\
+\hline \noalign {\smallskip}
+\end{tabular}
+\end{center}
+\end{table*}

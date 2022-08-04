@@ -4,6 +4,7 @@ from astrothesispy.utiles import utiles_plot as plot_utiles
 from astrothesispy.utiles import u_conversion
 from astrothesispy.utiles import utiles_nLTEmodel
 
+import os
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import LogNorm
@@ -14,8 +15,6 @@ from copy import deepcopy
 import astropy.units as u
 from scipy import ndimage
 
-plt.rc('text', usetex=True)
-plt.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
 plt.rc('xtick', color='k', direction='in', labelsize=6)
 plt.rc('ytick', color='k', direction='in', labelsize=6)
 
@@ -23,13 +22,16 @@ plt.rc('ytick', color='k', direction='in', labelsize=6)
 # SLIM figures
 # =============================================================================
 
-def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, fig_name = ''):
+def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_path, fig_path,
+                molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, fig_name = '', fig_format = '.pdf'):
     """
         Figure 5 for NGC253 HR paper
     """
     rms_219 = 1.307E-5
-    path = f'{NGC253_path}SHC/'
-    slim_cube_path = f'{path}{source}/SLIM/'
+    slim_cube_path = f'{results_path}SLIM/{source}/'
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
     use_madcuba_moments = False
     if molecule == 'HC3Nvib_J24J26':
         crop_pre = 'Crop_VF_'
@@ -47,17 +49,16 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
         crop_str = 'MAD_CUB_CROP_'
     else:
         crop_str = ''
-        
     if use_madcuba_moments:
         moments_suf = ''
         moments_pre = 'MAD_CUB_Moments_0_'
         sigmastr = 'SIGMA' # For madcuba moments cube the sigma is not the integrated sigma of the cube
-        moment_cube_path = f'{path}{source}/moments/Madcuba/'
+        moment_cube_path = f'{moments_path}Madcuba/'
     else:
         moments_suf = '_M0_aboveM0'
         moments_pre = ''
         sigmastr = 'INTSIGMA'
-        moment_cube_path = f'{path}{source}/moments/'
+        moment_cube_path = moments_path
         
     # SLIM Cubes
     columndens = crop_pre+'ColumnDensity_'+corr_str+molecule+'_'+source+'.fits'
@@ -72,9 +73,9 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     FWHM_cube = utiles_cubes.Cube_Handler('FWHM', slim_cube_path+FWHM)
     FWHM_err = crop_pre+'FWHM_err_'+molecule+'_'+source+'.fits'
     FWHM_err_cube = utiles_cubes.Cube_Handler('FWHM_err', slim_cube_path+FWHM_err)
-    vel = crop_pre+'vel_'+molecule+'_'+source+'.fits'
+    vel = crop_pre+'Vel_'+molecule+'_'+source+'.fits'
     vel_cube = utiles_cubes.Cube_Handler('vel', slim_cube_path+vel)
-    vel_err = crop_pre+'vel_err_'+molecule+'_'+source+'.fits'
+    vel_err = crop_pre+'Vel_err_'+molecule+'_'+source+'.fits'
     vel_err_cube = utiles_cubes.Cube_Handler('vel_err', slim_cube_path+vel_err)
     
     # Cont cube
@@ -110,8 +111,8 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     FWHM = crop_pre+'FWHM_'+molecule+'_'+source+'.fits'
     FWHM_cube = utiles_cubes.Cube_Handler('FWHM', slim_cube_path+FWHM)
     FWHM_err = crop_pre+'FWHM_err_'+molecule+'_'+source+'.fits'
-    vel = crop_pre+'vel_'+molecule+'_'+source+'.fits'
-    vel_cube = utiles_cubes.Cube_Handler('vel', slim_cube_path+vel)
+    vel = crop_pre+'Vel_'+molecule+'_'+source+'.fits'
+    vel_cube = utiles_cubes.Cube_Handler('Vel', slim_cube_path+vel)
     vel_err = crop_pre+'vel_err_'+molecule+'_'+source+'.fits'
 
     if molecule == 'HC3Nvib_J24J26':
@@ -129,7 +130,6 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     cbar_labelfont = 30
     labelsize = 14
     fontsize = 14
-    
     # Starting figure
     figsize = 10
     naxis = 2
@@ -141,7 +141,6 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     fig = plt.figure(figsize=(naxis*figsize*0.7, figsize))
     gs1 = gridspec.GridSpec(maxis, naxis)  
     gs1.update(wspace = 0.0, hspace=0.28, top=0.95, bottom = 0.05, left=0.05, right=0.80)
-    
     RA_start, Dec_start = utiles_cubes.RADec_position(47, 70, wcs_plot, origin = 1)
     RA_end, Dec_end = utiles_cubes.RADec_position(91, 118, wcs_plot, origin = 1)
     # Adding wcs frame
@@ -149,17 +148,8 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     axes = []
     for i in range(naxis*maxis):
         axes.append(fig.add_subplot(gs1[i], aspect='equal', projection=wcs_plot))
-        axes[i].tick_params(labelsize=labelsize)
-        axes[i].tick_params(direction='in')
-        axes[i].coords.frame.set_color(axcolor)
-        axes[i].coords[0].set_major_formatter('hh:mm:ss.sss')
-        axes[i].coords[1].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
-        axes[i].coords[0].set_ticks(size=14, width=2, color=axcolor, exclude_overlapping=True, number = 5)
-        axes[i].coords[0].frame.set_linewidth(2)
-        axes[i].coords[1].frame.set_linewidth(2)
-        axes[i].coords[0].set_separator((r'$^{\rm{h}}$', r'$^{\rm{m}}$', r'$^{\rm{s}}$'))
-        axes[i].coords[0].display_minor_ticks(True)
-        axes[i].coords[1].display_minor_ticks(True)
+        plot_utiles.load_map_axes(axes[i], ticksize=14, ticklabelsize = labelsize, labelsize = labelsize,
+                      labelpad = -1, axcolor='k', ticknumber = 5, tickwidth = 2, axiswidth = 2, add_labels = False)
         if i in [1,3]:
             axes[i].set_yticklabels([])
             axes[i].tick_params(axis="both", which='minor', length=8)
@@ -201,16 +191,15 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
         
     # Tex
     tex_min = utiles.round_to_multiple(np.nanmin(tex_cube.fitsdata[0,0,:,:]), 10)
-    tex_min = 150 # 50
-    tex_max = 900# utiles.round_to_multiple(np.nanmax(tex_cube.fitsdata[0,0,:,:]), 10)
-    tex_ticks = list(np.linspace(tex_min, tex_max, 5)) #np.arange(tex_min, tex_max, 10, 5)
+    tex_min = 150
+    tex_max = 900
+    tex_ticks = list(np.linspace(tex_min, tex_max, 5))
     axes[1].imshow(tex_cube.fitsdata[0,0,:,:], transform=axes[1].get_transform(tex_cube.wcs), cmap =plt.cm.rainbow, vmin=tex_min, vmax=tex_max)
-    plot_utiles.add_cbar(fig, axes[1], tex_cube.fitsdata[0,0,:,:], r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+    plot_utiles.add_cbar(fig, axes[1], tex_cube.fitsdata[0,0,:,:],r'T$_{\text{vib}}$ (K)', color_palette='rainbow', colors_len = 0,
                  orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                  Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
-    
     # Vel
     if source == 'SHC_13':
         vel_min = 235
@@ -225,7 +214,6 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
                  Mappable=False, cbar_limits=[vel_min, vel_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
-   
     # FWHM
     fwhm_min = 8
     fwhm_max = 60
@@ -236,7 +224,6 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
                  Mappable=False, cbar_limits=[fwhm_min, fwhm_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                  discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                  )
-    
     levels_tex = [500]
     axes[0].contour(tex_cube.fitsdata[0,0,:,:], transform=axes[0].get_transform(tex_cube.wcs), colors='k', linewidths=2.0, zorder=1,
                      levels= levels_tex)
@@ -246,7 +233,6 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
                     levels= levels_tex)
     axes[3].contour(tex_cube.fitsdata[0,0,:,:], transform=axes[3].get_transform(tex_cube.wcs), colors='k', linewidths=2.0, zorder=1,
                      levels= levels_tex)
-    
     pixsize = np.round(columndens_cube.header['CDELT2']*3600,4)
     pcs = 1
     px = px_mid 
@@ -255,24 +241,24 @@ def plot_SLIM2D(NGC253_path,  cont_path, location_path, fig_path, molecule = 'HC
     plot_utiles.Beam_plotter(px=28, py=py, bmin=columndens_cube.bmin*3600, bmaj=columndens_cube.bmaj*3600,
                                 pixsize=columndens_cube.pylen*3600, pa=columndens_cube.bpa, axis=axes[0], wcs=columndens_cube.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
-    fig.savefig(f'{fig_path}{fig_name}{source}_SLIM_cubes_{molecule}_no_profile_noM0_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_cubes_{molecule}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
-def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13', D_Mpc = 3.5, style = 'onecol', fig_name = ''):
+def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13',
+                      D_Mpc = 3.5, style = 'onecol', fig_name = '', fig_format = '.pdf'):
     """
         Figure 6 for NGC253 HR paper
         style = "onecol" plots one column with two rows
         style = "twocol" plots two colunms with one row
     """
-
     only_SM = True
     labelsize = 32
     ticksize = 28
     # Cubes
-    path = f'{NGC253_path}SHC/'
-    final_results_path = f'{NGC253_path}Results_v2/'
-    slim_cube_path = f'{path}{source}/SLIM/'
-    madcub_path = f'{slim_cube_path}Figures_v8/'
+    slim_cube_path = f'{results_path}SLIM/{source}/'
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
     # Beams
     beam_orig = np.pi*0.022*0.020/(4*np.log(2))
     beam_345  = np.pi*0.028*0.034/(4*np.log(2))
@@ -281,15 +267,15 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
     pixsize_arcsec = 0.007
     
     # MADCUBA Temp profile
-    ringave_file = 'SLIM_rings_average_v2.xlsx' # Spectra Average
-    rings_df = pd.read_excel(final_results_path+ringave_file, header=0)
+    ringave_file = 'SLIM_rings_average.xlsx' # Spectra Average
+    rings_df = pd.read_excel(results_path+'Tables/'+ringave_file, header=0)
     
     tex_file = f'tex_{molecule}.csv' # Pixel average
     col_file = f'coldens_{molecule}.csv' # Pixel average
-    madcol_df = pd.read_csv(madcub_path+col_file, header=0, sep=';')
+    madcol_df = pd.read_csv(slim_cube_path+col_file, header=0, sep=';')
     madcol_df_nouplim = madcol_df[madcol_df['value_err'] > 0]
     madcol_df_nouplim.reset_index(inplace=True)
-    madtex_df = pd.read_csv(madcub_path+tex_file, header=0, sep=';')
+    madtex_df = pd.read_csv(slim_cube_path+tex_file, header=0, sep=';')
     madtex_df_nouplim = madtex_df[madtex_df['value_err'] > 0]
     madtex_df_nouplim.reset_index(inplace=True)
     start_pc = 0
@@ -336,7 +322,7 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
     mean_madcuba_df = pd.DataFrame(dict_ring).transpose()
     mean_madcuba_df['dist_ring_pc'] = mean_madcuba_df.index.tolist()
     mean_madcuba_df.reset_index(inplace=True)
-    mean_madcuba_df.to_csv(final_results_path+'SHC_13_SLIM_Tex_and_logN_profiles.csv', header=True, sep=';', index=False, na_rep='-')   
+    mean_madcuba_df.to_csv(results_path+'Tables/SHC_13_SLIM_Tex_and_logN_profiles.csv', header=True, sep=';', index=False, na_rep='-')   
     
     mean_madcuba_df['Col_ave_ring_rel_err'] = (10**mean_madcuba_df['Col_ave_ring_err'])*(1/np.log(10))/(10**mean_madcuba_df['Col_ave_ring'])
     if style == 'twocol':
@@ -562,7 +548,7 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
 
     axis[0].set_ylim([0, 950])
     axis[1].set_ylim([14.8, 16.5])
-    axis[0].set_ylabel(r'$T_\text{vib}$ (K)', fontsize = labelsize)
+    axis[0].set_ylabel(r'T$_{\text{vib}}$ (K)', fontsize = labelsize)
     axis[1].set_ylabel(r'log N(HC$_3$N) (cm$^{-2}$)', fontsize = labelsize)
     
     axis[1].set_xlabel('r (pc)', fontsize = labelsize)
@@ -570,10 +556,12 @@ def plot_SLIMprofiles(NGC253_path, fig_path, molecule = 'HC3Nvib_J24J26', source
         axis[0].tick_params(labelbottom=False)   
     else:
         axis[0].set_xlabel('r (pc)', fontsize = labelsize)
-    fig.savefig(f'{fig_path}{fig_name}{source}_SLIM_Tex_and_logN_profiles_dfcolors_newcols_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_Tex_and_logN_profiles{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
     
-def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path, molecule = 'HC3Nvib_J24J26', modelname = 'model2', Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = ''):
+def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path,
+                     molecule = 'HC3Nvib_J24J26', modelname = 'model2',
+                     Rcrit = 0.85, D_Mpc = 3.5, style = 'onepanel', fig_name = '', fig_format = '.pdf'):
     """
         Plots SLIM velocity profiles and Calculations for the cloud-cloud collision origin of SHC13 and its poss. outflow. mass
         style = 'onepanel' plots only one panel (one direction)
@@ -583,11 +571,13 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     ticksize = 32
     fontsize = 30
     # Paths
-    slim_cube_path = f'{NGC253_path}SHC/{source}/SLIM/'
+    slim_cube_path = f'{results_path}SLIM/{source}/'
     vel_path = slim_cube_path+'Vel_'+molecule+'_'+source+'.fits'            
-    profiles_path = slim_cube_path+source+'_velprofiles/'
-    my_model_path = f'{rad_transf_path}/models/mymods/'
-    
+    my_model_path = f'{rad_transf_path}/models/'
+    mass_distr_figure = False
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
     modelos = {
                     'model1': ['m13_LTHC3Nsbsig1.3E+07cd1.0E+25q1.0nsh30rad1.5vt5_b3','dustsblum1.2E+10cd1.0E+25exp1.0nsh1002rad17',
                                     1.5, plot_utiles.azure, [1, 1, 2.0]],
@@ -609,24 +599,20 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     obs_df, rpc_profile, td_profile, nh2_profile, nh2_profile_corr, MH2_profile, Mgas_fromnH2_Msun_profile_corr, x_profile, logNHC3N_profile, logNHC3N_profile_corr, sigma, luminosity, logNH2_profile, logNH2_profile_corr, qprof = utiles_nLTEmodel.read_model_input(modelo, my_model_path, results_path, Rcrit)
     total_mass = np.nansum(Mgas_fromnH2_Msun_profile_corr)
     
-    
     #Rings definition
     start_pc = 0
     end_pc = 1.5
     step = 0.1
     distances_pc = np.arange(start_pc, end_pc+step, step)
-
+    
     xcenter = 48
     ycenter = 20
     vel_cube =  utiles_cubes.Cube_Handler('vels', vel_path)
     vel_cube_pixlen_pc = u_conversion.lin_size(D_Mpc, vel_cube.pylen*3600).to(u.pc).value
-    plt.imshow(vel_cube.fitsdata[0,0,:,:], origin='lower')
-    plt.plot(xcenter,ycenter,  marker='x')
     vel_cube_vel_mask =  np.ma.masked_where(vel_cube.fitsdata[0,0,:,:] >= 250, vel_cube.fitsdata[0,0,:,:], copy=True)
     vel_cube_below250 = np.copy(vel_cube.fitsdata[0,0,:,:])
     vel_cube_below250[vel_cube_vel_mask.mask] = np.nan
     vel_cube_below250_crop = vel_cube_below250[17:29,45:57]
-    plt.imshow(vel_cube_below250_crop, origin='lower')
     # Number of pixels with v<250
     npix = np.count_nonzero(~np.isnan(vel_cube_below250_crop))
     sup_below250 = npix*vel_cube_pixlen_pc**2
@@ -647,7 +633,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
             ring_dif = distances_pc[i+1]-distances_pc[i]
             subdf = dist_df[(dist_df['dist_pc']>=distances_pc[i]) & (dist_df['dist_pc']<distances_pc[i+1])]
             if len(subdf)>0:
-                print(f'{ring_dist:1.2f} \t {len(subdf)}')
                 px_count_dict.append({'dist_pc': ring_dist, 'px_count': len(subdf), 'ring_vol':ring_vol, 'ring_sup':ring_sup, 'ring_dif':ring_dif})
     px_count_df = pd.DataFrame(px_count_dict)
     
@@ -686,7 +671,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
                 ring_sup = px_count_df.loc[jdx,'ring_sup']
                 dens_sup = nh2_profile_corr[idx]*ring_sup
                 mass = Mgas_fromnH2_Msun_profile_corr[idx]
-                #dens = nh2_profile_corr[idx]
             else:
                 mass = np.nan
                 dens = np.nan
@@ -697,8 +681,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
             dens_sup_cube[jy,ix] = dens_sup/px_count
             dist_dicts2.append({'px': ix, 'py':jy, 'dist_pc':pxcenter_dist_pc, 'px_count': px_count, 'mass':mass, 'dens':dens})
     
-    
-    
     dist_df2 = pd.DataFrame(dist_dicts2)
     dist_df2 = dist_df2.dropna()
     masses_cube_crop = masses_cube[3:40,22:68]
@@ -708,26 +690,24 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     masses_cube_below250_crop = masses_cube_masked[17:29,45:57]
     npix_total = np.count_nonzero(~np.isnan(masses_cube))
     npix_outfl = np.count_nonzero(~np.isnan(masses_cube_below250_crop))
-    fig = plt.figure()
-    plt.imshow(masses_cube, origin='lower')
-    fig.savefig(f'{fig_path}{source}_masses_cube.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
+    if mass_distr_figure:
+        fig = plt.figure()
+        plt.imshow(masses_cube, origin='lower')
+        fig.savefig(f'{savefigpath}/{source}_model_masses_cube{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+        plt.close()
 
     # Total mass from models inside region with vels <250km/s
     # with dens q=1.5
     # lolim
     Mass_below250_MSun = np.nansum(masses_cube_below250_crop)
-    
     # Outflow mass assuming Mass eq. distr along cube
     # uplim
     outflow_pc_percen = npix_outfl/npix_total
     Mass_below250_MSun_uplim = outflow_pc_percen *total_mass
-    
     # Assuming average surface density 
     ave_dens_sup = total_mass/(np.pi*1.5**2) # Msun/pc2
     average_vol_dens = total_mass/(4/3*np.pi*1.5**3) # Msun/pc3
     mass_2 = ave_dens_sup*npix_outfl*(vel_cube_pixlen_pc**2)
-    
     routflow = np.sqrt((npix_outfl*vel_cube_pixlen_pc**2)/np.pi)
     vel_diff = 21 # km/s
     age1 = 1e4
@@ -749,19 +729,18 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     time_compression = (routflow*(1*u.pc).to(u.km)/(vel_diff*(u.km/u.s))).to(u.yr).value
     
     # Perpendicular profile to gal rotation
-    profile_NW_SE = pd.read_csv(profiles_path+'vel_NW_SE.csv')
+    profile_NW_SE = pd.read_csv(slim_cube_path+'vel_NW_SE.csv')
     profile_NW_SE.columns = ['px', 'V']
     rmid = len(profile_NW_SE)/2
     profile_NW_SE['px_res'] = profile_NW_SE['px']-rmid
     profile_NW_SE['dist_pc'] = profile_NW_SE['px_res']*vel_cube_pixlen_pc
 
     # Parallel profile to gal rotation
-    profile_NE_SW = pd.read_csv(profiles_path+'vel_NE_SW.csv')
+    profile_NE_SW = pd.read_csv(slim_cube_path+'vel_NE_SW.csv')
     profile_NE_SW.columns = ['px', 'V']
     rmid = len(profile_NE_SW)/2
     profile_NE_SW['px_res'] = profile_NE_SW['px']-rmid
     profile_NE_SW['dist_pc'] = profile_NE_SW['px_res']*vel_cube_pixlen_pc
-
 
     figsize = 14
     if style=='twocol':
@@ -781,12 +760,10 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         gs.update(wspace = 0.0, hspace=0.0, top=0.975, bottom = 0.07)
     else:
         gs.update(wspace = 0.125, hspace=0.0, top=0.95, bottom = 0.05)
-    
     axis = []
     axis.append(fig.add_subplot(gs[0]))
     if style != 'onepanel':
         axis.append(fig.add_subplot(gs[1]))
-    
     axis[0].plot(profile_NW_SE['dist_pc'],profile_NW_SE['V'],color= 'k', linestyle='-',label='data', marker='',lw=1.4)
     if style != 'onepanel':
         axis[1].plot(profile_NE_SW['dist_pc']*-1,profile_NE_SW['V'],color= 'k', linestyle='-',label='data', marker='', lw=1.4)
@@ -795,7 +772,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     if style != 'onepanel':
         axis[1].set_ylim([242, 263])
         axis[1].set_xlim([-1.58, 1.58])
-    
     axis[0].text(0.15, 0.95, 'SE-NW',
                             horizontalalignment='right',
                             verticalalignment='top',
@@ -807,7 +783,6 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
                             verticalalignment='top',
                             fontsize=fontsize,
                             transform=axis[1].transAxes)
-    
     for v,ax in enumerate(axis):
         axis[v].tick_params(direction='in')
         axis[v].tick_params(axis="both", which='major', length=8)
@@ -816,7 +791,7 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         axis[v].yaxis.set_tick_params(which='both', right='on', labelright='off')
         axis[v].tick_params(axis='both', which='major', labelsize=ticksize, width=1.75)
         for axs in ['top', 'bottom', 'left', 'right']:
-            axis[v].spines[axs].set_linewidth(1.5)  # change width
+            axis[v].spines[axs].set_linewidth(1.5) 
         axis[v].tick_params(labelright=False)
     if style=='twocol':
         axis[0].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
@@ -834,10 +809,11 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
         axis[1].set_ylabel(r'$V$ (km s$^{-1}$)', fontsize=labelsize)
     if style != 'onepanel':
         axis[1].set_xlabel(r'$r$ (pc)', fontsize=labelsize)
-    fig.savefig(f'{fig_path}{fig_name}Vel_radprofile_1x2_'+style+'.pdf', dpi=300)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_vel_radprofile_{style}{fig_format}', dpi=300)
     plt.close()
     
-def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26', D_Mpc = 3.5, style = 'onecol', fig_name = ''):
+def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, molecule = 'HC3Nvib_J24J26',
+                   D_Mpc = 3.5, style = 'onecol', fig_name = '', fig_format = '.pdf'):
     """
         Plots the Position-Velocity diagram for the cloud-cloud collision
         style = 'onecol' one column two rows
@@ -848,14 +824,17 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     ticklabelsize = 16
     fontsize = 20
     cbar_tickfont = 14
-
-    slimpath = f'{NGC253_path}SHC/{source}/SLIM/'
+    # Paths
+    slimpath = f'{results_path}SLIM/{source}/'
     cube = f'{slimpath}Vel_{molecule}_{source}.fits'
     cont_cube = f'{NGC253_path}Continuums/{source}/MAD_CUB_219GHz_continuum.I.image.pbcor_{source}_pycut_coord.fits'
-
+    savefigpath = f'{fig_path}{source}'
+    if not os.path.exists(savefigpath):
+        os.makedirs(savefigpath)
+        
     cubo = utiles_cubes.Cube_Handler('cubo', cube)
     cubocont = utiles_cubes.Cube_Handler('cubocont', cont_cube)
-    rms_219 = 1.307E-5#8.629E-6
+    rms_219 = 1.307E-5
     cubo_219_aboverms_mask = utiles_cubes.sigma_mask(cubocont.fitsdata[0,0,:,:], rms_219, 2.0)
     cubo_219_aboverms = np.copy(cubocont.fitsdata[0,0,:,:])
     cubo_219_aboverms[cubo_219_aboverms_mask.mask] = np.nan
@@ -948,7 +927,7 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     cubo_m02625v7_aboverms = np.copy(cubo_m02625v7.fitsdata[0,0,:,:])
     cubo_m02625v7_aboverms[cubo_m02625v7_aboverms_mask.mask] = np.nan
     cubo_m02625v7_aboverms = cubo_m02625v7_aboverms[ymin:ymax,xmin:xmax]
-    path_v6 = f'{slimpath}/{source}_velprofiles/MAD_CUB_II_NGC253_v6_1_2625_250_270kms.fits'
+    path_v6 = f'{slimpath}MAD_CUB_II_NGC253_v6_1_2625_250_270kms.fits'
     cubo_v6 = utiles_cubes.Cube_Handler('v6', path_v6)
     int_vel_range = (265-235)
     rms = 2e-4
@@ -956,7 +935,7 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     cubo_v6_aboverms_mask = utiles_cubes.sigma_mask(cubo_v6.fitsdata[0,0,:,:], sigma, 3)
     cubo_v6_aboverms = np.copy(cubo_v6.fitsdata[0,0,:,:])
     cubo_v6_aboverms[cubo_v6_aboverms_mask.mask] = np.nan
-    path_v6v7 = f'{slimpath}{source}_velprofiles/MAD_CUB_II_v6v7_1_2625_230_265_kms.fits'
+    path_v6v7 = f'{slimpath}MAD_CUB_II_v6v7_1_2625_230_265_kms.fits'
     cubo_v6v7 = utiles_cubes.Cube_Handler('v6', path_v6v7)
     int_vel_range = (265-230)
     rms = 200e-3
@@ -964,7 +943,6 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     cubo_v6v7_aboverms_mask = utiles_cubes.sigma_mask(cubo_v6v7.fitsdata[0,0,:,:], sigma, 3)
     cubo_v6v7_aboverms = np.copy(cubo_v6v7.fitsdata[0,0,:,:])
     cubo_v6v7_aboverms[cubo_v6v7_aboverms_mask.mask] = np.nan
-    
     
     col_path = f'{slimpath}ColumnDensity_HC3Nvib_J24J26_{source}.fits'
     col_cube = utiles_cubes.Cube_Handler('col', col_path)
@@ -1004,11 +982,6 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     fwhms = []
     new_ycenter = 10+2 #ycenter - ymin
     new_xcenter = 7+2  #xcenter - xmin
-    
-    plt.imshow(cubo_rest, origin='lower')
-    plt.plot(new_xcenter, new_ycenter, marker='x',color='k')
-    fig.savefig(f'{fig_path}pvtest_unknwn.pdf', bbox_inches='tight', transparent=True, dpi=400)
-    plt.close()
 
     for j in range(0, cubo_rest.shape[0]):
         col_dist = j-new_ycenter
@@ -1077,12 +1050,12 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
     for i in range(naxis*maxis):
         axes.append(fig.add_subplot(gs1[i]))
     fig_cbar = []
-    logn_min = 14.8#utiles.round_to_multiple(np.nanmin(Zcols), 0.5) #np.round(utiles.truncate(np.nanmin(columndens_cube.fitsdata[0,0,:,:]), 1),1)
-    logn_max = 16.5#utiles.round_to_multiple(np.nanmax(Zcols), 0.5)
+    logn_min = 14.8
+    logn_max = 16.5
     fcbar1 = axes[0].imshow(Zcols, extent=(241.7,263.4, np.amin(x_data), np.amax(x_data)), aspect = 'auto', norm=LogNorm(vmin=logn_min, vmax=logn_max), cmap =plt.cm.rainbow)
-    tex_min = 150 # np.nanmin(Zv6v7)# 150
-    tex_max = 900 # np.nanmax(Zv6v7)# 900
-    tex_ticks = list(np.linspace(tex_min, tex_max, 5)) #np.arange(tex_min, tex_max, 10, 5)
+    tex_min = 150 
+    tex_max = 900 
+    tex_ticks = list(np.linspace(tex_min, tex_max, 5)) 
     fcbar2 = axes[1].imshow(Ztex, extent=(241.7,263.4, np.amin(x_data), np.amax(x_data)), aspect = 'auto', cmap =plt.cm.rainbow, vmin=tex_min, vmax=tex_max)
     fig_cbar.append(fcbar1)
     fig_cbar.append(fcbar2)
@@ -1115,13 +1088,13 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
                                 fontsize=fontsize,
                                 transform=axes[l].transAxes)
             if style == 'twocol':
-                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}} (K)', color_palette='rainbow', colors_len = 0,
                                      orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                                      Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                                      discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                                      )
             else:
-                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_\text{vib}$ (K)', color_palette='rainbow', colors_len = 0,
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}} (K)', color_palette='rainbow', colors_len = 0,
                                      orientation='v', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                                      Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                                      discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
@@ -1155,5 +1128,4 @@ def plot_pvdiagram(NGC253_path, source, fig_path, moments_path, molecule = 'HC3N
         axes[0].set_ylabel(r'Dec offset (pc)', fontsize = labelsize)
         axes[0].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
         axes[1].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
-    fig.savefig(f'{fig_path}{fig_name}pvtest_texandcol_1x2_v2.pdf', bbox_inches='tight', transparent=True, dpi=400)
-
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_pvdiagram_{style}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
