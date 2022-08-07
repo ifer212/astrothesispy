@@ -78,7 +78,7 @@ class ring:
                         ticklabelsize, txtypercen, txtxpercen, panel_naming=panel_naming,
                         new_labelling = new_labelling, far_ring = self.far_ring)
         
-def ring_create_and_plot(source, data_path, save_path, size = 1.5, step = 0.1):
+def ring_create_and_plot(source, data_path, save_path, size = 1.5, step = 0.1, fig_format = '.pdf'):
     """
         Creating and plotting rings
     """
@@ -154,6 +154,6 @@ def ring_create_and_plot(source, data_path, save_path, size = 1.5, step = 0.1):
         if d!=0:
             dist_mean = np.round((distances_pc[d-1]+distances_pc[d])/2,2)
             y_limits = ylimits[f'ring{d}']
-            ring_obj = ring(source, dist_mean, xlimits, y_limits, data_path, save_path)
+            ring_obj = ring(source, dist_mean, xlimits, y_limits, data_path, save_path, figformat = fig_format)
             ring_obj.ring_plot()
 

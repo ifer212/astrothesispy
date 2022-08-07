@@ -12,10 +12,10 @@ moments_plot = False
 LTE2D_plot = False
 LTEprofiles_plot = False
 SB_models_plot = False
-AGN_models_plot = True
-LTEvelprofile_plot = True
-cloudcloud_plot = True
-comp_models_plot = True
+AGN_models_plot = False
+LTEvelprofile_plot = False
+cloudcloud_plot = False
+comp_models_plot = False
 ringspectra_plot = True
 
 # =============================================================================
@@ -118,4 +118,4 @@ if comp_models_plot:
 # =============================================================================
 if ringspectra_plot:
     # Appendix Ring Figures
-    NGC253HR_ringfigs.ring_create_and_plot(source, NGC253_path, f'{fig_path}{source}/rings/', size = 1.5, step = 0.1)
+    NGC253HR_ringfigs.ring_create_and_plot(source, NGC253_path, f'{fig_path}{source}/rings/', size = 1.5, step = 0.1, fig_format = figure_format)
