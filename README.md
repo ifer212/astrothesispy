@@ -35,7 +35,7 @@ Figures created for  _Rico-Villas et al. 2022_ using this repository (see ```pap
 <img src="Figures/PaperNGC253HR/NGC253/Figure_1_219GHz.png" alt="Fig1" style="background-color: white;" />
 
 - Figure 2: Zoom of the continuum map at 219 GHz above $5\sigma$ for the different regions containing the proto-SSCs studied in _Rico-Villas et al. 2020_. Overlaid in red is the continuum emission at 345 GHz.
-<img src="Figures/PaperNGC253HR/NGC253/Figure_2_ALL_subcont_219GHz_and_350GHz.png" alt="Fig2" style="background-color: white;" />
+<img src="Figures/PaperNGC253HR/NGC253/rings/Figure_2_ALL_subcont_219GHz_and_350GHz.png" alt="Fig2" style="background-color: white;" />
 - Appendix figure:  Proto-SSC 13 ring averaged spectra between 0.1 and 0.2 pc. Overlaid in red is the total fitted model, in green or blue the contribution from HC3N. 
 <img src="Figures/PaperNGC253HR/SHC_13/SHC_13_d0p15.png" alt="Fig3" style="background-color: white;" />
 - Figure 4: LTE fitted values with SLIM. Top left panel shows the HC3N column density, top right panel the vibrational temperature, bottom left the VLSR and bottom right the FWHM.
