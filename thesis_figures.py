@@ -6,6 +6,7 @@ from astrothesispy.HC3N import HC3N_enerdiag
 from astrothesispy.utiles import utiles_molecules
 
 # Figures
+figure_format = '.png'
 energydiag_plot = True
 rotational_diag_plot = True
 
@@ -20,7 +21,7 @@ if not os.path.exists(fig_path):
     os.makedirs(fig_path)
 if energydiag_plot:
     # Energy diagram figure for thesis HC3N intro
-    HC3N_enerdiag.HC3N_energydiag(fig_path, hc3n_info, plot_rotational_levels = True, show_fig=True, fig_format = '.pdf')
+    HC3N_enerdiag.HC3N_energydiag(fig_path, hc3n_info, plot_rotational_levels = True, show_fig=True, fig_format = figure_format)
     
 if rotational_diag_plot:
     source = 'SHC_13'
@@ -36,6 +37,6 @@ if rotational_diag_plot:
     bootstrap = True # Use bootstrap method to improve fit and error estimation.
     vib_temp_df, fit_dict = utiles_molecules.rotational_diagram(lines_dict, Jselect=24, bootstrap=bootstrap)
     # Plotting
-    utiles_molecules.Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path, plot_noboots = False, plot_boots = True)
+    utiles_molecules.Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path, plot_noboots = False, plot_boots = True, fig_format = figure_format)
     
    
