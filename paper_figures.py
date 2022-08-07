@@ -16,12 +16,12 @@ AGN_models_plot = False
 LTEvelprofile_plot = False
 cloudcloud_plot = False
 comp_models_plot = False
-ringspectra_plot = True # Not implemented
+ringspectra_plot = True
 
 # =============================================================================
 # Global vars & paths
 # =============================================================================
-figure_format = '.pdf'
+figure_format = '.png'
 D_Mpc = 3.5
 Rcrit = 0.85
 source = 'SHC_13'
@@ -118,4 +118,4 @@ if comp_models_plot:
 # =============================================================================
 if ringspectra_plot:
     # Appendix Ring Figures
-    NGC253HR_ringfigs.ring_create_and_plot(source, NGC253_path, f'{fig_path}{source}/rings/', size = 1.5, step = 0.1)
+    NGC253HR_ringfigs.ring_create_and_plot(source, NGC253_path, f'{fig_path}{source}/rings/', size = 1.5, step = 0.1, fig_format = figure_format)

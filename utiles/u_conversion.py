@@ -103,7 +103,7 @@ def stef_boltz_error(r, r_err, T, T_err):
 
 # Planck Function
 def planck(freq, T):
-    """ Maaaaaaaaaal
+    """ 
     Planck Function
     T in kelvins
     freq in Hz

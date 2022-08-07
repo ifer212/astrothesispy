@@ -1,11 +1,18 @@
 from scipy.optimize import curve_fit
 
 import numpy as np
+import pandas as pd
 import astropy.units as u
 import astropy.constants.si as _si
+from matplotlib.lines import Line2D
+import matplotlib.pyplot as plt
 
 from astrothesispy.utiles import utiles
 from astrothesispy.utiles import u_conversion
+
+# Loading amsmath LaTeX
+import matplotlib as mpl
+mpl.rc('text', usetex=True)
 
 #==============================================================================
 #                    
@@ -188,6 +195,158 @@ def vib_col(tkin):
     csec = (3E-12)*np.exp(-4.8*(tkin**-1./3))
     return csec
 
+def linfit(x,m,b):
+    """
+    m = -1/(T*np.log(10))
+    b = np.log10(Ntot/Z)
+    x = Eu/k
+    y = np.log10(Nu/gu)
+    """
+    return m*x+b
+
+
+        
+def line_name_formatter(line_name):
+    """
+        Reads quantum numbers from string name
+
+    Args:
+        line_name (str): line name
+
+    Returns:
+        line_dict (dict): line dictionary with quantum numbers
+    """
+    qn1, qn2, qn3 = '', '', ''
+    qnn1, qnn2, qnn3 = '', '', ''
+    if '_v' in line_name:
+                sub_line_name = line_name.split('_v')
+                line_name = f'{sub_line_name[0]}/v{sub_line_name[1]}'
+    line_qnms = line_name.split('_')
+    vib_state = line_qnms[0]
+    qn1 = int(line_qnms[1])
+    if len(line_qnms) < 4:
+        qnn1 = int(line_qnms[2])
+    else:
+        qn2 = int(line_qnms[2])
+        if len(line_qnms) < 6:
+            qnn1 = int(line_qnms[3])
+            qnn2 = int(line_qnms[4])
+            if vib_state == 'v6=v7=1':
+                # No 3rd quantun number in name
+                qn3 = np.abs(qn2)
+                qnn3 = np.abs(qn2)
+        else:
+            qn3 = int(line_qnms[3])
+            qnn1 = int(line_qnms[4])
+            qnn2 = int(line_qnms[5])
+            qnn3 = int(line_qnms[6])
+    formula = f'HC3N,{vib_state}'
+    line_dict = {'Formula': formula,
+                 'vib_state': vib_state,
+                 'qn1': qn1,
+                 'qn2': qn2,
+                 'qn3': qn3,
+                 'qnn1': qnn1,
+                 'qnn2': qnn2,
+                 'qnn3': qnn3,
+                 }
+    return line_dict
+
+
+def HC3N_line_dict_builder(source, results_path, info_path, Bmin_arcsec, Bmaj_arcsec):
+    electric_dipole = 3.742 # Electric dipole in Debyes for HC3N
+    trans_info = pd.read_excel(info_path, header=0)
+    trans_info.fillna('', inplace=True)
+    trans_info['Frequency_GHz']  = trans_info['Frequency']/1000
+    trans_info['ELO_K'] = u_conversion.Energy_cmtoK(trans_info['ELO'])
+    trans_info['EUP_K'] =  trans_info['ELO_K'] + trans_energy(trans_info['Frequency_GHz'])
+    formulas = trans_info['Formula'].unique()
+    lines_dict = {}
+    for formula in formulas:
+        lines_dict[formula] = []
+    # Observed fluxes 
+    fluxes_path = f'{results_path}Tables/{source}_flujos_hc3n_python.xlsx'
+    trans_fluxes = pd.read_excel(fluxes_path, header=0)
+    trans_fluxes_ring4 = trans_fluxes[(trans_fluxes['ring']==4)]
+    drop_cols = ['ring', 'dist', 'cont_', 'beam_345', 'Unnamed: 0']
+    only_219beam_cols = [s for s in trans_fluxes_ring4.columns if not any(x in s for x in drop_cols)]
+    trans_fluxes_ring4_219beam = trans_fluxes_ring4[only_219beam_cols].copy()
+    for col in trans_fluxes_ring4_219beam.columns:
+        if 'err' not in col and 'mJy' in col:
+            line_name = col.split('_SM')[0]
+            line_dict = line_name_formatter(line_name)
+            subset = (trans_info['Formula']==line_dict['Formula']) & (trans_info['qn1']==line_dict['qn1']) & (trans_info['qn2']==line_dict['qn2']) & (trans_info['qn3']==line_dict['qn3'])
+            sub_info = trans_info[subset].copy()
+            # Getting upper column densities
+            Nugu, Nugu_err = Columndensity_thin(freq_GHz=sub_info['Frequency_GHz'],
+                                                                 Snu=trans_fluxes_ring4_219beam[col]/1000, Snu_err=trans_fluxes_ring4_219beam[col+'_err']/1000,
+                                                                 Jup=sub_info['qn1'], elec_dipole_D=electric_dipole,
+                                                                 Bmin_arcsec=Bmin_arcsec, Bmaj_arcsec=Bmaj_arcsec)
+            line_dict['Frequency_GHz'] = sub_info['Frequency_GHz'].to_list()[0]
+            line_dict['Nu/gu'] = Nugu.to_list()[0]
+            line_dict['logNu/gu'] = np.log10(Nugu).to_list()[0]
+            line_dict['Nu/gu_err'] = Nugu_err.to_list()[0]
+            line_dict['logNu/gu_err'] = np.log10(Nugu_err).to_list()[0]
+            line_dict['EUP_K'] = sub_info['EUP_K'].to_list()[0]
+            lines_dict[line_dict['Formula']].append(line_dict)
+    return lines_dict
+
+def rotational_diagram(lines_dict, Jselect, bootstrap=True):
+    """
+        Obtains the vibrational temperature
+    Args:
+        lines_dict (dict): Dictionary with the lines information.
+        Jselect (int): Jup quantum rotational number to make the fit.
+        bootstrap (bool, optional): Use bootstrap. Defaults to True.
+
+    Returns:
+        vib_temp_df (df): DataFrame with the lines used info.
+        fit_dict (dict): Dictionary with the fitted values.
+    """
+    Jselect = 24
+    vib_temp = [] # Similar Jup (qn1) but different vib state
+    for line in lines_dict:
+        for trans in lines_dict[line]:
+            if Jselect -2 <= trans['qn1'] <= Jselect +2:
+                vib_temp.append(trans)
+    vib_temp_df = pd.DataFrame(vib_temp)
+    vib_temp_df['logNu/gu_relerr'] = vib_temp_df['logNu/gu_err']/np.log(10)/vib_temp_df['logNu/gu']
+    print('———————————–')
+    # Fitting without bootstap (needed to get first guess for bootstrap anyway)
+    popt, pcov = curve_fit(linfit, vib_temp_df['EUP_K'], vib_temp_df['logNu/gu'], sigma=vib_temp_df['logNu/gu_relerr'])
+    perr = np.sqrt(np.diag(pcov)) 
+    Ntot, Ntot_err, Tex, Tex_err = HC3N_rotational_diagram_from_fit(popt[0], perr[0], popt[1], perr[1])      
+    print('No bootstrap:')
+    Ntext = r'N$_{\rm{Tot}}$='+f'${utiles.latex_float(Ntot)}\pm{utiles.latex_float(Ntot_err)}'+r'$cm$^{-1}$'    
+    Ttext = r'T$_{\rm{vib}}$='+f'${Tex:1.1f}\pm{Tex_err:1.1f}$ K'
+    print(f'{Ntext} \t {Ttext}')
+    fit_dict = {'NoBootstrap':  {'popt': popt,
+                                 'pcov': perr,
+                                 'Ntot': Ntot,
+                                 'Ntot_err': Ntot_err,
+                                 'Tex': Tex,
+                                 'Tex_err': Tex_err,
+                                 'Ntext': Ntext,
+                                 'Ttext': Ttext}}
+    if bootstrap:
+        fun = lambda p, x : p[0]*x+p[1]
+        bpfit, bperr = utiles.fit_bootstrap(p0 = popt, datax = vib_temp_df['EUP_K'], datay = vib_temp_df['logNu/gu'],
+                                            function=fun, yerr_systematic=vib_temp_df['logNu/gu_relerr'], niter=1000, montecarlo=True)
+        bNtot, bNtot_err, bTex, bTex_err = HC3N_rotational_diagram_from_fit(bpfit[0], bperr[0], bpfit[1], bperr[1])
+        print('Bootstrap:')
+        BNtext = r'N$_{\rm{Tot}}$='+f'${utiles.latex_float(bNtot)}\pm{utiles.latex_float(bNtot_err)}'+r'$cm$^{-1}$' 
+        BTtext = r'T$_{\rm{vib}}$='+f'${bTex:1.1f}\pm{bTex_err:1.1f}$ K'
+        print(f'{BNtext} \t {BTtext}')
+        fit_dict['Bootstrap'] = {'popt': bpfit,
+                                 'pcov': bperr,
+                                 'Ntot': bNtot,
+                                 'Ntot_err': bNtot_err,
+                                 'Tex': bTex,
+                                 'Tex_err': bTex_err,
+                                 'Ntext': BNtext,
+                                 'Ttext': BTtext}
+    return vib_temp_df, fit_dict
+
 def HC3N_rotational_diagram_from_fit(slope, slope_err, intercept, intercept_err):
    """
    Getting Ntot and Tex from the slope and intecept and partition function Z of a rotational diagram
@@ -208,16 +367,63 @@ def HC3N_rotational_diagram_from_fit(slope, slope_err, intercept, intercept_err)
    Z_err = k_si.value*Tex_err/(h_si.value*B0)
    Ntot = Z*10**(intercept)
    Ntot_err = np.sqrt(((Z_err)**2)+((intercept_err*np.log(10.)*10**(intercept))**2))
-   return Ntot, Ntot_err, Tex, Tex_err
+   return Ntot, np.abs(Ntot_err), Tex, np.abs(Tex_err)
+
+def Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path, plot_noboots = True, plot_boots = True,
+                            noboots_col = '0.75', boots_col = 'r', colormarker = 'k', edgemarker = 'k',
+                            markersize = 6, fontsize = 9, tick_fontsize = 8, label_fontsize = 10, fig_format = '.pdf'):
+    markers = np.random.choice(Line2D.filled_markers, len(vib_temp_df['Formula'].unique()))
+    fig = plt.figure()
+    ax = fig.add_subplot((111))
+    for v, vib in enumerate(vib_temp_df['Formula'].unique()):
+        vibs = vib_temp_df[vib_temp_df['Formula'] == vib].copy()
+        ax.errorbar(vibs['EUP_K'], vibs['logNu/gu'], yerr=(vibs['logNu/gu_relerr']),
+                                    marker= markers[v], markersize=markersize,
+                                    markerfacecolor=colormarker,
+                                    markeredgecolor='k', markeredgewidth=0.6,
+                                    ecolor='k',
+                                    color = colormarker,
+                                    elinewidth= 0.6,
+                                    barsabove= True,
+                                    zorder=1,
+                                    linestyle = '')
+        ax.plot(vibs['EUP_K'], vibs['logNu/gu'],
+                        marker=markers[v], markersize=markersize,
+                        markerfacecolor=colormarker,
+                        markeredgecolor=edgemarker, markeredgewidth=0.6,
+                        linestyle = '', zorder=3, label = vib )
+    xx = np.arange( vib_temp_df['EUP_K'].min(skipna=True) - 50, vib_temp_df['EUP_K'].max(skipna=True) + 50)
+    if plot_noboots:
+        ax.plot(xx, linfit(xx, fit_dict['NoBootstrap']['popt'][0], fit_dict['NoBootstrap']['popt'][1]),
+                linestyle = '-', marker=None, color=noboots_col,linewidth=0.75, zorder=2)
+        legend_elements = [Line2D([0], [0], color=noboots_col, lw=0.75, label=fit_dict["NoBootstrap"]["Ntext"]+ ' ' +fit_dict["NoBootstrap"]["Ttext"])]
+    if plot_boots:
+        if ~plot_noboots:
+            legend_elements = []
+        ax.plot(xx, linfit(xx, fit_dict['Bootstrap']['popt'][0], fit_dict['Bootstrap']['popt'][1]),
+                linestyle = '-', marker=None, color=boots_col,linewidth=0.75, zorder=2)
+        legend_elements.append(Line2D([0], [0], color=boots_col, lw=0.75, label=fit_dict["Bootstrap"]["Ntext"]+ ' ' +fit_dict["Bootstrap"]["Ttext"]))
+    ax.xaxis.set_tick_params(top =True, labeltop=False)
+    ax.yaxis.set_tick_params(right=True, labelright=False)
+    ax.tick_params(axis='both', which='both', direction='in')
+    ax.tick_params(labelsize=tick_fontsize)
+    plt.ylabel(r'log (N$_{\rm u}$/g$_{\rm u}$)', fontsize = label_fontsize)
+    plt.xlabel(r'E$_{\rm u}$/k (K)', fontsize = label_fontsize)
+    ax.legend(handles=legend_elements, loc='lower left', frameon=False, fontsize=fontsize)
+    plt.savefig(f'{fig_path}{source}_Rotational_Diagram{fig_format}', bbox_inches='tight', transparent=True, dpi=300)
+    plt.close(fig)
 
 def Columndensity_thin(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec, Bmaj_arcsec):
     """
     Column density of the upper level in the optical thin limit
-    given the transitiion integrated line intensiy in K kms
+    given the transitiion integrated line intensiy in Jy km/s (converted inside to K kms)
     for a linear molecule
     Goldsmith 1999
     Returns Nu/gu in cm-2
     """
+    if (isinstance(Snu, pd.Series)):
+        Snu = Snu.to_list()[0]
+        Snu_err = Snu_err.to_list()[0]
     # integrated line intensities in K cm/s
     W =  u_conversion.Jybeamkms_to_Tkms(Snu, freq_GHz, Bmin_arcsec, Bmaj_arcsec)*(1e5) # K cm / s
     W_err = u_conversion.Jybeamkms_to_Tkms(Snu_err, freq_GHz, Bmin_arcsec, Bmaj_arcsec)*(1e5) # K cm / s
@@ -226,7 +432,11 @@ def Columndensity_thin(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec, 
     h_si = _si.h
     k_si = _si.k_B
     c_si = _si.c.to(u.cm/u.s)
+    if (isinstance(freq_GHz, pd.Series)):
+        freq_GHz = freq_GHz.to_list()[0]
     freq_Hz = freq_GHz*1e9*(u.s**-1)
+    if (isinstance(Jup, pd.Series)):
+        Jup = Jup.to_list()[0]
     gu = 2.*Jup+1
     # Einstein coefficient
     Aul = 64.*(np.pi**4)*(freq_Hz.value**3)*(elec_dipole.value**2)*Jup/(3.*h_si.value*(c_si.value**3)*(2*Jup+1))
@@ -302,202 +512,6 @@ def Trotational(logNu, logNl, Eu, El, Ju, Jl):
     # 153./(np.log(10**0.3) + np.log(71/49.)) = 144.1173
     return Trot
 
-def Rdiag_rot_temp(vib_states, slims_df, ax1, line_width=1, xmax=1000, bootstrap=False, niter=1000, plot = False, weights=True):
-    # Separating by vibrational state (Trot)
-    # different J from same vib. state
-    vib_fits = {}
-    print('\tRotational temperatures')
-    for v, vib in enumerate(vib_states):
-        slims_df['vib_selection'] = (slims_df['vib'] == vib)
-        vib_selection = slims_df[slims_df['vib_selection'] == True]
-        if weights== True:
-            weights_s = 1/(vib_selection['log10_Nugu_relerr']**2)
-        else:
-            weights_s = [1]*len(vib_selection['log10_Nugu_relerr'])
-        # checking if enough values with no upper limits 
-        #if (vib_selection['uplim']).values.sum() < len(vib_selection['uplim']):
-        if (vib_selection['uplim']).values.sum() == 0: # All J are detected within specified vib
-            print(f'\tRotational temperature for: {vib}')
-            if bootstrap:
-                fun = lambda p, x : p[0]*x+p[1]
-                popt = [-0.001, 15.2]
-                bpfit, bperr = utiles.fit_bootstrap(p0=popt, datax=vib_selection['Eu/k'], datay=vib_selection['log10_Nugu'], function=fun, yerr_systematic=vib_selection['log10_Nugu_relerr'], niter=niter)
-                bNtot, bNtot_err, bTex, bTex_err = HC3N_rotational_diagram_from_fit(bpfit[0], bperr[0], bpfit[1], bperr[1])
-                print('\tWith Bootstrap:')
-                print('\t\tNtot=\t'+'%1.2E' % bNtot+' +- '+'%1.2E' % bNtot_err)
-                print('\t\tTex=\t'+'%1.2f' % bTex+' +- '+'%1.6f' % bTex_err)
-            else:
-                popt, pcov = curve_fit(utiles.linfit, vib_selection['Eu/k'], vib_selection['log10_Nugu'], sigma=weights_s)#sigma=1./(vib_selection['log10_Nugu_relerr']**2))
-                perr = np.sqrt(np.diag(pcov)) 
-                m = popt[0]
-                m_err = perr[0]
-                b = popt[1]
-                b_err = perr[1]
-                print('\tWithout Bootstrap:')
-                Ntot, Ntot_err, Tex, Tex_err = HC3N_rotational_diagram_from_fit(m, m_err, b, b_err)
-                print('\t\tNtot=\t'+'%1.2E' % Ntot+' +- '+'%1.2E' % Ntot_err)
-                print('\t\tTex=\t'+'%1.2f' % Tex+' +- '+'%1.2f' % Tex_err)
-                vib_fits[vib] = {'vib': vib,
-                                 'Ntot': Ntot, 'Ntot_err': Ntot_err, 
-                                'Tex': Tex, 'Tex_err': Tex_err,    
-                                'm': m, 'm_err': m_err,
-                                'b': b, 'b_err':b
-                                }
-            if plot:
-                xx = np.arange(np.nanmin(vib_selection['Eu/k'])-0.2*np.nanmin(vib_selection['Eu/k']), np.nanmax(vib_selection['Eu/k'])+0.2*np.nanmax(vib_selection['Eu/k']))
-                if bootstrap:
-                    ax1.plot(xx, utiles.linfit(xx, bpfit[0], bpfit[1]), '--', marker=None, color='0.4',linewidth=line_width, zorder=2)
-                else:
-                    ax1.plot(xx, utiles.linfit(xx, popt[0], popt[1]), '--', marker=None, color='0.4',linewidth=line_width, zorder=2)
-            if bootstrap:
-                bTex_err = np.abs(bTex_err)
-                if bTex < 0:
-                    bTex = 0
-                if bTex_err > bTex:
-                    bTex = 0
-                if bTex > 2000: # establishing an upper limit on temperature
-                    bTex = 0
-                if bTex == 0:
-                    bTex_err = 0
-                vib_fits[vib] = {'vib': vib,
-                                 'bNtot':  bNtot,
-                                 'bNtot_err': np.abs(bNtot_err),
-                                 'bTex':  bTex,
-                                 'bTex_err': np.abs(bTex_err)}
-        else:
-            # All are uplims
-            print('All values are uplims, skipping')
-            vib_fits[vib] = {'vib': vib,
-                             'Ntot': np.nan, 'Ntot_err': np.nan, 
-                             'Tex': np.nan, 'Tex_err': np.nan,    
-                             'm': np.nan, 'm_err': np.nan,
-                             'b': np.nan, 'b_err': np.nan, 
-                             'bNtot':np.nan, 'bNtot_err':np.nan,
-                             'bTex':np.nan , 'bTex_err':np.nan
-                            }
-    return vib_fits
-     
-
-def Rdiag_vib_temp_uplims(rot_states, slims_df, ax1, line_width=1,
-                          use_only={}, xmax = 1200, write_bootstrap=True, weights=True,
-                          write=False, text_pos = [], anot_fontsize=13, uplims=False,
-                          bootstrap=False, niter=1000, plot=False):
-    """
-    For Tvib im allowing v6 to be uplim
-    """
-
-    
-    rot_fits = {}
-    print('\tVibrational temperatures')
-    for r, rot in enumerate(rot_states):
-        slims_df['rot_selection'] =  (slims_df['jup'] == rot)
-        rot_selection = slims_df[slims_df['rot_selection'] == True]
-        # Only using values with no upper lims
-        if uplims:
-            rot_selection = rot_selection[rot_selection['uplim'] == False]
-        if len(use_only)>0:
-            # subSelecting only som vib states
-            rot_selection['vib_selection'] = (rot_selection['vib'].isin(use_only[rot]))
-            rot_selection = rot_selection[rot_selection['vib_selection'] == True]
-            rot_selection.drop(rot_selection[(rot_selection.vib =='v6')].index, inplace=True)
-        if weights== True:
-            weights_s = 1/(rot_selection['log10_Nugu_relerr']**2)
-        else:
-            weights_s = [1]*len(rot_selection['log10_Nugu_relerr'])
-        
-        if rot ==39:
-            color = '#fd3c06'
-        elif rot ==26:
-            color = '#0165fc'
-        elif rot ==24:
-            color = '#02ab2e'
-        else:
-            color = '0.6'
-        #if (rot_selection['uplim']).values.sum() < len(rot_selection['uplim']):
-        if not rot_selection.empty:
-            #if ((rot_selection['uplim']).values.sum() == 0) or ((rot_selection['uplim']).values.sum() == 1 and rot_selection[(rot_selection.vib =='v6=1')]['uplim'].tolist()[0]): # All vib states are detected in that J 
-            if ((rot_selection['uplim']).values.sum() == 0) or ((rot_selection['uplim']).values.sum() == 1 and not rot_selection[(rot_selection.vib =='v7=1')]['uplim'].tolist()[0]): # All v=0 and v7=1 are detected
-                print(f'\tVibrational temperature for: {rot}-{rot-1}')
-                if bootstrap:
-                    fun = lambda p, x : p[0]*x+p[1]
-                    popt = [-0.001, 15.2]
-                    bpfit, bperr = utiles.fit_bootstrap(p0=popt, datax=rot_selection['Eu/k'], datay=rot_selection['log10_Nugu'], function=fun, yerr_systematic=rot_selection['log10_Nugu_relerr'], niter=niter)
-                    bNtot, bNtot_err, bTex, bTex_err = HC3N_rotational_diagram_from_fit(bpfit[0], bperr[0], bpfit[1], bperr[1])
-                    print('\tWith Bootstrap:')
-                    print('\t\tNtot=\t'+'%1.2E' % bNtot+' +- '+'%1.2E' % bNtot_err)
-                    print('\t\tTex=\t'+'%1.2f' % bTex+' +- '+'%1.6f' % bTex_err)
-                else:
-                    popt, pcov = curve_fit(utiles.linfit, rot_selection['Eu/k'], rot_selection['log10_Nugu'], sigma=weights_s, absolute_sigma=True)
-                    perr = np.sqrt(np.diag(pcov)) 
-        
-                    print('\tWithout Bootstrap:')
-                    m = popt[0]
-                    m_err = perr[0]
-                    b = popt[1]
-                    b_err = perr[1]
-                    Ntot, Ntot_err, Tex, Tex_err = HC3N_rotational_diagram_from_fit(m, m_err, b, b_err)
-                    print('\t\tNtot=\t'+'%1.2E' % Ntot+' +- '+'%1.2E' % Ntot_err)
-                    print('\t\tTex=\t'+'%1.2f' % Tex+' +- '+'%1.2f' % Tex_err)
-                    rot_fits[rot] = {'jup': rot,
-                                     'Ntot': Ntot, 'Ntot_err': Ntot_err, 
-                                    'Tex': Tex, 'Tex_err': Tex_err,  
-                                    'm': m, 'm_err': m_err,
-                                    'b': b, 'b_err':b
-                                    }
-                
-                if plot:
-                    xx = np.arange(np.nanmin(rot_selection['Eu/k'])-100, xmax)
-                    if bootstrap==False:
-                        ax1.plot(xx, utiles.linfit(xx, m, b), '-', marker=None, color=color,linewidth=line_width, zorder=2)
-                    else:
-                        ax1.plot(xx, utiles.linfit(xx, bpfit[0], bpfit[1]), '-', marker=None, color=color,linewidth=line_width, zorder=2)
-                    xx = np.arange(np.nanmin(rot_selection['Eu/k'])-0.2*np.nanmin(rot_selection['Eu/k']), np.nanmax(rot_selection['Eu/k'])+0.2*np.nanmax(rot_selection['Eu/k']))
-                if bootstrap:
-                    bTex_err = np.abs(bTex_err)
-                    if bTex < 0:
-                        bTex = 0
-                    if bTex_err > bTex:
-                        bTex = 0
-                    if bTex > 2000: # establishing an upper limit on temperature
-                        bTex = 0
-                    if bTex == 0:
-                        bTex_err = 0
-                    rot_fits[rot] = {'jup': rot,
-                                     'bNtot':  bNtot,
-                                     'bNtot_err': np.abs(bNtot_err),
-                                     'bTex':  bTex,
-                                     'bTex_err': np.abs(bTex_err)}
-                if write:
-                    ax1.plot(xx, utiles.linfit(xx, bpfit[0], bpfit[1]), '-', marker=None, color=color,linewidth=0.75, zorder=2)
-                    jtext = rot_selection['J'].tolist()[0].split('_')
-                    jtext2 = '-'.join(jtext)
-                    text1 = r'$\rm{T}_{'+jtext2+'} ='+'%1.1f' % bTex+'\pm'+'%1.1f' % np.abs(bTex_err)+'\,K$'#+ '\n'
-                    #text2 = r'$\log{N} ='+'%1.1f' % np.log10(bNtot) +' ('+'%1.1f' % np.log10(bNtot_err)+') \,{cm}^{-2}$'
-                    text = text1
-                    ax1.text(text_pos[0], text_pos[1],text, ha='left', va='center', color=color, fontsize=anot_fontsize, transform=ax1.transAxes)
-            else:
-                # All are uplims
-                print('All values are uplims, skipping')
-                rot_fits[rot] = {'rot': rot,
-                                 'Ntot': np.nan, 'Ntot_err': np.nan, 
-                                 'Tex': np.nan, 'Tex_err': np.nan,    
-                                 'm': np.nan, 'm_err': np.nan,
-                                 'b': np.nan, 'b_err': np.nan, 
-                                 'bNtot':np.nan, 'bNtot_err':np.nan,
-                                 'bTex':np.nan , 'bTex_err':np.nan
-                                }
-        else:
-            # Empty
-            rot_fits[rot] = {'rot': rot,
-                                 'Ntot': np.nan, 'Ntot_err': np.nan, 
-                                 'Tex': np.nan, 'Tex_err': np.nan,    
-                                 'm': np.nan, 'm_err': np.nan,
-                                 'b': np.nan, 'b_err': np.nan, 
-                                 'bNtot':np.nan, 'bNtot_err':np.nan,
-                                 'bTex':np.nan , 'bTex_err':np.nan
-                                }
-    return rot_fits
-
 def tau_from_T(Tobs, Tkin):
     """
     Line optical depth from observed temperature and excitation temperature in Kelvin
@@ -512,3 +526,6 @@ def sourcesize_from_fit(Tmain_beam, Tex, Size_arcsec):
     """
     Source_size_arcsec = np.sqrt((Size_arcsec)*(Tmain_beam/Tex))
     return Source_size_arcsec
+
+
+    

@@ -1088,13 +1088,13 @@ def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, mo
                                 fontsize=fontsize,
                                 transform=axes[l].transAxes)
             if style == 'twocol':
-                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}} (K)', color_palette='rainbow', colors_len = 0,
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}}$ (K)', color_palette='rainbow', colors_len = 0,
                                      orientation='h_short', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                                      Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                                      discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
                                      )
             else:
-                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}} (K)', color_palette='rainbow', colors_len = 0,
+                plot_utiles.add_cbar(fig, axes[l], Ztex, r'T$_{\text{vib}}$ (K)', color_palette='rainbow', colors_len = 0,
                                      orientation='v', sep=0.03, width=0.02, height=False, ticks = tex_ticks,
                                      Mappable=False, cbar_limits=[tex_min, tex_max], tick_font = cbar_tickfont, label_font = cbar_labelfont,
                                      discrete_colorbar=False, formatter = '%1.0f', norm='lin', labelpad = cbar_pad, custom_cmap=False, ticksize=6, framewidth=2, tickwidth=1
