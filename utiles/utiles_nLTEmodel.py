@@ -535,7 +535,7 @@ def plot_model_input(modelo, my_model_path, figinp_path, results_path):
         else: 
             axis[v].tick_params(
                        labelbottom=False)
-    fg.savefig(figinp_path+'NGC253_SHC13_'+model_name+'_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fg.savefig(figinp_path+'NGC253_SHC13_'+model_name+'_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
     return fit_XHC3N, x_profile, obs_df['dist_ring_pc'].tolist(), rpc_profile
 
@@ -618,7 +618,7 @@ def cont_difs(Leroy36df_new, cont_df, line_column, modelos, fort_paths, my_model
     if plot:
         fig = plt.figure()
         plt.plot(cont_df['dist'], cont_df['235/345_ratio']**-1)
-        fig.savefig(f'{savefig_path}NGC253_SHC13_235_345_ratio.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{savefig_path}NGC253_SHC13_235_345_ratio.pdf', bbox_inches='tight', transparent=False, dpi=400)
 
     Rcrit_pc = cont_df['dist'].iloc[Rcrit_ind]
     Rcrit_pc_art = 0.5
@@ -1180,9 +1180,9 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
 
     # Corrected densities and masses fig
@@ -1271,9 +1271,9 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(figmod_path+'NGC253_'+save_name+'_dens_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_dens_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_dens_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_dens_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
 
     # line profiles fig
@@ -1541,9 +1541,9 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
 
     # Line and cont. Opacities
@@ -1650,7 +1650,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
                                    labelbottom=False)
                     else:
                         axes[p].set_xlabel(r'r (pc)', fontsize = labelsize)
-                fig.savefig(figrt_path+'NGC253_'+modstr+'_opacities.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(figrt_path+'NGC253_'+modstr+'_opacities.pdf', bbox_inches='tight', transparent=False, dpi=400)
                 plt.close()
                 
     # Tex figures
@@ -1751,7 +1751,7 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
                 axes[0].tick_params(labelleft=True,
                                labelright=False)
                 axes[0].set_xlabel(r'r (pc)', fontsize = labelsize)
-                fig.savefig(figrt_path+'NGC253_'+modstr+'_Tex.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(figrt_path+'NGC253_'+modstr+'_Tex.pdf', bbox_inches='tight', transparent=False, dpi=400)
                 plt.close()
             
     if plot_line_ratios:
@@ -1891,9 +1891,9 @@ def plot_models_and_inp_comp(Rcrit, line_column, modelos, hb_df, cont_df, my_mod
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(figmod_path+'NGC253_'+save_name+'_ratios_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_ratios_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_ratios_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
 
 def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, results_path,
@@ -2230,9 +2230,9 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
     if len(modelos) == 1:
         for m, mod in enumerate(modelos):
             save_name = modelo = modelos[mod][0]
-        fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_SM_prese.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(figmod_path+'NGC253_'+save_name+'_conts_SM_prese.pdf', bbox_inches='tight', transparent=False, dpi=400)
     else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM_presen.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(figrt_path+'NGC253_'+save_name+'_conts_SM_presen.pdf', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
 
     # line profiles
@@ -2460,9 +2460,9 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
     if len(modelos) == 1:
         for m, mod in enumerate(modelos):
             save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese.pdf', bbox_inches='tight', transparent=False, dpi=400)
     else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_presen.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_presen.pdf', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
     
     # line profiles
@@ -2647,9 +2647,9 @@ def plot_models_and_inp_finalfig_diap(Rcrit, line_column, modelos, hb_df, cont_d
     if len(modelos) == 1:
         for m, mod in enumerate(modelos):
             save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese_subset.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM_prese_subset.pdf', bbox_inches='tight', transparent=False, dpi=400)
     else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_presen_subset.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM_presen_subset.pdf', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
     
 def plot_models_and_inp_finalfig(source, convolve, Rcrit, line_column, modelos, hb_df, cont_df,
@@ -3044,9 +3044,9 @@ def plot_models_and_inp_finalfig(source, convolve, Rcrit, line_column, modelos, 
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-            fig.savefig(f'{figmod_path}{source}/{fig_name[0]}{source}_{save_name}_conts{convstr}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figmod_path}{source}/{fig_name[0]}{source}_{save_name}_conts{convstr}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(f'{figrt_path}{source}/{fig_name[0]}{source}_{save_name}_conts{convstr}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figrt_path}{source}/{fig_name[0]}{source}_{save_name}_conts{convstr}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
     # Line profiles figure
     if line_profiles:
@@ -3280,9 +3280,9 @@ def plot_models_and_inp_finalfig(source, convolve, Rcrit, line_column, modelos, 
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(f'{figmod_path}{source}/{fig_name[1]}{source}_{save_name}_lines_{convstr}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(f'{figmod_path}{source}/{fig_name[1]}{source}_{save_name}_lines_{convstr}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(f'{figrt_path}{source}/{fig_name[1]}{source}_{save_name}_lines_{convstr}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figrt_path}{source}/{fig_name[1]}{source}_{save_name}_lines_{convstr}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
     # Line ratios figure big labels
     if line_ratios_BIG:
@@ -3430,9 +3430,9 @@ def plot_models_and_inp_finalfig(source, convolve, Rcrit, line_column, modelos, 
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(f'{figmod_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(f'{figmod_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(f'{figrt_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figrt_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
     # Line ratios figure big labels but one column
     if line_ratios_BIG_onecol:
@@ -3581,9 +3581,9 @@ def plot_models_and_inp_finalfig(source, convolve, Rcrit, line_column, modelos, 
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(f'{figmod_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}_onecol{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(f'{figmod_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}_onecol{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(f'{figrt_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}_onecol{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(f'{figrt_path}{source}/{fig_name[2]}{source}_{save_name}_ratios{convstr}_onecol{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
 
 def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, my_model_path, figmod_path, figrt_path, fort_paths, results_path, writename = True, plot_CH3CN = False, plot_col = True, plot_opacity = False, distance_pc = 3.5e6):
@@ -3895,9 +3895,9 @@ def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, 
         if len(modelos) == 1:
             for m, mod in enumerate(modelos):
                 save_name = modelo = modelos[mod][0]
-                fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(figmod_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         else:
-            fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figrt_path+'NGC253_'+save_name+'_lines_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
     # line profiles
     figsize = 20
@@ -4066,9 +4066,9 @@ def plot_models_and_inp_abscompfig(Rcrit, line_column, modelos, hb_df, cont_df, 
     if len(modelos) == 1:
         for m, mod in enumerate(modelos):
             save_name = modelo = modelos[mod][0]
-            fig.savefig(figmod_path+'NGC253_'+save_name+'_flux_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+            fig.savefig(figmod_path+'NGC253_'+save_name+'_flux_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
     else:
-        fig.savefig(figrt_path+'NGC253_'+save_name+'_flux_SM.pdf', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(figrt_path+'NGC253_'+save_name+'_flux_SM.pdf', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
     
 def model_convolver(fort_paths, source_rad, model_name, dust_model, my_model_path):

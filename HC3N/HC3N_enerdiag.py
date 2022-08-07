@@ -168,7 +168,7 @@ def HC3N_energydiag(save_fig_path, HC3N_dir, plot_rotational_levels = True, show
                                         , zorder=2) 
         ax.text(np.mean(df_dict['v5=1']['pos']), 655, r''+str(np.round(df_dict['v5=1']['wave_microns'],1))+'\,$\mu$m', ha='center', va='center', backgroundcolor='none', fontsize=8 , color='r', fontweight='bold')
         
-        fig.savefig(f'{save_fig_path}/HC3N_Ediag_K_{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{save_fig_path}/HC3N_Ediag_K_{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
     
     
@@ -313,7 +313,7 @@ def HC3N_energydiag(save_fig_path, HC3N_dir, plot_rotational_levels = True, show
                                         , zorder=2) 
         ax.text(np.mean(df_dict['v5=1']['pos'])+0.1, 655, r''+str(np.round(df_dict['v5=1']['wave_microns'],1))+'\,$\mu$m', ha='center', va='center', backgroundcolor='none', fontsize=8 , color='r', fontweight='bold')
         
-        fig.savefig(f'{save_fig_path}/HC3N_Ediag_K_wrot_lvls{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{save_fig_path}/HC3N_Ediag_K_wrot_lvls{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         if show_fig:
             plt.show()
         plt.close()

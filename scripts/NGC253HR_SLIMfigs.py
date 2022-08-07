@@ -241,7 +241,7 @@ def plot_SLIM2D(NGC253_path, results_path,  moments_path, cont_path, location_pa
     plot_utiles.Beam_plotter(px=28, py=py, bmin=columndens_cube.bmin*3600, bmaj=columndens_cube.bmaj*3600,
                                 pixsize=columndens_cube.pylen*3600, pa=columndens_cube.bpa, axis=axes[0], wcs=columndens_cube.wcs,
                                 color='k', linewidth=0.8, rectangle=True)
-    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_cubes_{molecule}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_cubes_{molecule}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
     
 def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J24J26', source = 'SHC_13',
@@ -556,7 +556,7 @@ def plot_SLIMprofiles(NGC253_path, results_path, fig_path, molecule = 'HC3Nvib_J
         axis[0].tick_params(labelbottom=False)   
     else:
         axis[0].set_xlabel('r (pc)', fontsize = labelsize)
-    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_Tex_and_logN_profiles{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_SLIM_Tex_and_logN_profiles{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
     
 def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_path,
@@ -693,7 +693,7 @@ def plot_velprofiles(NGC253_path, source, fig_path, rad_transf_path, results_pat
     if mass_distr_figure:
         fig = plt.figure()
         plt.imshow(masses_cube, origin='lower')
-        fig.savefig(f'{savefigpath}/{source}_model_masses_cube{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{savefigpath}/{source}_model_masses_cube{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
 
     # Total mass from models inside region with vels <250km/s
@@ -1128,4 +1128,4 @@ def plot_pvdiagram(NGC253_path, results_path, source, fig_path, moments_path, mo
         axes[0].set_ylabel(r'Dec offset (pc)', fontsize = labelsize)
         axes[0].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
         axes[1].set_xlabel(r'V (km s$^{-1}$)', fontsize = labelsize)
-    fig.savefig(f'{savefigpath}/{fig_name}{source}_pvdiagram_{style}{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_pvdiagram_{style}{fig_format}', bbox_inches='tight', transparent=False, dpi=400)

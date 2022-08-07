@@ -134,7 +134,7 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
     fig_spath = f'{fig_path}NGC253/'
     if not os.path.exists(fig_spath):
         os.makedirs(fig_spath)
-    fig.savefig(f'{fig_spath}{fig_name}219GHz{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_spath}{fig_name}219GHz{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
         
     
@@ -200,7 +200,7 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
                 fig_spath = f'{fig_path}NGC253/Individual/'
                 if not os.path.exists(fig_spath):
                     os.makedirs(fig_spath)
-                fig.savefig(f'{fig_spath}subcont_{row["Location"]}_219GHz_0.02x0.02_jet5rms{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+                fig.savefig(f'{fig_spath}subcont_{row["Location"]}_219GHz_0.02x0.02_jet5rms{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
                 plt.close()
     else:
         # Plotting inside same figure
@@ -263,7 +263,7 @@ def plot_cont219_zoom(NGC253_path, cont_path, location_path, results_path, fig_p
         fig_spath = f'{fig_path}NGC253/'
         if not os.path.exists(fig_spath):
             os.makedirs(fig_spath)
-        fig.savefig(f'{fig_spath}{fig_name}ALL_subcont_219GHz_and_350GHz{fig_format}', pad_inches=0, bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(f'{fig_spath}{fig_name}ALL_subcont_219GHz_and_350GHz{fig_format}', pad_inches=0, bbox_inches='tight', transparent=False, dpi=400)
         plt.close()
         
         
@@ -447,5 +447,5 @@ def plot_moments(NGC253_path, cont_path, location_path, moments_path, fig_path, 
     fig_spath = f'{fig_path}{source}'
     if not os.path.exists(fig_spath):
         os.makedirs(fig_spath)
-    fig.savefig(f'{fig_spath}/{fig_name}{source}_HC3N_0moments.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{fig_spath}/{fig_name}{source}_HC3N_0moments.pdf', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()

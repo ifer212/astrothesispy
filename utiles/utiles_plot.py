@@ -366,7 +366,7 @@ def plot_cube_moments(cube, save_path, outname, cbar0=False, cbar1=False, sigma_
                         color='blue', wcs=wcs_1, rectangle=True)
         x, y = np.meshgrid(np.arange(0, cube.M0.shape[0], 1), np.arange(0, cube.M0.shape[1], 1))
     
-    plt.savefig(save_path+'/'+outname+'.png', bbox_inches='tight', transparent=True, dpi=300)
+    plt.savefig(save_path+'/'+outname+'.png', bbox_inches='tight', transparent=False, dpi=300)
     plt.close(fig)
     
 def plot_continuum(cube, save_path, outname, rms, RA_lim=[0], Dec_lim=[0], cbar0=False, cbar1=False, sigma_mask=False, plot_beam=False):
@@ -461,7 +461,7 @@ def plot_continuum(cube, save_path, outname, rms, RA_lim=[0], Dec_lim=[0], cbar0
             points = np.hstack((x.reshape((-1,1)), y.reshape((-1,1))))
             mask_inside = ellipse.contains_points(points)
             mask_inside.shape = x.shape
-    plt.savefig(save_path+'/'+outname+'.png', bbox_inches='tight', transparent=True, dpi=300)
+    plt.savefig(save_path+'/'+outname+'.png', bbox_inches='tight', transparent=False, dpi=300)
     plt.close(fig)
     return mask_inside
     
@@ -1166,7 +1166,7 @@ def plot_mean_profile(yvar, pix_range, px_mid, py_mid, cube_dict, cube_dict_err,
     df = pd.DataFrame(df_dict)
     return fig, ax, figsavename, df_final, df
 
-    #fig.savefig(figures_path+source+'_SLIM_'+yvar+'_mean_profile_'+plotstr+'_v0.pdf', bbox_inches='tight', transparent=True, dpi=400)
+    #fig.savefig(figures_path+source+'_SLIM_'+yvar+'_mean_profile_'+plotstr+'_v0.pdf', bbox_inches='tight', transparent=False, dpi=400)
     #plt.close()
     
 def plot_ratio_profile(pix_range, px_mid, py_mid, cube,

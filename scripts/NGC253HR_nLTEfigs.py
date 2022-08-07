@@ -307,7 +307,7 @@ def nLTE_model_plot(NGC253_path, source, results_path, fig_path, rad_transf_path
 #             else:
 #                 axes[l].set_xlabel(r'r (pc)')
 #         fig_spec = NGC253_path+'SHC/'+SHC+'/EdFlux/Figures_python/'
-#         fig.savefig(fig_spec+SHC+'_fluxes_comp.pdf', bbox_inches='tight', transparent=True, dpi=400)
+#         fig.savefig(fig_spec+SHC+'_fluxes_comp.pdf', bbox_inches='tight', transparent=False, dpi=400)
 #         plt.close()
     
     

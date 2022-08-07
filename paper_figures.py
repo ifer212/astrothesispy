@@ -15,8 +15,8 @@ SB_models_plot = False
 AGN_models_plot = False
 LTEvelprofile_plot = False
 cloudcloud_plot = False
-comp_models_plot = False
-ringspectra_plot = True
+comp_models_plot = True
+ringspectra_plot = False
 
 # =============================================================================
 # Global vars & paths

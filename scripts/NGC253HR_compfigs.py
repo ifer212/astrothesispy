@@ -483,5 +483,5 @@ def plot_LIR_comp(fig_path, results_path, source, D_Mpc=3.5, Lmod_err=0.5, only_
         axis[v].tick_params(axis='both', which='major', labelsize=ticksize)
         axis[v].tick_params(labelleft=True,
                        labelright=False)
-    fig.savefig(f'{savefigpath}/{fig_name}{source}_LIR_comp{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
+    fig.savefig(f'{savefigpath}/{fig_name}{source}_LIR_comp{fig_format}', bbox_inches='tight', transparent=False, dpi=400)
     plt.close()
