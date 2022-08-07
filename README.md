@@ -42,6 +42,7 @@ Figures created for  _Rico-Villas et al. 2022_ using this repository (see ```pap
 <img src="Figures/PaperNGC253HR/SHC_13/Figure_4_SHC_13_SLIM_cubes_HC3Nvib_J24J26.png" alt="Fig4" style="background-color: white;" />
 - Figure 5: HC3N* vibrational temperature (Tvib) and column density (log N (HC3N)) profiles derived from the LTE mode.
 <img src="Figures/PaperNGC253HR/SHC_13/Figure_5_SHC_13_SLIM_Tex_and_logN_profiles.png" alt="Fig5" style="background-color: white;" />
+
 - Figure 13: Comparison between the derived properties of proto-SSC 13a (red circle) to Milky Way HCs (blue circles) and BGNs from (U)LIRGs (green circles).
 <img src="Figures/PaperNGC253HR/SHC_13/Figure_13_SHC_13_LIR_comp.png" alt="Fig13"  style="background-color: white;" />
 
@@ -113,9 +114,9 @@ utiles_molecules.Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path
 
 ### Scientific publications using this repository
 
- * _Rico-Villas et al. 2022_    &emsp; &emsp; &emsp;   <img src="readme_figs/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/> [2208.01941](https://ui.adsabs.harvard.edu/link_gateway/2022arXiv220801941R/arxiv:2208.01941)  &nbsp;  <img src="readme_figs/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> _submitted_
- * _Rico-Villas et al. 2021_    &emsp; &emsp; &emsp;    <img src="readme_figs/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/> [2008.03693](https://ui.adsabs.harvard.edu/link_gateway/2021MNRAS.502.3021R/arxiv:2008.03693)  &nbsp; <img src="readme_figs/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> [10.1093/mnras/stab197](https://ui.adsabs.harvard.edu/link_gateway/2021MNRAS.502.3021R/doi:10.1093/mnras/stab197)
- * _Rico-Villas et al. 2020_   &emsp; &emsp; &emsp;     <img src="readme_figs/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/>  [1909.11385](https://ui.adsabs.harvard.edu/link_gateway/2020MNRAS.491.4573R/arxiv:1909.11385) &nbsp;  <img src="readme_figs/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> [10.1093/mnras/stz3347](https://ui.adsabs.harvard.edu/link_gateway/2020MNRAS.491.4573R/doi:10.1093/mnras/stz3347)
+ * _Rico-Villas et al. 2022_    &emsp; &emsp; &emsp;   <img src="Figures/readme_figs/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/> [2208.01941](https://ui.adsabs.harvard.edu/link_gateway/2022arXiv220801941R/arxiv:2208.01941)  &nbsp;  <img src="Figures/readme_figs/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> _submitted_
+ * _Rico-Villas et al. 2021_    &emsp; &emsp; &emsp;    <img src="Figures/readme_figs/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/> [2008.03693](https://ui.adsabs.harvard.edu/link_gateway/2021MNRAS.502.3021R/arxiv:2008.03693)  &nbsp; <img src="Figures/readme_figs/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> [10.1093/mnras/stab197](https://ui.adsabs.harvard.edu/link_gateway/2021MNRAS.502.3021R/doi:10.1093/mnras/stab197)
+ * _Rico-Villas et al. 2020_   &emsp; &emsp; &emsp;     <img src="Figures/readme_figs/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/>  [1909.11385](https://ui.adsabs.harvard.edu/link_gateway/2020MNRAS.491.4573R/arxiv:1909.11385) &nbsp;  <img src="Figures/readme_figs/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> [10.1093/mnras/stz3347](https://ui.adsabs.harvard.edu/link_gateway/2020MNRAS.491.4573R/doi:10.1093/mnras/stz3347)
 
 
 
