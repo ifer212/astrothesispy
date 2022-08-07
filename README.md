@@ -31,17 +31,19 @@ To install just use pip:
 
 Figures created for  _Rico-Villas et al. 2022_ using this repository (see ```paper_figures.py```):
 - Figure 1: Continuum map at 219 GHz of the NGC 253 nuclear region with a resolution of $0.020^{\prime\prime} \times 0.019^{\prime\prime}$ above $3\sigma$.
-<img src="Figures/PaperNGC253HR/NGC253/Figure_1_219GHz.png" alt="Fig1" />
+
+<img src="Figures/PaperNGC253HR/NGC253/Figure_1_219GHz.png" alt="Fig1" style="background-color: white;" />
+
 - Figure 2: Zoom of the continuum map at 219 GHz above $5\sigma$ for the different regions containing the proto-SSCs studied in _Rico-Villas et al. 2020_. Overlaid in red is the continuum emission at 345 GHz.
-<img src="Figures/PaperNGC253HR/NGC253/Figure_2_ALL_subcont_219GHz_and_350GHz.png" alt="Fig2" />
+<img src="Figures/PaperNGC253HR/NGC253/Figure_2_ALL_subcont_219GHz_and_350GHz.png" alt="Fig2" style="background-color: white;" />
 - Appendix figure:  Proto-SSC 13 ring averaged spectra between 0.1 and 0.2 pc. Overlaid in red is the total fitted model, in green or blue the contribution from HC3N. 
-<img src="Figures/PaperNGC253HR/SHC_13/SHC_13_d0p15.png" alt="Fig3" />
+<img src="Figures/PaperNGC253HR/SHC_13/SHC_13_d0p15.png" alt="Fig3" style="background-color: white;" />
 - Figure 4: LTE fitted values with SLIM. Top left panel shows the HC3N column density, top right panel the vibrational temperature, bottom left the VLSR and bottom right the FWHM.
-<img src="Figures/PaperNGC253HR/SHC_13/Figure_4_SHC_13_SLIM_cubes_HC3Nvib_J24J26.png" alt="Fig4" />
+<img src="Figures/PaperNGC253HR/SHC_13/Figure_4_SHC_13_SLIM_cubes_HC3Nvib_J24J26.png" alt="Fig4" style="background-color: white;" />
 - Figure 5: HC3N* vibrational temperature (Tvib) and column density (log N (HC3N)) profiles derived from the LTE mode.
-<img src="Figures/PaperNGC253HR/SHC_13/Figure_5_SHC_13_SLIM_Tex_and_logN_profiles.png" alt="Fig4" />
+<img src="Figures/PaperNGC253HR/SHC_13/Figure_5_SHC_13_SLIM_Tex_and_logN_profiles.png" alt="Fig5" style="background-color: white;" />
 - Figure 13: Comparison between the derived properties of proto-SSC 13a (red circle) to Milky Way HCs (blue circles) and BGNs from (U)LIRGs (green circles).
-<img src="Figures/PaperNGC253HR/SHC_13/Figure_13_SHC_13_LIR_comp.png" alt="Fig4" />
+<img src="Figures/PaperNGC253HR/SHC_13/Figure_13_SHC_13_LIR_comp.png" alt="Fig13"  style="background-color: white;" />
 
 
 
@@ -66,7 +68,7 @@ HC3N_enerdiag.HC3N_energydiag(fig_path, hc3n_info, plot_rotational_levels = True
       warnings.warn(f"A NumPy version >={np_minversion} and <{np_maxversion}"
 
 
-<img src="Figures/Thesis/HC3N_Ediag_K_wrot_lvls.png" alt="EnergyDiag" />
+<img src="Figures/Thesis/HC3N_Ediag_K_wrot_lvls.png" alt="EnergyDiag"  style="background-color: white;" />
 
 - Example of a rotational diagram using bootstrap:
 
@@ -107,7 +109,7 @@ utiles_molecules.Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path
     N$_{\rm{Tot}}$=$2.3\times10^{16}\pm6.2\times10^{12}$cm$^{-1}$ 	 T$_{\rm{vib}}$=$455.0\pm127.2$ K
 
 
-<img src="Figures/Thesis/SHC_13_Rotational_Diagram.png" alt="RotDiag" />
+<img src="Figures/Thesis/SHC_13_Rotational_Diagram.png" alt="RotDiag" style="background-color: white;" />
 
 ### Scientific publications using this repository
 
