@@ -7,7 +7,7 @@ from astrothesispy.utiles import utiles_molecules
 
 # Figures
 energydiag_plot = True
-rotational_diag_plot = False
+rotational_diag_plot = True
 
 # Setting seeds for reproduction
 random.seed(1001)
