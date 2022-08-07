@@ -64,7 +64,6 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
 
-# 
 def find_between( s, first, last ):
     """
         Find string between characters
@@ -210,33 +209,39 @@ def deg2HMS(ra='', dec='', round=False):
   else:
     return RA or DEC
 
-def fit_bootstrap(p0, datax, datay, function, yerr_systematic=0.0, niter=100):
+def fit_bootstrap(p0, datax, datay, function, yerr_systematic=0.0, niter=100, montecarlo=True):
     """
-    Bootstrapping method
-    
-    p0 matrix with inital guess parameters
-    datax and datay input data
-    function: fun = lambda p, x : p[0]*x+p[1] for example, p are the parameters
-    yerr_systematic = error for each point
+        Bootstrapping method.
+    Args:
+        p0 (array): Matrix with inital guess parameters.
+        datax (array): Input x data.
+        datay (array): Input y data
+        function (funciton): Function to fit.
+        yerr_systematic (float, optional): Systematic errors. Defaults to 0.0.
+        niter (int, optional): Number of iterations. Defaults to 100.
+        montecarlo (bool, optional): Use also montecarlo sampling. Defaults to True.
+
+    Returns:
+        pfit_bootstrap (array): Fitted parameters.
+        perr_bootstrap (array): Fitted parameters errors.
     """
     errfunc = lambda p, x, y: function(p,x) - y
     # Fit first time
     pfit, perr = optimize.leastsq(errfunc, p0, args=(datax, datay), full_output=0)
-
     # Get the stdev of the residuals
     residuals = errfunc(pfit, datax, datay)
     sigma_res = np.std(residuals)
-
     sigma_err_total = np.sqrt(sigma_res**2 + yerr_systematic**2)
-
     # niter random data sets are generated and fitted
     ps = []
     for i in range(niter):
-        randomDelta = np.random.normal(0., np.abs(sigma_err_total), len(datay))
-        randomdataY = datay + randomDelta
-        randomfit, randomcov = \
-            optimize.leastsq(errfunc, p0, args=(datax, randomdataY),\
-                             full_output=0)
+        # Montecarlo
+        if montecarlo:
+            randomDelta = np.random.normal(0., np.abs(sigma_err_total), len(datay))
+            randomdataY = datay + randomDelta
+        else:
+            randomdataY = np.random.normal(datay, np.abs(sigma_err_total))
+        randomfit, randomcov = optimize.leastsq(errfunc, p0, args=(datax, randomdataY),full_output=0)
         ps.append(randomfit) 
 
     ps = np.array(ps)
@@ -282,7 +287,6 @@ def gaussian_fit(datax, datay, mean_0, stddev_0):
         raise ValueError('Input is not np.ndarray or pd.Series')
     # Defining initial gaussian and fitting
     g_init = models.Gaussian1D(amplitude=datay.max(), mean = mean_0, stddev=stddev_0)
-    #g_init.stddev.bounds = 1.e-100, None
     fit_g = fitting.LevMarLSQFitter()
     g = fit_g(g_init, datax, datay)
     # Parameters and errors
@@ -360,7 +364,7 @@ def add_jitter(df, xvar, yvar, x_step=0.5, y_step=0.5):
             df.loc[points_in_range,'x']=x_centre
     return df
     
-def fit_g_bootstrap(datax, datay, data_rms, g_params, g_errors, nboost, seed):
+def fit_g_bootstrap(datax, datay, data_rms, g_params, g_errors, nboost, seed, montecarlo = False):
     """
     For bootstrapping with fitted gaussian parameters
     datax       -> x original data
@@ -378,15 +382,16 @@ def fit_g_bootstrap(datax, datay, data_rms, g_params, g_errors, nboost, seed):
     boot_std = []
     boot_w = []
     print('\t\tStarting Bootsrap')
-    for i in range(nboost):
+    for r in range(nboost):
         resample = np.random.choice(range(len(datay)), len(datay), replace=True)
         x_boots = [datax[i] for i in resample]
         y_boots = [datay[i] for i in resample]
         # Montecarlo
-        #randomDelta = np.random.normal(0., data_rms, len(y_boots))
-        #y_resampled = y_boots + randomDelta
-        y_resampled = np.random.normal(y_boots, data_rms)
-        #print '\tSimul: ' + str(i)
+        if montecarlo:
+            randomDelta = np.random.normal(0., data_rms, len(y_boots))
+            y_resampled = y_boots + randomDelta
+        else:
+            y_resampled = np.random.normal(y_boots, data_rms)
         gg_params, gg_errors, g_cov_mat = gaussian_fit(np.array(x_boots), np.array(y_resampled), np.mean(x_boots), np.std(x_boots))
         boot_param.append(gg_params)
         boot_error.append(gg_errors)

@@ -1,0 +1,31 @@
+# pyproject.toml
+
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astrothesispy"
+version = "1.0.1"
+description = "Recopilation of methods created for PhD thesis in astrophysics and publications"
+readme = "README.md"
+authors = [{ name = "ifer212", email = "f.ricovillas@gmail.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["thesis", "astrophysics", "science"]
+dependencies = [
+    "pandas",
+    "matplotlib",
+    "numpy",
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = ["pip-tools", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/ifer212/astrothesispy"
