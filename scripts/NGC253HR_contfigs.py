@@ -134,7 +134,7 @@ def plot_cont219(NGC253_path, cont_path, location_path, results_path, fig_path, 
     fig_spath = f'{fig_path}NGC253/'
     if not os.path.exists(fig_spath):
         os.makedirs(fig_spath)
-    fig.savefig(f'{fig_spath}{fig_name}219GHz{fig_format}', bbox_inches='tight', transparent=True, dpi=800)
+    fig.savefig(f'{fig_spath}{fig_name}219GHz{fig_format}', bbox_inches='tight', transparent=True, dpi=400)
     plt.close()
         
     

@@ -12,16 +12,16 @@ moments_plot = False
 LTE2D_plot = False
 LTEprofiles_plot = False
 SB_models_plot = False
-AGN_models_plot = False
-LTEvelprofile_plot = False
-cloudcloud_plot = False
-comp_models_plot = False
+AGN_models_plot = True
+LTEvelprofile_plot = True
+cloudcloud_plot = True
+comp_models_plot = True
 ringspectra_plot = True
 
 # =============================================================================
 # Global vars & paths
 # =============================================================================
-figure_format = '.pdf'
+figure_format = '.png'
 D_Mpc = 3.5
 Rcrit = 0.85
 source = 'SHC_13'

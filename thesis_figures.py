@@ -6,8 +6,8 @@ from astrothesispy.HC3N import HC3N_enerdiag
 from astrothesispy.utiles import utiles_molecules
 
 # Figures
-energydiag_plot = False
-rotational_diag_plot = True
+energydiag_plot = True
+rotational_diag_plot = False
 
 # Setting seeds for reproduction
 random.seed(1001)
@@ -18,10 +18,9 @@ hc3n_info = 'HC3N/CDMS/'
 fig_path = f'Figures/Thesis/'
 if not os.path.exists(fig_path):
     os.makedirs(fig_path)
-
 if energydiag_plot:
     # Energy diagram figure for thesis HC3N intro
-    HC3N_enerdiag.HC3N_energydiag(fig_path, hc3n_info, plot_rotational_levels = True, fig_format = '.pdf')
+    HC3N_enerdiag.HC3N_energydiag(fig_path, hc3n_info, plot_rotational_levels = True, show_fig=True, fig_format = '.pdf')
     
 if rotational_diag_plot:
     source = 'SHC_13'
