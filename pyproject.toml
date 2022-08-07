@@ -27,5 +27,6 @@ requires-python = ">=3.9"
 [project.optional-dependencies]
 dev = ["pip-tools", "pytest"]
 
+
 [project.urls]
 Homepage = "https://github.com/ifer212/astrothesispy"
