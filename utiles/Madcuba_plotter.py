@@ -346,7 +346,7 @@ def MADCUBA_plot(m, n, data_path, molec_info, save_path, fig_name='Figure', fig_
         # Only adding x axis labels to bottom axes
         if i >= len(axis)-1:
             ax.set_xlabel(x_label, fontsize=labelsize, fontname=labelfont, fontweight='bold')
-    fig.savefig(f'{save_path}/{fig_name}{fig_format}', bbox_inches='tight', transparent=True,
+    fig.savefig(f'{save_path}/{fig_name}{fig_format}', bbox_inches='tight', transparent=False,
                 dpi=400)
     plt.close()
     

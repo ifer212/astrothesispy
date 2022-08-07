@@ -410,7 +410,7 @@ def Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path, plot_noboot
     plt.ylabel(r'log (N$_{\rm u}$/g$_{\rm u}$)', fontsize = label_fontsize)
     plt.xlabel(r'E$_{\rm u}$/k (K)', fontsize = label_fontsize)
     ax.legend(handles=legend_elements, loc='lower left', frameon=False, fontsize=fontsize)
-    plt.savefig(f'{fig_path}{source}_Rotational_Diagram{fig_format}', bbox_inches='tight', transparent=True, dpi=300)
+    plt.savefig(f'{fig_path}{source}_Rotational_Diagram{fig_format}', bbox_inches='tight', transparent=False, dpi=300)
     plt.close(fig)
 
 def Columndensity_thin(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec, Bmaj_arcsec):
