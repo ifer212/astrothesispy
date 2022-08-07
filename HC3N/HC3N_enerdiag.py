@@ -5,7 +5,6 @@ import pandas as pd
 import astropy.units as u
 import matplotlib.pyplot as plt
 
-from astrothesispy.utiles import utiles
 from astrothesispy.utiles import u_conversion
 from astrothesispy.utiles import utiles_molecules
 
