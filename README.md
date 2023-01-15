@@ -13,7 +13,7 @@ To install just use pip:
     - ```utiles.utiles_plot```: Contains methods to use recursively in plots (e.g. ```add_cbar()``` to add a color bar to a plot, ```map_figure_starter()``` to create the axis with World Coordinate System (WCS) and proper RA and Dec labelling).
     - ```utiles.utiles_physical```: Contains equations and funcitons for physics.
     - ```utiles.utiles_nLTEmodel```: Contains methods for handling the non Local Thermodynamical Equilibrium (non LTE) radiative transfer modeling files. The modelling is carried in fortran and is not incluided. The module modifies de input files, call the fortran compiler, and collects the outputs from the different files generated.
-    - ```utiles.utiles_molecules```: Contains some methods for calculations with moelcules (e.g. ```transition_citical_density()```, ```Columndensity_thin()```, ```Columndensity_thin()```) and also obtain the excitation temperature and column density through a rotational digram (```rotational_diagram()```) and plot it.
+    - ```utiles.utiles_molecules```: Contains some methods for calculations with moelcules (e.g. ```transition_citical_density()```, ```Columndensity_thin()```, ```Columndensity_thick()```) and also obtain the excitation temperature and column density through a rotational digram (```rotational_diagram()```) and plot it.
     - ```utiles.utiles_cubes```: Contains the ```Cube_Handler()``` class to handle the .fits format data cubes and some functions to calculate the cube moments, sigma masking, etc...
     - ```utiles.utiles_alma```: Contains some functions to estimate observational parameters from the ALMA interferometer observations.
     - ```utiles.u_conversion```: Contains methods to transform between units for complex units systems.
