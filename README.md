@@ -9,7 +9,7 @@ To install just use pip:
         ```
 
 - The ```utiles``` module includes most of the methods defined during the thesis:
-    - ```utiles.utiles```: Contains simple method to work with arrays and some simple statistics function (e.g. bootrstrapping).
+    - ```utiles.utiles```: Contains simple method to work with arrays and some simple statistics function (e.g. montecarlo simulation and bootstrapping).
     - ```utiles.utiles_plot```: Contains methods to use recursively in plots (e.g. ```add_cbar()``` to add a color bar to a plot, ```map_figure_starter()``` to create the axis with World Coordinate System (WCS) and proper RA and Dec labelling).
     - ```utiles.utiles_physical```: Contains equations and funcitons for physics.
     - ```utiles.utiles_nLTEmodel```: Contains methods for handling the non Local Thermodynamical Equilibrium (non LTE) radiative transfer modeling files. The modelling is carried in fortran and is not incluided. The module modifies de input files, call the fortran compiler, and collects the outputs from the different files generated.
