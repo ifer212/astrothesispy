@@ -11,7 +11,7 @@ from astrothesispy.utiles import utiles_molecules
 # Loading amsmath LaTeX
 import matplotlib as mpl
 mpl.rc('text', usetex=True)
-mpl.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
+mpl.rcParams['text.latex.preamble'] = r"\usepackage{amsmath}"
 np.seterr(divide = 'ignore') 
 def HC3N_energydiag(save_fig_path, HC3N_dir, plot_rotational_levels = True, show_fig = False, fig_format = '.pdf'):
     """
@@ -317,5 +317,4 @@ def HC3N_energydiag(save_fig_path, HC3N_dir, plot_rotational_levels = True, show
         if show_fig:
             plt.show()
         plt.close()
-
 

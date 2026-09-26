@@ -36,7 +36,7 @@ dgreen      = sns.xkcd_palette(['darkish green'])[0]
 # Loading amsmath LaTeX
 import matplotlib as mpl
 mpl.rc('text', usetex=True)
-mpl.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
+mpl.rcParams['text.latex.preamble'] = r"\usepackage{amsmath}"
 
 # Matplotlib default parameters
 mpl.rc('xtick', color='k', direction='in', labelsize=6)

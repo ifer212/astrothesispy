@@ -10,9 +10,8 @@ version = "1.0.1"
 description = "Recopilation of methods created for PhD thesis in astrophysics and publications"
 readme = "README.md"
 authors = [{ name = "ifer212", email = "f.ricovillas@gmail.com" }]
-license = { file = "LICENSE" }
+license = "MIT"
 classifiers = [
-    "License :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
@@ -21,12 +20,34 @@ dependencies = [
     "pandas",
     "matplotlib",
     "numpy",
+    "scipy",
+    "astropy",
+    "seaborn",
 ]
 requires-python = ">=3.9"
 
 [project.optional-dependencies]
-dev = ["pip-tools", "pytest"]
+dev = ["pytest"]
+examples = ["openpyxl"]
 
 
 [project.urls]
 Homepage = "https://github.com/ifer212/astrothesispy"
+
+# The repository root is the astrothesispy package; data and Figures are
+# research assets, not Python packages or part of the published wheel.
+[tool.setuptools]
+packages = [
+    "astrothesispy",
+    "astrothesispy.utiles",
+    "astrothesispy.HC3N",
+    "astrothesispy.scripts",
+    "astrothesispy.radiative_transfer",
+]
+include-package-data = false
+
+[tool.setuptools.package-dir]
+astrothesispy = "."
+
+[tool.setuptools.package-data]
+"astrothesispy.HC3N" = ["CDMS/*.cat", "CDMS/sub/*.cat"]

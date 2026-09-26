@@ -46,7 +46,7 @@ def HPBW(wave, antenna_meters):
     else:
         # Wave is frequency
         wave = (wave).to(u.m, equivalencies=u.spectral())
-    hpbw_rad = 1.13*wave/antenna_meters
+    hpbw_rad = 1.13*wave/u.Quantity(antenna_meters, u.m)
     hpbw_arcsec = (hpbw_rad*u.rad).to(u.arcsec)
     return hpbw_arcsec
 
@@ -67,7 +67,10 @@ def alma_resol(longest_baseline_in_wavelengths):
     return res
 
 def FOV_telescope(freq_GHz, antenna_size_in_m):
-    FWHM_arcsec = 3600.*(180./np.pi)*(3e8/freq_GHz)/antenna_size_in_m
+    # Characteristic lambda/D angle; no telescope illumination factor.
+    wavelength = _si.c / u.Quantity(freq_GHz, u.GHz)
+    diameter = u.Quantity(antenna_size_in_m, u.m)
+    FWHM_arcsec = (wavelength / diameter).to_value(u.one) * u.rad.to(u.arcsec)
     return FWHM_arcsec
 
 def alma_cell_size(longest_base_in_wavelengths):
@@ -78,7 +81,10 @@ def alma_cell_size(longest_base_in_wavelengths):
     return cellsize_arcsec
 
 def cellsize_ALMA(obs_freq_GHz, longes_base_inkm):
-    max_resol_arcsec = 3600. * (180. / np.pi) * (3e8 / obs_freq_GHz) / longes_base_inkm
+    # Five cells across the nominal lambda/B resolution.
+    wavelength = _si.c / u.Quantity(obs_freq_GHz, u.GHz)
+    baseline = u.Quantity(longes_base_inkm, u.km)
+    max_resol_arcsec = (wavelength / baseline).to_value(u.one) * u.rad.to(u.arcsec)
     return max_resol_arcsec/5.
 
 def cellsize(resolution):

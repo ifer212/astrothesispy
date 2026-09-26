@@ -1,5 +1,5 @@
 
-from astropy.modeling.models import BlackBody as blackbody_nu
+from astropy.modeling.models import BlackBody
 
 from astrothesispy.utiles import utiles_alma
 from astrothesispy.utiles import u_conversion
@@ -9,6 +9,14 @@ import pandas as pd
 import astropy.units as u
 import astropy.constants.si as _si
 import matplotlib.pyplot as plt
+
+
+def blackbody_nu(frequency, temperature):
+    """Evaluate B_nu with the legacy function signature, in CGS radiance units."""
+    return BlackBody(temperature=u.Quantity(temperature, u.K))(frequency).to(
+        u.erg / (u.s * u.cm**2 * u.Hz * u.sr))
+
+
 
 #==============================================================================
 #                    
@@ -144,7 +152,7 @@ def gas_mass_from_dust_leroy(I350_Jybeam, bmin_arsec, bmaj_arsec,
     lower_lim_area_cm2 = np.pi*((low_size_cm/2.)**2) #cm^2
     up_lim_area_cm2 = np.pi*((up_size_cm/2.)**2)
     low_Mdust_g = lower_lim_area_cm2*dust_sdens # g
-    low_Mdust_Msun = (low_Mdust_g)*(1*u.g).to(u.Msun).value # Msun
+    low_Mdust_Msun = low_Mdust_g.to_value(u.Msun) # Msun
     up_Mdust_g = up_lim_area_cm2*dust_sdens # g
     up_Mdust_Msun = (up_Mdust_g).to(u.Msun).value # Msun
     return tau350, low_Mdust_Msun, up_Mdust_Msun
@@ -321,7 +329,7 @@ def virial_mass_mccrady(rad_pc, vel_disp):
     assuming a virial parameter of 10
     """
     viral_parameter = 10.
-    Mvir = (viral_parameter*(rad_pc*((1*u.pc).to(u.m)))*((vel_disp*((1*u.km/u.s).to(u.m/u.s)))**2)/_si.G)*((1*u.kg).to(u.Msun))
+    Mvir = (viral_parameter*(rad_pc*((1*u.pc).to(u.m)))*((vel_disp*((1*u.km/u.s).to(u.m/u.s)))**2)/_si.G).to(u.Msun)
     return Mvir
 
 def virial_mass(size_pc, FHWHM_kms):
@@ -350,7 +358,7 @@ def escape_velocity(Mass_msun, rad_pc):
     """
     Mass_kg = Mass_msun*(1.*u.Msun).to(u.kg)
     rad_m = rad_pc*(1.*u.pc).to(u.m)
-    v_esp = np.sqrt(2*_si.G*Mass_kg/rad_m)/1000. #km
+    v_esp = np.sqrt(2*_si.G*Mass_kg/rad_m).to(u.km/u.s)
     return v_esp
 
 def radial_momentum(Massgas_msun, Massstars_msun, v_disp):
@@ -384,7 +392,7 @@ def freefall_time(Mtotal_msun, rad_pc):
     """
     vol_m3 = (4./3)*np.pi*((rad_pc*(1 * u.pc).to(u.m))**3)
     M_kg = Mtotal_msun*(1 * u.Msun).to(u.kg)
-    t_ff = np.sqrt(3.*np.pi/(32.*_si.G.value*(M_kg/vol_m3)))*(1 *u.s).to(u.yr)
+    t_ff = np.sqrt(3.*np.pi/(32.*_si.G*(M_kg/vol_m3))).to(u.yr)
     return t_ff # years
 
 def crossing_time(r_pc, vel_dispersion_kms):

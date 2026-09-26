@@ -253,10 +253,19 @@ def line_name_formatter(line_name):
     return line_dict
 
 
-def HC3N_line_dict_builder(source, results_path, info_path, Bmin_arcsec, Bmaj_arcsec):
+def HC3N_line_dict_builder(source, results_path, info_path, Bmin_arcsec, Bmaj_arcsec,
+                           use_catalog_Aul=False):
+    """Build the observed HC3N line dictionary used by population diagrams.
+
+    Set ``use_catalog_Aul=True`` for line-specific Einstein coefficients and
+    upper-state degeneracies from the supplied spectroscopy table. The default
+    preserves the original rigid-rotor population calculation.
+    """
     electric_dipole = 3.742 # Electric dipole in Debyes for HC3N
     trans_info = pd.read_excel(info_path, header=0)
-    trans_info.fillna('', inplace=True)
+    for column in ['Formula', 'qn2', 'qn3', 'qnn2', 'qnn3']:
+        trans_info[column] = trans_info[column].astype(object).where(
+            trans_info[column].notna(), '')
     trans_info['Frequency_GHz']  = trans_info['Frequency']/1000
     trans_info['ELO_K'] = u_conversion.Energy_cmtoK(trans_info['ELO'])
     trans_info['EUP_K'] =  trans_info['ELO_K'] + trans_energy(trans_info['Frequency_GHz'])
@@ -281,12 +290,16 @@ def HC3N_line_dict_builder(source, results_path, info_path, Bmin_arcsec, Bmaj_ar
             Nugu, Nugu_err = Columndensity_thin(freq_GHz=sub_info['Frequency_GHz'],
                                                                  Snu=trans_fluxes_ring4_219beam[col]/1000, Snu_err=trans_fluxes_ring4_219beam[col+'_err']/1000,
                                                                  Jup=sub_info['qn1'], elec_dipole_D=electric_dipole,
-                                                                 Bmin_arcsec=Bmin_arcsec, Bmaj_arcsec=Bmaj_arcsec)
+                                                                 Bmin_arcsec=Bmin_arcsec, Bmaj_arcsec=Bmaj_arcsec,
+                                                                 Aul_s=sub_info['Aul'] if use_catalog_Aul else None,
+                                                                 upper_degeneracy=sub_info['gup'] if use_catalog_Aul else None)
             line_dict['Frequency_GHz'] = sub_info['Frequency_GHz'].to_list()[0]
+            line_dict['Aul_s'] = sub_info['Aul'].to_list()[0]
+            line_dict['upper_degeneracy'] = sub_info['gup'].to_list()[0]
             line_dict['Nu/gu'] = Nugu.to_list()[0]
             line_dict['logNu/gu'] = np.log10(Nugu).to_list()[0]
             line_dict['Nu/gu_err'] = Nugu_err.to_list()[0]
-            line_dict['logNu/gu_err'] = np.log10(Nugu_err).to_list()[0]
+            line_dict['logNu/gu_err'] = (Nugu_err / (Nugu * np.log(10))).to_list()[0]
             line_dict['EUP_K'] = sub_info['EUP_K'].to_list()[0]
             lines_dict[line_dict['Formula']].append(line_dict)
     return lines_dict
@@ -297,31 +310,47 @@ def rotational_diagram(lines_dict, Jselect, bootstrap=True):
     Args:
         lines_dict (dict): Dictionary with the lines information.
         Jselect (int): Jup quantum rotational number to make the fit.
-        bootstrap (bool, optional): Use bootstrap. Defaults to True.
+        bootstrap (bool, optional): Use a 1000-draw weighted parametric bootstrap.
+            Measurement errors are independent and Gaussian in log space;
+            intrinsic scatter and correlated calibration errors are not modeled.
 
     Returns:
         vib_temp_df (df): DataFrame with the lines used info.
         fit_dict (dict): Dictionary with the fitted values.
     """
-    Jselect = 24
     vib_temp = [] # Similar Jup (qn1) but different vib state
     for line in lines_dict:
         for trans in lines_dict[line]:
             if Jselect -2 <= trans['qn1'] <= Jselect +2:
                 vib_temp.append(trans)
     vib_temp_df = pd.DataFrame(vib_temp)
-    vib_temp_df['logNu/gu_relerr'] = vib_temp_df['logNu/gu_err']/np.log(10)/vib_temp_df['logNu/gu']
+    if len(vib_temp_df) < 3:
+        raise ValueError("At least three selected lines are needed for a rotational fit")
+    # The fitted y is log10(Nu/gu): sigma_y = sigma_N / (N ln(10)).
+    # Derive from linear columns, also supporting dictionaries built by older versions.
+    vib_temp_df['logNu/gu_relerr'] = vib_temp_df['Nu/gu_err'] / (vib_temp_df['Nu/gu'] * np.log(10))
+    values = vib_temp_df[['EUP_K', 'logNu/gu', 'logNu/gu_relerr']].to_numpy(dtype=float)
+    if not np.all(np.isfinite(values)) or np.any(values[:, 2] <= 0):
+        raise ValueError("Energies and populations must be finite, with positive log uncertainties")
     print('———————————–')
     # Fitting without bootstap (needed to get first guess for bootstrap anyway)
-    popt, pcov = curve_fit(linfit, vib_temp_df['EUP_K'], vib_temp_df['logNu/gu'], sigma=vib_temp_df['logNu/gu_relerr'])
-    perr = np.sqrt(np.diag(pcov)) 
-    Ntot, Ntot_err, Tex, Tex_err = HC3N_rotational_diagram_from_fit(popt[0], perr[0], popt[1], perr[1])      
+    popt, pcov = curve_fit(linfit, vib_temp_df['EUP_K'], vib_temp_df['logNu/gu'], sigma=vib_temp_df['logNu/gu_relerr'], absolute_sigma=True)
+    perr = np.sqrt(np.diag(pcov))
+    residuals = vib_temp_df['logNu/gu'] - linfit(vib_temp_df['EUP_K'], *popt)
+    chi2 = float(np.sum((residuals / vib_temp_df['logNu/gu_relerr'])**2))
+    dof = len(vib_temp_df) - 2
+
+    Ntot, Ntot_err, Tex, Tex_err = HC3N_rotational_diagram_from_fit(popt[0], perr[0], popt[1], perr[1], slope_intercept_cov=pcov[0, 1])
     print('No bootstrap:')
-    Ntext = r'N$_{\rm{Tot}}$='+f'${utiles.latex_float(Ntot)}\pm{utiles.latex_float(Ntot_err)}'+r'$cm$^{-1}$'    
-    Ttext = r'T$_{\rm{vib}}$='+f'${Tex:1.1f}\pm{Tex_err:1.1f}$ K'
+    Ntext = r'N$_{\rm{Tot}}$='+rf'${utiles.latex_float(Ntot)}\pm{utiles.latex_float(Ntot_err)}'+r'$cm$^{-2}$'
+    Ttext = r'T$_{\rm{vib}}$='+rf'${Tex:1.1f}\pm{Tex_err:1.1f}$ K'
     print(f'{Ntext} \t {Ttext}')
     fit_dict = {'NoBootstrap':  {'popt': popt,
-                                 'pcov': perr,
+                                 'pcov': perr,  # Legacy key: parameter standard errors.
+                                 'covariance': pcov,
+                                 'chi2': chi2,
+                                 'dof': dof,
+                                 'reduced_chi2': chi2/dof,
                                  'Ntot': Ntot,
                                  'Ntot_err': Ntot_err,
                                  'Tex': Tex,
@@ -329,16 +358,29 @@ def rotational_diagram(lines_dict, Jselect, bootstrap=True):
                                  'Ntext': Ntext,
                                  'Ttext': Ttext}}
     if bootstrap:
-        fun = lambda p, x : p[0]*x+p[1]
-        bpfit, bperr = utiles.fit_bootstrap(p0 = popt, datax = vib_temp_df['EUP_K'], datay = vib_temp_df['logNu/gu'],
-                                            function=fun, yerr_systematic=vib_temp_df['logNu/gu_relerr'], niter=1000, montecarlo=True)
-        bNtot, bNtot_err, bTex, bTex_err = HC3N_rotational_diagram_from_fit(bpfit[0], bperr[0], bpfit[1], bperr[1])
+        # Parametric bootstrap: sample the fitted model with measurement errors,
+        # then refit with the same weights. This does not estimate intrinsic scatter.
+        x = vib_temp_df['EUP_K'].to_numpy()
+        sigma = vib_temp_df['logNu/gu_relerr'].to_numpy()
+        fitted_y = linfit(x, *popt)
+        samples = []
+        for _ in range(1000):
+            simulated_y = fitted_y + np.random.normal(0, sigma)
+            parameters, _ = curve_fit(linfit, x, simulated_y, p0=popt,
+                                      sigma=sigma, absolute_sigma=True)
+            samples.append(parameters)
+        bpfit = np.mean(samples, axis=0)
+        bcov = np.cov(np.asarray(samples), rowvar=False, ddof=1)
+        bperr = np.sqrt(np.diag(bcov))
+        bNtot, bNtot_err, bTex, bTex_err = HC3N_rotational_diagram_from_fit(
+            bpfit[0], bperr[0], bpfit[1], bperr[1], slope_intercept_cov=bcov[0, 1])
         print('Bootstrap:')
-        BNtext = r'N$_{\rm{Tot}}$='+f'${utiles.latex_float(bNtot)}\pm{utiles.latex_float(bNtot_err)}'+r'$cm$^{-1}$' 
-        BTtext = r'T$_{\rm{vib}}$='+f'${bTex:1.1f}\pm{bTex_err:1.1f}$ K'
+        BNtext = r'N$_{\rm{Tot}}$='+rf'${utiles.latex_float(bNtot)}\pm{utiles.latex_float(bNtot_err)}'+r'$cm$^{-2}$'
+        BTtext = r'T$_{\rm{vib}}$='+rf'${bTex:1.1f}\pm{bTex_err:1.1f}$ K'
         print(f'{BNtext} \t {BTtext}')
         fit_dict['Bootstrap'] = {'popt': bpfit,
                                  'pcov': bperr,
+                                 'covariance': bcov,
                                  'Ntot': bNtot,
                                  'Ntot_err': bNtot_err,
                                  'Tex': bTex,
@@ -347,27 +389,30 @@ def rotational_diagram(lines_dict, Jselect, bootstrap=True):
                                  'Ttext': BTtext}
     return vib_temp_df, fit_dict
 
-def HC3N_rotational_diagram_from_fit(slope, slope_err, intercept, intercept_err):
-   """
-   Getting Ntot and Tex from the slope and intecept and partition function Z of a rotational diagram
-   Nu/gu = (Ntot/Z) * e^(-Eu/kTex)
-   ln(Nu/gu) = Eu*(-1/kTex)+ln(Ntot/Z)
-   y = x*m + b
-   m = (-1/Tex*np.log(10))
-   b = ln(Ntot/Z)
-   Z(HC3N) = kT/hB0
-   B0 = 4.55GHz
-   """
-   B0 = (4.55*u.GHz).to(u.Hz).value
-   h_si = _si.h
-   k_si = _si.k_B
-   Tex = -1./(np.log(10.)*slope)
-   Tex_err = -slope_err/(np.log(10.)*(slope**2))
-   Z = k_si.value*Tex/(h_si.value*B0)
-   Z_err = k_si.value*Tex_err/(h_si.value*B0)
-   Ntot = Z*10**(intercept)
-   Ntot_err = np.sqrt(((Z_err)**2)+((intercept_err*np.log(10.)*10**(intercept))**2))
-   return Ntot, np.abs(Ntot_err), Tex, np.abs(Tex_err)
+def HC3N_rotational_diagram_from_fit(slope, slope_err, intercept, intercept_err, slope_intercept_cov=0):
+    """Convert log10(Nu/gu) = slope*(Eu/k) + intercept to Ntot and Tex.
+
+    Uses the high-temperature rotational partition function Q = kT/(hB),
+    B = 4.55 GHz. Ntot is in cm^-2 and Tex in K. Propagation is first-order;
+    the optional covariance is Cov(slope, intercept), not a correlation.
+    This Q excludes vibrational contributions to the partition function.
+    """
+    if slope >= 0:
+        raise ValueError("A positive excitation temperature requires a negative slope")
+    if slope_err < 0 or intercept_err < 0:
+        raise ValueError("Uncertainties must be nonnegative")
+    Tex = -1 / (np.log(10) * slope)
+    Tex_err = slope_err / (np.log(10) * slope**2)
+    Z = (_si.k_B * Tex*u.K / (_si.h * 4.55*u.GHz)).to_value(u.one)
+    Ntot = Z * 10.0**intercept
+    dN_dm = -Ntot / slope
+    dN_db = Ntot * np.log(10)
+    variance = ((dN_dm*slope_err)**2 + (dN_db*intercept_err)**2 +
+                2*dN_dm*dN_db*slope_intercept_cov)
+    if variance < 0:
+        raise ValueError("The supplied covariance gives a negative variance")
+    return Ntot, np.sqrt(variance), Tex, Tex_err
+
 
 def Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path, plot_noboots = True, plot_boots = True,
                             noboots_col = '0.75', boots_col = 'r', colormarker = 'k', edgemarker = 'k',
@@ -413,11 +458,15 @@ def Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path, plot_noboot
     plt.savefig(f'{fig_path}{source}_Rotational_Diagram{fig_format}', bbox_inches='tight', transparent=False, dpi=300)
     plt.close(fig)
 
-def Columndensity_thin(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec, Bmaj_arcsec):
+def Columndensity_thin(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D,
+                       Bmin_arcsec, Bmaj_arcsec, Aul_s=None,
+                       upper_degeneracy=None):
     """
     Column density of the upper level in the optical thin limit
     given the transitiion integrated line intensiy in Jy km/s (converted inside to K kms)
-    for a linear molecule
+    for a linear molecule. ``Aul_s`` and ``upper_degeneracy`` may be supplied
+    from a spectroscopy catalog; otherwise the original rigid-rotor
+    coefficient and ``2J+1`` degeneracy are used.
     Goldsmith 1999
     Returns Nu/gu in cm-2
     """
@@ -437,16 +486,28 @@ def Columndensity_thin(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec, 
     freq_Hz = freq_GHz*1e9*(u.s**-1)
     if (isinstance(Jup, pd.Series)):
         Jup = Jup.to_list()[0]
-    gu = 2.*Jup+1
+    if isinstance(upper_degeneracy, pd.Series):
+        upper_degeneracy = upper_degeneracy.to_list()[0]
+    gu = 2.*Jup+1 if upper_degeneracy is None else float(upper_degeneracy)
     # Einstein coefficient
-    Aul = 64.*(np.pi**4)*(freq_Hz.value**3)*(elec_dipole.value**2)*Jup/(3.*h_si.value*(c_si.value**3)*(2*Jup+1))
+    if isinstance(Aul_s, pd.Series):
+        Aul_s = Aul_s.to_list()[0]
+    if Aul_s is None:
+        Aul = 64.*(np.pi**4)*(freq_Hz.value**3)*(elec_dipole.value**2)*Jup/(3.*h_si.value*(c_si.value**3)*(2*Jup+1))
+    else:
+        Aul_quantity = u.Quantity(Aul_s, 1/u.s)
+        Aul = Aul_quantity.to_value(1/u.s)
+        if not np.isfinite(Aul) or Aul <= 0:
+            raise ValueError("Aul_s must be finite and positive")
     gamma_u = 8.*np.pi*k_si.value*(freq_Hz.value**2)/(h_si.value*(c_si.value**3)*Aul)
     # Nu/gu
     Nuthin_gu = gamma_u*W/gu
     Nuthin_gu_err = gamma_u*W_err/gu
     return Nuthin_gu, Nuthin_gu_err
 
-def Columndensity_thick(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec, Bmaj_arcsec, tau):
+def Columndensity_thick(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D,
+                        Bmin_arcsec, Bmaj_arcsec, tau, Aul_s=None,
+                        upper_degeneracy=None):
     """
     Column density of the upper level
     given the transitiion integrated line intensiy in K kms
@@ -454,8 +515,12 @@ def Columndensity_thick(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec,
     Goldsmith 1999
     Returns Nu/gu in cm-2
     """
-    Nuthin_gu, Nuthin_gu_err = Columndensity_thin(freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec, Bmaj_arcsec)
-    Ctau = tau/(1.-np.exp(-tau))
+    Nuthin_gu, Nuthin_gu_err = Columndensity_thin(
+        freq_GHz, Snu, Snu_err, Jup, elec_dipole_D, Bmin_arcsec,
+        Bmaj_arcsec, Aul_s=Aul_s, upper_degeneracy=upper_degeneracy)
+    tau = np.asarray(tau, dtype=float)
+    Ctau = np.ones_like(tau)
+    np.divide(tau, -np.expm1(-tau), out=Ctau, where=tau != 0)
     Nu_gu = Nuthin_gu*Ctau
     Nu_gu_err = Nuthin_gu_err*Ctau
     return Nu_gu, Nu_gu_err
@@ -528,4 +593,3 @@ def sourcesize_from_fit(Tmain_beam, Tex, Size_arcsec):
     return Source_size_arcsec
 
 
-    
