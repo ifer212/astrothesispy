@@ -3,10 +3,26 @@
 
 > Astrothesispy is just a recompilation of equations, methods and plots created for my PhD in Atrophysics and for some scientific publications.
 
-To install just use pip:
+To install the published Python package:
 &emsp;  ```
             pip install astrothesispy
         ```
+
+For development or for the bundled observational data and figure scripts, clone
+the repository and install it in editable mode from its root:
+
+```bash
+git clone https://github.com/ifer212/astrothesispy.git
+cd astrothesispy
+python -m pip install -e '.[examples]'
+python -m unittest discover -s tests -v
+```
+
+Run the example scripts from the repository root, since their data and output
+paths are relative to that directory. The package wheel includes the small HC3N
+catalog files, but the large `data/` and `Figures/` trees are only in the
+repository. The figure scripts may also require a local LaTeX installation and
+the external Fortran modelling program for particular figures.
 
 - The ```utiles``` module includes most of the methods defined during the thesis:
     - ```utiles.utiles```: Contains simple method to work with arrays and some simple statistics function (e.g. montecarlo simulation and bootstrapping).
@@ -117,6 +133,5 @@ utiles_molecules.Rotational_Diagram_plot(source, vib_temp_df, fit_dict, fig_path
  * _Rico-Villas et al. 2022_    &emsp; &emsp; &emsp;   <img src="Figures/readme_logos/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/> [2208.01941](https://ui.adsabs.harvard.edu/link_gateway/2022arXiv220801941R/arxiv:2208.01941)  &nbsp;  <img src="Figures/readme_logos/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> [10.1093/mnras/stac2260](https://ui.adsabs.harvard.edu/abs/2022MNRAS.516.1094R/abstract)
  * _Rico-Villas et al. 2021_    &emsp; &emsp; &emsp;    <img src="Figures/readme_logos/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/> [2008.03693](https://ui.adsabs.harvard.edu/link_gateway/2021MNRAS.502.3021R/arxiv:2008.03693)  &nbsp; <img src="Figures/readme_logos/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> [10.1093/mnras/stab197](https://ui.adsabs.harvard.edu/link_gateway/2021MNRAS.502.3021R/doi:10.1093/mnras/stab197)
  * _Rico-Villas et al. 2020_   &emsp; &emsp; &emsp;     <img src="Figures/readme_logos/arxiv-logo.svg" alt="arxiv" style="width: 50px; height: 20px;"/>  [1909.11385](https://ui.adsabs.harvard.edu/link_gateway/2020MNRAS.491.4573R/arxiv:1909.11385) &nbsp;  <img src="Figures/readme_logos/DOI_logo.svg" alt="DOI" style="width: 20px; height: 20px;"/> [10.1093/mnras/stz3347](https://ui.adsabs.harvard.edu/link_gateway/2020MNRAS.491.4573R/doi:10.1093/mnras/stz3347)
-
 
 

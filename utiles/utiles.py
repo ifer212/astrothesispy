@@ -88,15 +88,23 @@ def round_to_multiple(number, base):
     return nearest_multiple
         
 def binnings(lista_x, lista_y, binsize):
-    # el rango lo hago -zbinsize y +2*zbinsize para que al pitnarlo con step no se me corte la anhura del "bin"
+    """Return bin centers and the y values falling within each center's bin."""
+    if binsize <= 0:
+        raise ValueError("binsize must be positive")
+    if len(lista_x) != len(lista_y):
+        raise ValueError("lista_x and lista_y must have the same length")
+    if len(lista_x) == 0:
+        return np.array([]), []
+    # Include a margin so plotted outer bins are not clipped.
     bins = np.arange(min(lista_x)-binsize, max(lista_x)+binsize+binsize, binsize)
-    binned = [] # binned list
-    for i, val in enumerate(bins):
-        binned.append([])
-        for j, lob in enumerate(lista_x):
+    binned = []
+    for val in bins:
+        values = []
+        for lob, y in zip(lista_x, lista_y):
             if val-(binsize/2.0) <= lob <= val+(binsize/2.0):
-                binned[i].append(binned[j])
-    return (bins, binned)
+                values.append(y)
+        binned.append(values)
+    return bins, binned
 
 def list_duplicates_of(seq,item):
     start_at = -1
@@ -124,7 +132,10 @@ def merge_ranges(ranges):
     []
     """
     ranges = iter(sorted(ranges))
-    current_start, current_stop = next(ranges)
+    try:
+        current_start, current_stop = next(ranges)
+    except StopIteration:
+        return
     for start, stop in ranges:
         if start > current_stop:
             # Gap between segments: output current segment and start a new one.
@@ -558,6 +569,6 @@ def latex_float(f):
     float_str = "{0:.2g}".format(f)
     if "e" in float_str:
         base, exponent = float_str.split("e")
-        return rf'{np.float(base):1.1f}\times10^{{{int(exponent):1.0f}}}'
+        return rf'{float(base):1.1f}\times10^{{{int(exponent):1.0f}}}'
     else:
         return float_str

@@ -1,7 +1,3 @@
-from .utiles import *
-from .scripts import *
-from .radiative_transfer import *
-from .HC3N import *
+"""Astronomy methods and figures from the Astrothesispy research project."""
 
-
-__version__ = '0.1.0'
+__version__ = "1.0.1"

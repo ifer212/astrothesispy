@@ -41,7 +41,7 @@ def flux_to_lum(flux, z_source, z=True):
     if z==True:
         dist_lum = cosmo.luminosity_distance(z_source)
     else: 
-        dist_lum = z_source*u.Mpc
+        dist_lum = u.Quantity(z_source, u.Mpc)
     dist_lum = dist_lum.to(u.m) # dist lum in meters
     flux = u.Quantity(flux, u.W / u.m**2)
     lum = (4.0*pi*dist_lum**2) * flux
@@ -104,17 +104,19 @@ def stef_boltz_error(r, r_err, T, T_err):
 # Planck Function
 def planck(freq, T):
     """ 
-    Planck Function
-    T in kelvins
-    freq in Hz
+    Planck spectral radiance B_nu for frequency in Hz and temperature in K.
+
+    Returns W / (m2 Hz sr); inputs can be scalars, arrays or quantities.
     """
     h_si = _si.h
     c_si = _si.c
     k_si = _si.k_B
     T = u.Quantity(T, u.K)
     freq = u.Quantity(freq, u.Hz)
-    B = 2.*h_si*freq**3./(c_si**2. * np.exp(h_si*freq/(k_si*T)) - (1.0 *u.m**2 /u.s**2))
-    return B
+    exponent = (h_si*freq/(k_si*T)).to_value(u.dimensionless_unscaled)
+    return (2 * h_si * freq**3 / c_si**2 / np.expm1(exponent) / u.sr).to(
+        u.W / (u.m**2 * u.Hz * u.sr)
+    )
     
 def Energy_cmtoK(energy_cm):
     """
@@ -126,15 +128,14 @@ def Energy_cmtoK(energy_cm):
     return e_k.value
 
 def planckwave(wav, T):
-    h_si = _si.h
-    c_si = _si.c
-    k_si = _si.k_B
-    a = 2.0*h_si*c_si**2
-    b = h_si*c_si/(wav*k_si*T)
-    intensity = a/ ( (wav**5) * (np.exp(b) - 1.0) )
-    return intensity
+    """B_lambda in W / (m2 m sr); bare wavelengths are meters, T is K."""
+    wav = u.Quantity(wav, u.m)
+    T = u.Quantity(T, u.K)
+    exponent = (_si.h * _si.c / (wav * _si.k_B * T)).to_value(u.one)
+    return (2 * _si.h * _si.c**2 / wav**5 / np.expm1(exponent) / u.sr).to(
+        u.W / (u.m**2 * u.m * u.sr))
 
-# Linear Size
+
 def lin_size(D, r, D_err = 0):
     """
     Linear size from angular size
@@ -170,7 +171,6 @@ def lin_size_pd(D, r, D_err = 0):
     else:
         D_err = u.Quantity(D_err, u.Mpc)
         d_err = D_err.to(u.m)
-        L_err = np.sqrt(((0*d.value/206265.0)**2)+((d_err.value*r/206265.0)**2))
         L_err = (d_err.value*r/206265.0)
         return L, L_err
     
@@ -189,7 +189,7 @@ def ang_size(D, L):
     return r
 
 # Flux conversions
-def wm2_to_jykms(flux, freq_wave_obs, *wavelength):
+def wm2_to_jykms(flux, freq_wave_obs, wavelength=False):
     """
     From W/m^2 to Jy km/s
     Intensity (W/m^2)
@@ -201,63 +201,45 @@ def wm2_to_jykms(flux, freq_wave_obs, *wavelength):
     
     flux = u.Quantity(flux, u.W/ u.m**2)
     
-    freq_obs = u.Quantity(freq_wave_obs, u.GHz)
-    fobs = freq_obs.to(u.Hz, equivalencies=u.spectral())
-    
-    if wavelength:
-        wave_obs = u.Quantity(freq_wave_obs, u.mm)
-        fobs = wave_obs.to(u.Hz, equivalencies=u.spectral())
-    
+    spectral_value = u.Quantity(freq_wave_obs, u.mm if wavelength else u.GHz)
+    fobs = spectral_value.to(u.Hz, equivalencies=u.spectral())
+
     dflux = flux * c_si / fobs #  W * km / s * Hz * m^2
     dflux_kms = dflux.to(u.Jy * u.km / u.s) # Jy * km / s
     return dflux_kms # Flux in Jy km/s
     
 # Flux conversions
-def wm2_to_jy(flux, fwhm, *wavelength):
-    """
-    From W/m^2 to Jy km/s
-    Intensity (W/m^2)
-    freq_wave_obs (GHz or mm)
-    c_si (km/s)
-    wavelength True --> fobs is lambda_obs
+def wm2_to_jy(flux, fwhm, wavelength=False):
+    """Mean flux density in Jy from W/m2 and equivalent rectangular bandwidth.
+    The legacy fwhm argument is bandwidth in GHz, not Gaussian FWHM.
+    wavelength=True interprets it as c/lambda (lambda in mm), not delta-lambda.
     """
     
     flux = u.Quantity(flux, u.W/ u.m**2)
     
-    freq_obs = u.Quantity(fwhm, u.GHz)
-    fobs = freq_obs.to(u.Hz, equivalencies=u.spectral())
-    
-    if wavelength:
-        wave_obs = u.Quantity(fwhm, u.mm)
-        fobs = wave_obs.to(u.Hz, equivalencies=u.spectral())
-    
+    spectral_value = u.Quantity(fwhm, u.mm if wavelength else u.GHz)
+    fobs = spectral_value.to(u.Hz, equivalencies=u.spectral())
+
     dflux = flux / fobs #  W / Hz * m^2
     dflux_k = dflux.to(u.Jy) # Jy
     return dflux_k # Flux in Jy
     
-def jy_to_wm2(flux, fwhm, *wavelength):
-    """
-    From W/m^2 to Jy km/s
-    Intensity (W/m^2)
-    freq_wave_obs (GHz or mm)
-    c_si (km/s)
-    wavelength True --> fobs is lambda_obs
+def jy_to_wm2(flux, fwhm, wavelength=False):
+    """Integrated flux in W/m2 from Jy and equivalent rectangular bandwidth.
+    The legacy fwhm argument is bandwidth in GHz, not Gaussian FWHM.
+    wavelength=True interprets it as c/lambda (lambda in mm), not delta-lambda.
     """
     
     flux = u.Quantity(flux, u.Jy)
     
-    freq_obs = u.Quantity(fwhm, u.GHz)
-    fobs = freq_obs.to(u.Hz, equivalencies=u.spectral())
-    
-    if wavelength:
-        wave_obs = u.Quantity(fwhm, u.mm)
-        fobs = wave_obs.to(u.Hz, equivalencies=u.spectral())
-    
+    spectral_value = u.Quantity(fwhm, u.mm if wavelength else u.GHz)
+    fobs = spectral_value.to(u.Hz, equivalencies=u.spectral())
+
     dflux = flux * fobs #  W / Hz * m^2
     dflux_k = dflux.to(u.W/ u.m**2) # Jy
     return dflux_k # Flux in Jy
 
-def jykms_to_wm2(flux, freq_wave_obs, *wavelength):
+def jykms_to_wm2(flux, freq_wave_obs, wavelength=False):
     """
     From Jy km/s to W/m^2
     Intensity (W/m^2)
@@ -269,13 +251,9 @@ def jykms_to_wm2(flux, freq_wave_obs, *wavelength):
     
     flux = u.Quantity(flux, u.Jy * u.km / u.s)
     
-    freq_obs = u.Quantity(freq_wave_obs, u.GHz)
-    fobs = freq_obs.to(u.Hz, equivalencies=u.spectral())
-    
-    if wavelength:
-        wave_obs = u.Quantity(freq_wave_obs, u.mm)
-        fobs = wave_obs.to(u.Hz, equivalencies=u.spectral())
-    
+    spectral_value = u.Quantity(freq_wave_obs, u.mm if wavelength else u.GHz)
+    fobs = spectral_value.to(u.Hz, equivalencies=u.spectral())
+
     dflux = flux * fobs / c_si #  Jy * Hz
     dflux_w = dflux.to(u.W / u.m**2) # W/m^2
     return dflux_w # Flux in Jy km/s
@@ -462,81 +440,59 @@ def Jybeam_to_Jy(Jybeam, bmin, bmaj, xpixscale, ypixscale):
     Beam Area =  2 × π × σ² [arcsec]
     number of pixels in a beam = Beam Area [arcsec] / (pixel length)²
     """
-    beams_per_pixel = xpixscale*ypixscale / (bmin * bmaj * np.pi/(4*np.log(2))) * u.beam
+    beams_per_pixel = abs(xpixscale*ypixscale) / (bmin * bmaj * np.pi/(4*np.log(2))) * u.beam
     q = ((Jybeam*u.Jy/u.beam) * beams_per_pixel).to(u.Jy)
     Total_flux_Jy = np.nansum(q).value
     return Total_flux_Jy
     
-def Jybeam_to_T_fromGaussian(Jybeam, freq_GHz, x_FWHM, y_FWHM, Jybeam_err = 0, x_FWHM_err=0, y_FWHM_err=0):
-    # https://science.nrao.edu/facilities/vla/proposing/TBconv
-    """
-    Flux density in Jy/Beam yo Brightness temperature in Kelvin
-    freq in GHz
-    gaussian area = 2*pi*sigmax*sigmay
-    
-    """
-    xsigma, xsigma_err = utiles.fwhm_to_stdev(x_FWHM, x_FWHM_err) * u.arcsec
-    ysigma, ysigma_err = utiles.fwhm_to_stdev(y_FWHM, y_FWHM_err) * u.arcsec
-    beam_sigma = 2. *np.pi*xsigma*ysigma
-    beam_sigma_err = np.sqrt((2. *np.pi*xsigma*ysigma_err)**2 + (2. *np.pi*ysigma*xsigma_err)**2)
-    #T = 1.222E3 * (Jybeam * 1000.) / ((freq**2.) * Bmin *Bmaj)
-    JyBeam = Jybeam *u.Jy/beam_sigma
-    JyBeam_err = np.sqrt((Jybeam_err *u.Jy/beam_sigma)**2 + (Jybeam *u.Jy/(beam_sigma_err**2))**2)
-    freq = freq_GHz*u.GHz
-    T = (JyBeam).to(u.K, equivalencies=u.brightness_temperature(freq)) 
-    T_err = (JyBeam_err).to(u.K, equivalencies=u.brightness_temperature(freq)) 
-    return T, T_err
+def Jybeam_to_T_fromGaussian(Jybeam, freq_GHz, x_FWHM, y_FWHM, Jybeam_err=0, x_FWHM_err=0, y_FWHM_err=0):
+    """Rayleigh-Jeans brightness temperature and independent 1-sigma error.
 
-def Jybeam_to_T_fromGaussian_v2(Jybeam, freq_GHz, x_FWHM, y_FWHM, Jybeam_err = 0, x_FWHM_err=0, y_FWHM_err=0):
-    # https://science.nrao.edu/facilities/vla/proposing/TBconv
+    Inputs: Jy/beam, GHz, arcsec (or compatible quantities). Frequency is exact;
+    flux and the two Gaussian FWHM uncertainties are assumed uncorrelated.
+    Both outputs are quantities in K; arrays broadcast normally.
     """
-    Flux density in Jy/Beam yo Brightness temperature in Kelvin
-    freq in GHz
-    gaussian area = 2*pi*sigmax*sigmay
-    
-    """
-    xsigma, xsigma_err = utiles.fwhm_to_stdev(x_FWHM, x_FWHM_err) * u.arcsec
-    ysigma, ysigma_err = utiles.fwhm_to_stdev(y_FWHM, y_FWHM_err) * u.arcsec
-    beam_sigma = 2. *np.pi*xsigma*ysigma
-    beam_sigma_err = np.sqrt((2. *np.pi*xsigma*ysigma_err)**2 + (2. *np.pi*ysigma*xsigma_err)**2)
-    #T = 1.222E3 * (Jybeam * 1000.) / ((freq**2.) * Bmin *Bmaj)
-    JyBeam = Jybeam *u.Jy/beam_sigma
-    JyBeam_err = np.sqrt((Jybeam_err *u.Jy/beam_sigma).value**2 + (Jybeam *u.Jy/(beam_sigma_err**2)).value**2)
-    freq = freq_GHz*u.GHz
-    T = (JyBeam).to(u.K, equivalencies=u.brightness_temperature(freq)) 
-    T_err = (JyBeam_err*u.Jy/u.arcsec**2).to(u.K, equivalencies=u.brightness_temperature(freq)) 
-    return T, T_err
+    flux = u.Quantity(Jybeam, u.Jy)
+    flux_err = u.Quantity(Jybeam_err, u.Jy)
+    x = u.Quantity(x_FWHM, u.arcsec)
+    y = u.Quantity(y_FWHM, u.arcsec)
+    dx = u.Quantity(x_FWHM_err, u.arcsec)
+    dy = u.Quantity(y_FWHM_err, u.arcsec)
+    freq = u.Quantity(freq_GHz, u.GHz)
+    if np.any(x <= 0*u.arcsec) or np.any(y <= 0*u.arcsec) or np.any(freq <= 0*u.GHz):
+        raise ValueError("Frequency and Gaussian widths must be positive")
+    if np.any(flux_err < 0*u.Jy) or np.any(dx < 0*u.arcsec) or np.any(dy < 0*u.arcsec):
+        raise ValueError("Uncertainties must be nonnegative")
+    omega = np.pi*x*y/(4*np.log(2))
+    intensity = flux/omega
+    # Derivative form remains finite when flux or a supplied uncertainty is zero.
+    intensity_err = np.sqrt((flux_err/omega)**2 +
+                            (intensity*dx/x)**2 + (intensity*dy/y)**2)
+    equivalency = u.brightness_temperature(freq)
+    return intensity.to(u.K, equivalencies=equivalency), intensity_err.to(u.K, equivalencies=equivalency)
+
+
+def Jybeam_to_T_fromGaussian_v2(Jybeam, freq_GHz, x_FWHM, y_FWHM, Jybeam_err=0, x_FWHM_err=0, y_FWHM_err=0):
+    """Compatibility alias for Jybeam_to_T_fromGaussian, including arrays."""
+    return Jybeam_to_T_fromGaussian(Jybeam, freq_GHz, x_FWHM, y_FWHM,
+                                   Jybeam_err, x_FWHM_err, y_FWHM_err)
+
 
 def Jybeam_to_Jypx(Jybeam, xpixsize, ypixsize, bmin, bmaj):
     """
     Flux density in Jy/Beam to Jy/px
     Now area integration can be done with Aperture_photometry from photutils
     """
-    beam_size = utiles.beam_size(bmin, bmaj)
-    Jypx = Jybeam*(xpixsize*ypixsize)/beam_size
+    beam_size = np.pi*bmin*bmaj/(4*np.log(2))
+    Jypx = Jybeam*abs(xpixsize*ypixsize)/beam_size
     return Jypx
 
-def Jybeam_to_T_fromGaussian_array(Jybeam, freq_GHz, x_FWHM, y_FWHM, Jybeam_err = 0, x_FWHM_err=0, y_FWHM_err=0):
-    # https://science.nrao.edu/facilities/vla/proposing/TBconv
-    """
-    Flux density in Jy/Beam yo Brightness temperature in Kelvin
-    freq in GHz
-    gaussian area = 2*pi*sigmax*sigmay
-    
-    """
-    xsigma, xsigma_err = utiles.fwhm_to_stdev(x_FWHM, x_FWHM_err) 
-    ysigma, ysigma_err = utiles.fwhm_to_stdev(y_FWHM, y_FWHM_err)
-    beam_sigma = 2. *np.pi*xsigma*ysigma
-    beam_sigma_err = np.sqrt((2. *np.pi*xsigma*ysigma_err)**2 + (2. *np.pi*ysigma*xsigma_err)**2)
-    #T = 1.222E3 * (Jybeam * 1000.) / ((freq**2.) * Bmin *Bmaj)
-    JyBeam = Jybeam/beam_sigma
-    JyBeam_err = np.sqrt((Jybeam_err/beam_sigma)**2 + (Jybeam/(beam_sigma_err**2))**2)
-    freq = freq_GHz*u.GHz
-    T = (JyBeam*u.Jy/u.arcsec**2).to(u.K, equivalencies=u.brightness_temperature(freq)) 
-    T_err = (JyBeam_err*u.Jy/u.arcsec**2).to(u.K, equivalencies=u.brightness_temperature(freq)) 
-    return T, T_err
+def Jybeam_to_T_fromGaussian_array(Jybeam, freq_GHz, x_FWHM, y_FWHM, Jybeam_err=0, x_FWHM_err=0, y_FWHM_err=0):
+    """Compatibility alias for Jybeam_to_T_fromGaussian, including arrays."""
+    return Jybeam_to_T_fromGaussian(Jybeam, freq_GHz, x_FWHM, y_FWHM,
+                                   Jybeam_err, x_FWHM_err, y_FWHM_err)
 
-# Flux density in Jy to Brightness Temperature
+
 def Jy_to_T(Jy, freq_GHz, Bmin_arcsec, Bmaj_arcsec):
     """
      Conversion from flux density to brightness temperature
