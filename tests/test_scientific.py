@@ -4,6 +4,7 @@ import io
 import unittest
 
 import numpy as np
+import pandas as pd
 from astropy import constants as const, units as u
 from astropy.modeling.models import BlackBody
 from scipy.integrate import quad
@@ -12,6 +13,7 @@ from astrothesispy.utiles import u_conversion as c
 from astrothesispy.utiles import utiles_alma as alma
 from astrothesispy.utiles import utiles_physical as physical
 from astrothesispy.utiles import utiles_molecules as molecules
+from astrothesispy.utiles import excitation
 
 
 class ScientificTests(unittest.TestCase):
@@ -150,6 +152,10 @@ class ScientificTests(unittest.TestCase):
         actual, _ = molecules.Columndensity_thin(100, 1, .1, J, 3.7, 1, 1)
         # Legacy 1.224e6 beam-temperature constant is rounded (~0.154% high).
         np.testing.assert_allclose(actual, expected, rtol=.002)
+        catalog, _ = molecules.Columndensity_thin(
+            100, 1, .1, J, 3.7, 1, 1, Aul_s=2*A,
+            upper_degeneracy=2*J+1)
+        np.testing.assert_allclose(catalog, expected/2, rtol=.002)
 
     def test_optical_depth_correction_thin_limit(self):
         args = (100, 1, .1, 10, 3.7, 1, 1)
@@ -157,6 +163,51 @@ class ScientificTests(unittest.TestCase):
         for tau in [0, 1e-10]:
             thick = molecules.Columndensity_thick(*args, tau=tau)
             np.testing.assert_allclose(thick, thin, rtol=1e-9)
+
+    def test_two_temperature_excitation_recovers_synthetic_populations(self):
+        B = 4.55*u.GHz
+        states = np.repeat(["v=0", "v7=1", "v7=2"], 2)
+        J = np.tile([24, 26], 3)
+        Evib = np.repeat([0., 320., 650.], 2)
+        Erot = (const.h*B/const.k_B).to_value(u.K)*J*(J+1)
+        offset = np.where(states == "v=0", -.2, 0.)
+        true_y = 13-Evib/(500*np.log(10))-Erot/(90*np.log(10))+offset
+        multiplicity = np.array([1, 1, 2, 1, 1, 1])
+        measured_y = true_y+np.log10(multiplicity)
+        table = pd.DataFrame({
+            "vib_state": states, "qn1": J, "EUP_K": Evib+Erot,
+            "logNu/gu": measured_y, "logNu/gu_relerr": .02,
+            "multiplicity": multiplicity,
+        })
+        fit = excitation.fit_two_temperature_excitation(
+            table, B, offset_states=["v=0"],
+            component_multiplicity="multiplicity")
+        self.assertAlmostEqual(fit.vibrational_temperature_K, 500, places=8)
+        self.assertAlmostEqual(fit.rotational_temperature_K, 90, places=8)
+        self.assertAlmostEqual(fit.state_offsets_dex["v=0"], -.2, places=10)
+        self.assertAlmostEqual(fit.state_population_correction_factors["v=0"],
+                               10**.2, places=10)
+        self.assertLess(fit.chi2, 1e-20)
+
+    def test_correlated_band_calibration_weakens_rotational_temperature(self):
+        B = 4.55*u.GHz
+        states = np.repeat(["v=0", "v7=1", "v7=2"], 2)
+        J = np.tile([24, 26], 3)
+        Evib = np.repeat([0., 320., 650.], 2)
+        Erot = (const.h*B/const.k_B).to_value(u.K)*J*(J+1)
+        y = 13-Evib/(500*np.log(10))-Erot/(90*np.log(10))
+        table = pd.DataFrame({
+            "vib_state": states, "qn1": J, "EUP_K": Evib+Erot,
+            "logNu/gu": y, "logNu/gu_relerr": .02,
+        })
+        statistical = excitation.fit_two_temperature_excitation(table, B)
+        calibrated = excitation.fit_two_temperature_excitation(
+            table, B, calibration_groups="qn1", calibration_fraction=.05)
+        self.assertAlmostEqual(calibrated.rotational_temperature_K, 90, places=8)
+        self.assertGreater(calibrated.rotational_temperature_error_K,
+                           statistical.rotational_temperature_error_K)
+        self.assertAlmostEqual(calibrated.vibrational_temperature_error_K,
+                               statistical.vibrational_temperature_error_K, places=10)
 
 
 if __name__ == '__main__':

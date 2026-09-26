@@ -3,7 +3,8 @@
 ## Scope and status
 
 Reviewed the reusable equations in `u_conversion.py`, `utiles_alma.py`,
-`utiles_physical.py`, and `utiles_molecules.py`, with targeted numerical checks.
+`utiles_physical.py`, `utiles_molecules.py`, and the new `excitation.py`, with
+targeted numerical checks.
 This is not a validation of every FITS operation, non-LTE model, plotted result,
 or published analysis. Baseline for this review: commit `031528b`.
 
@@ -14,7 +15,7 @@ independent Astropy calculations, and synthetic examples. Run:
 python -m unittest discover -s tests -v
 ```
 
-All 22 tests pass on Python 3.12, NumPy 2.3.5, SciPy 1.17.0 and Astropy 8.0.1.
+All 24 tests pass on Python 3.12, NumPy 2.3.5, SciPy 1.17.0 and Astropy 8.0.1.
 These include the six tests from the first code review.
 
 ## Corrected issues
@@ -39,6 +40,8 @@ These include the six tests from the first code review.
 | Fit statistics | Relative-weight covariance could obscure the meaning of supplied measurement errors. | Use absolute_sigma=True and expose chi2, degrees of freedom and reduced_chi2. |
 | Rotational bootstrap | It fitted without the main fit's weights and mixed residual scatter with measurement errors. | A weighted parametric bootstrap, 1000 draws around the fitted model, with covariance propagation. It quantifies the stated measurement model, not intrinsic scatter. |
 | Thin optical-depth limit | tau/(1-exp(-tau)) returned 0/0 at tau=0. | Its limit is one; use expm1 for small tau. |
+| HC3N transition strengths | One rigid-rotor A coefficient was used for every vibrational transition. | The builder can use line-specific catalog A coefficients and upper-state degeneracies; the legacy behavior remains the default for reproducibility. |
+| Mixed excitation | A single slope over total upper-state energy forces rotational and vibrational populations to share one temperature. | Added a generalized least-squares model with separate Trot and Tvib, correlated calibration groups, state offsets, component multiplicities, known population corrections and optional intrinsic scatter. |
 | Output labels / compatibility | Column density was labelled cm^-1; NumPy's removed np.float stopped the fit output. | Labels use cm^-2; the formatting helper uses float. |
 
 ## Equations checked
@@ -98,15 +101,19 @@ table, fits = m.rotational_diagram(lines, Jselect=24, bootstrap=False)
 print(fits['NoBootstrap'])
 ```
 
-A line-level follow-up with weights, residuals, leave-one-line-out fits and
-alternative excitation models is in `analysis/SHC13_FIT_DIAGNOSIS.md`.
+A line-level follow-up with weights, residuals, leave-one-line-out fits and a
+catalog-strength two-temperature model is in
+`analysis/SHC13_FIT_DIAGNOSIS.md`. Its robust descriptive result is
+`Tvib = 424.8 ± 18.3 K` and `Trot = 121.2 ± 56.5 K`, conditional on the stated
+model choices.
 
 ## Remaining scientific issues requiring an explicit convention
 
-1. **Rotational versus vibrational partition function.** The line selection spans
-   vibrational states, while Q=kT/(hB) contains only rotational states. Before
-   interpreting N as the total HC3N column, specify vibrational degeneracies,
-   the intended partition function and whether T_rot equals T_vib.
+1. **Rotational versus vibrational partition function.** The new model separates
+   T_rot and T_vib and supports observed component multiplicities. Before
+   interpreting its intercept as the total HC3N column, specify the complete
+   vibrational partition function, emitting area and any unobserved-state
+   degeneracies.
 2. **Virial definitions.** `virial_parameter` strips velocity units and its
    argument is named FWHM, although a usual 5 sigma^2 R/(GM) expression uses
    one-dimensional dispersion. `virial_mass` also needs an explicit radius /
@@ -144,7 +151,6 @@ share one implementation. The legacy fit dictionary `pcov` still holds the
 parameter standard errors to avoid breaking existing callers; the new
 `covariance` key holds the actual 2x2 matrix. The bootstrap uses NumPy's global
 random state, so an explicit `np.random.seed(...)` remains reproducible.
-CRLF endings in the legacy modules were preserved to keep diffs readable.
 
 ## Primary references
 

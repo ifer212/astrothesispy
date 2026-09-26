@@ -110,7 +110,66 @@ old 462 K fit is **not** evidence that the old error calculation was valid;
 those values arise from different models. In the augmented model, `v4=1`
 and `v7=2, J=26` remain about 2.9 and 2.8 stated errors from prediction.
 
-## 4. Sensitivity and next checks
+## 4. Q3: physically justified rotational and vibrational model
+
+Yes. For optically thin apparent upper-state populations, the implemented
+model is
+
+`log10(Nu/gu) = a - Evib/[ln(10) Tvib] - Erot/[ln(10) Trot] + delta_state`,
+
+with `Erot/k = h B J(J+1)/k` and `B = 4.55 GHz`; `Evib = Eu - Erot`.
+The catalog `gup` values for the selected transitions are 49 and 53, equal to
+`2J+1`, so the default treats each selected l-sublevel as an individual
+resolved state. If a population instead sums equivalent unresolved
+components, the API accepts their multiplicity and divides that measurement
+before fitting. It also accepts a known population correction such as
+`tau/[1-exp(-tau)]` when opacity has been obtained independently.
+
+For this physical fit, `Nu/gu` is recalculated with each transition's catalog
+Einstein A coefficient. The Q1 reproduction retains the original rigid-rotor
+A approximation. Most catalog corrections are small, but the selected
+`v6=1, J=24` coefficient changes its population by about 0.10 dex and the
+`v=0, J=24` coefficient by about 0.052 dex, so the catalog values matter for
+the shallow within-state rotational slopes.
+
+The generalized least-squares covariance contains a 5% multiplicative
+calibration term shared by every line in the same observing band. Here that
+term is also shared by J: all J=24 lines are near 219 GHz and all J=26 lines
+are near 237 GHz. It therefore leaves the best-fit temperatures unchanged but
+increases the formal `Trot` uncertainty from about 16 K to **43 K**.
+
+Two versions are reported:
+
+| Model | Tvib | Trot | v=0 apparent-population offset | Extra scatter | Fit statistic |
+|---|---:|---:|---:|---:|---:|
+| Stated errors + 5% band calibration | **449.9 ± 12.1 K** | **111.7 ± 42.6 K** | `-0.233 ± 0.017 dex` | none | chi2/dof = 26.84/8, p=0.00075 |
+| Robust descriptive model | **424.8 ± 18.3 K** | **121.2 ± 56.5 K** | `-0.275 ± 0.035 dex` | **0.0236 dex** | chi2/dof = 10.85/7, p=0.145 |
+
+The robust model profiles a common unexplained line-to-line scatter. Its
+ground-state offset corresponds to multiplying the apparent v=0 populations
+by **1.88 ± 0.15** to align them with the excited-state trend. This factor is
+an empirical discrepancy, not a measured optical-depth correction. Blending,
+source-filling differences and non-LTE effects can produce similar offsets.
+
+This answers the single-temperature question directly. A straight line
+against total `Eu` imposes **Trot = Tvib**. That is a special LTE condition,
+not something a population diagram guarantees. The strong structured
+residuals reject that condition for these measurements at their stated
+precision. A single fit can still be quoted as an *effective excitation
+temperature*, but it is not a unique physical temperature of the whole
+diagram. The two-temperature result also explains why the vibrational
+temperature returns near the original estimate: after the low rotational
+temperature and v=0 discrepancy are represented explicitly, the between-state
+slope is about 425–450 K. Its closeness to the old 462 K value is partly
+coincidental because the old calculation used invalid uncertainties.
+
+The model is implemented in `utiles/excitation.py`. The script writes
+`SHC13_two_temperature_summary.csv`, line-level diagnostics, and
+`SHC13_two_temperature_model.png`. It deliberately does not turn the fitted
+intercept into total HC3N column density, because that requires consistent
+rotational and vibrational partition functions and a specified emitting area.
+
+## 5. Sensitivity and next checks
 
 Giving all lines an error floor changes the *single-slope* estimate: 0.03,
 0.05, and 0.10 dex floors yield about **525, 497, and 469 K**. The 0.10 dex
